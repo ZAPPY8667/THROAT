@@ -166,6 +166,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   color:var(--acc2);font:700 15px var(--body);box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .35s cubic-bezier(.2,1.4,.4,1);pointer-events:none;text-align:center;max-width:92vw}
 .toast.in{transform:translate(-50%,0)}.toast small{display:block;font:400 10px var(--display);color:var(--dim);letter-spacing:1px;margin-bottom:2px}
 .topb{display:flex;gap:6px}
+/* engine library dialog */
+.lsec{border:1px solid var(--edge);border-radius:7px;padding:8px 10px;margin-top:8px;background:#10162b}.lsec h3,#engLib h3{margin:0 0 4px;font-size:12.5px;color:var(--acc2)}
+.lname{flex:1;height:30px;background:#141b31;border:1px solid var(--edge);border-radius:5px;color:var(--txt);font:600 13px var(--body);padding:0 8px;min-width:0}
+.llist{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:auto}.llist .dl{flex-wrap:wrap}.llist .dl small{flex-basis:100%;order:3}
+.vpart.vlib{background:#22190e}
 .help.goals{position:fixed;z-index:55}.help.goals .card{max-width:560px}
 .glist{display:flex;flex-direction:column;gap:2px;max-height:60vh;overflow:auto}
 .gi{display:grid;grid-template-columns:22px 1fr;gap:0 6px;padding:5px 2px;border-bottom:1px solid #1d2540;font-size:13px}
@@ -219,6 +224,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       <button class="b" id="bClear" title="Clear all loose gas (C)">Clear</button>
       <button class="b" id="bUndo" title="Undo (Ctrl+Z)">↶</button><button class="b" id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button>
       <button class="b" id="bDesigns" title="Save / load your designs">Designs</button>
+      <button class="b" id="bLib" title="Engine library: save the engines and boosters you tested, then use them on rockets">📚 Engines</button>
       <button class="b go" id="bLaunch" title="Build a rocket around your engine and fly it in real time">🚀 Rocket</button>
       <select id="wsize" title="World size (bigger = more room, slower flow). Reloads the page."><option value="160x90">World: S</option><option value="240x135">World: L</option><option value="320x180">World: XL</option></select>
     </div>
@@ -273,7 +279,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 <script>var THROAT_SIZE=(function(){try{var s=JSON.parse(localStorage.getItem("throat.size.v1"));if(s&&s.length===2)return s;}catch(e){}return [240,135];})();</script>
 <div class="vab" id="vab">
   <canvas id="vcv" aria-label="Rocket editor"></canvas>
-  <div class="vhint">Drag parts in from the left: they snap together. Drag a part to move it and everything under it (Alt: just that one). Shift+wheel stretches a tank. Del removes. M mirror.</div>
+  <div class="vhint">Drag parts in from the left: they snap together. Drag a part to move it and everything under it (Alt: just that one). Shift+wheel stretches a tank or solid booster. Del removes. M mirror.</div>
   <div class="vpanel vpal" id="vPal"><h3>Parts</h3><div id="vParts"></div></div>
   <div class="vpanel vstat"><h3>Rocket</h3><input id="vName" class="vname" maxlength="40" aria-label="Rocket name"><div id="vStats"></div></div>
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>
@@ -1630,10 +1636,17 @@ function measureThrust(){let fx=0,fy=0;const A=DX*DX;
   // a solid motor's propellant use is what the grain burns (the hollow it leaves refills for free in the time-lapse)
   if(simTime>lastMassT&&lastMassT>0){const dt=simTime-lastMassT,md=srbMass>lastSrb||srbBurning?(srbMass-lastSrb)/dt:(m-lastMass)/dt;if(isFinite(md))mdotS=mdotS*0.7+md*0.3;
     // booster burn summary: impulse and average Isp over the whole burn
-    if(srbBurning&&!burn)burn={t0:lastMassT,m0:lastSrb,imp:0,peak:0,done:false};
-    if(burn&&!burn.done){const F=Math.hypot(thrX,thrY);burn.imp+=F*dt;burn.peak=Math.max(burn.peak,F);if(!srbBurning&&srbMass-burn.m0>0){burn.done=true;burn.t1=simTime;}}}
+    if(srbBurning&&!burn)burn={t0:lastMassT,m0:lastSrb,imp:0,peak:0,done:false,s:[],air:atmo};
+    if(burn&&!burn.done){const F=Math.hypot(thrX,thrY);burn.imp+=F*dt;burn.peak=Math.max(burn.peak,F);burn.s.push([burn.imp,F]);if(!srbBurning&&srbMass-burn.m0>0){burn.done=true;burn.t1=simTime;burnDone(burn);}}}
   if(srbMass<lastSrb)burn=null;
   lastMass=m;lastMassT=simTime;lastSrb=srbMass;}
+// a finished booster burn goes to flight (and the engine library): average thrust, Isp, and the thrust curve. The curve is sampled
+// against impulse delivered so far, which is the same as propellant burned (Isp is steady), because flight burns it that way
+function burnDone(b){const mp=srbMass-b.m0,dur=b.t1-b.t0;if(!(mp>0&&dur>0&&b.imp>0)||b.s.length<4)return;
+  const Fa=b.imp/dur,N=12,c=[];let j=0;
+  for(let i=0;i<N;i++){const I=b.imp*(i+0.5)/N;while(j<b.s.length-1&&b.s[j][0]<I)j++;c.push(b.s[j][1]/Fa);}
+  const mean=c.reduce((a,x)=>a+x,0)/N;
+  recordBurn({F:Fa,isp:b.imp/(mp*9.80665),curve:c.map(x=>+(x/mean).toFixed(3)),atmo:b.air,dur});}
 const ARW=["→","↘","↓","↙","←","↖","↑","↗"];
 function readouts(){
   const set=(id,v)=>{const el=$(id);if(el.textContent!==v)el.textContent=v;};
@@ -1778,19 +1791,27 @@ const JUICE=(()=>{
   return{snd,goal,stand,fly,openGoals,toast,GOALS,get done(){return done;}};
 })();
 
-var FLT={on:false,vab:false},_rt=null;function recordTest(F,i){if(_rt)_rt(F,i);}
+var FLT={on:false,vab:false},_rt=null,_rb=null;function recordTest(F,i){if(_rt)_rt(F,i);}function recordBurn(b){if(_rb)_rb(b);}
 (()=>{
 // ================= PARTS & VEHICLES =================
 // Parts are rectangles in centimetres: x = centre, y = bottom. They join wherever two of them touch, so the editor
 // and the flight both read the rocket straight from its shape: no hidden attachment tree to get out of sync.
 const G0=9.80665,RHO_P=360;   // bulk density of liquid hydrogen + liquid oxygen, kg/m³
 const tankCap=(w,h)=>RHO_P*Math.PI*(w/200)**2*(h/100);
+// solid boosters carry their own propellant, packed denser than the liquids (a game number: heavy, but not a brick);
+// the bottom 20 cm is the nozzle, so it holds no propellant
+const RHO_S=220,SRB_NZ=20;
+const srbCap=(w,h)=>RHO_S*Math.PI*(w/200)**2*(Math.max(0,h-SRB_NZ)/100);
+const capOf=p=>p.t==="tank"?tankCap(p.w,p.h):p.t==="srb"?srbCap(p.w,p.h):0;
+const hasProp=p=>p.t==="tank"||p.t==="srb";
+const isEng=p=>p.t==="engine"||p.t==="srb";
 const PT={
   probe:  {name:"Probe core",     ws:[60],     h:()=>30, m:()=>4,   desc:"The brain. You need one to steer, and its reaction wheels turn the rocket even with the engine off."},
   nose:   {name:"Nose cone",      ws:[60,120], h:w=>w,   m:w=>w>60?4:1.5, desc:"Cuts air drag a lot. Put one on top of every stack that leads the way."},
   tank:   {name:"Fuel tank",      ws:[60,120], h:()=>90, m:(w,h)=>1+0.08*tankCap(w,h), desc:"Liquid hydrogen + oxygen. Shift+wheel or − / + to change its length."},
   adapter:{name:"Adapter",        ws:[120],    h:()=>60, m:()=>3,   desc:"Joins a wide stack (below) to a narrow one (above)."},
   engine: {name:"Engine",         ws:[60],     h:()=>60, m:()=>9,   desc:"An engine."},
+  srb:    {name:"Solid booster",  ws:[60],     h:()=>150,m:(w,h)=>2+0.12*srbCap(w,h), desc:"Fuel and engine in one. Lights when you throttle up and can't be stopped or throttled until it burns out. Stretch it for a longer burn."},
   dec:    {name:"Decoupler",      ws:[60,120], h:()=>15, m:w=>w>60?5:2, desc:"Space drops everything below it. Engines sitting on one stay off until it fires."},
   sdec:   {name:"Side decoupler", ws:[15],     h:()=>60, m:()=>1.5, radial:1, desc:"Hang boosters on the side. Space drops them (it goes with the booster)."},
   fin:    {name:"Fin",            ws:[45],     h:()=>75, m:()=>1.2, radial:1, desc:"Keeps the rocket pointing where it's going while in the air."},
@@ -1802,16 +1823,30 @@ const ENG={
   wren: {name:"Wren",w:60,h:45,m:5,sl:{F:1100,isp:285},vac:{F:1250,isp:322},desc:"Small and light, for sea level. Good for hoppers and landers."},
   mule: {name:"Mule",w:60,h:60,m:12,sl:{F:3300,isp:305},vac:{F:3650,isp:338},desc:"The workhorse: lots of push at sea level for its size."},
   bison:{name:"Bison",w:120,h:90,m:28,sl:{F:7500,isp:300},vac:{F:8300,isp:330},desc:"Big, powerful sea-level engine for heavy first stages. Needs a wide tank."},
-  vac:  {name:"Lumen Vac",w:60,h:105,m:7,sl:{F:800,isp:140},vac:{F:2600,isp:445},desc:"Huge bell for space: best Isp of all, but weak at sea level (the exhaust is over-expanded)."}};
+  vac:  {name:"Lumen Vac",w:60,h:105,m:7,sl:{F:800,isp:140},vac:{F:2600,isp:445},desc:"Huge bell for space: best Isp of all, but weak at sea level (the exhaust is over-expanded)."},
+  lib:  {name:"Saved engine",w:60,h:60,m:9,desc:"An engine you tested and saved in the engine library."}};
+// solid boosters: what's inside the casing. "Your booster" = your last burn on the test stand; saved ones keep a copy of their numbers
+// on the part (p.n), so a rocket still flies the same after the library entry is deleted. The curve is thrust (relative to the
+// average) against how much of the propellant has burned, sampled evenly from first to last.
+const BOOST={
+  stand:  {name:"Your booster",desc:"Your booster, with the thrust, Isp and thrust curve of your last full burn on the test stand."},
+  thumper:{name:"Thumper",sl:{F:3400,isp:215},vac:{F:3750,isp:237},curve:[1.2,1.15,1.1,1.05,1,1,1,0.98,0.95,0.92,0.9,0.85],desc:"A ready-made booster: hard kick at lift-off that tapers off."},
+  lib:    {name:"Saved booster",desc:"A booster you burned on the test stand and saved in the engine library."}};
+const boostKey=p=>p.b&&BOOST[p.b]?p.b:"stand";
+function boostStat(p){const k=boostKey(p);if(k==="lib"&&p.n)return p.n;if(k==="stand")return boosterNums();return BOOST[k];}
+// thrust multiplier when a fraction u of the propellant is gone (straight lines between the curve's samples)
+function curveAt(c,u){if(!c||c.length<2)return 1;const x=Math.max(0,Math.min(1,u))*(c.length-1),i=Math.min(c.length-2,Math.floor(x));return c[i]+(c[i+1]-c[i])*(x-i);}
 const ENG_ORDER=["stand","wren","mule","bison","vac"];
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
-function engStat(p){const k=engKey(p);return k==="stand"?engineNums():ENG[k];}
-const PT_ORDER=["probe","nose","tank","adapter","engine:stand","engine:wren","engine:mule","engine:bison","engine:vac","dec","sdec","fin","leg"];
+function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k];}
+const PT_ORDER=["probe","nose","tank","adapter","engine:stand","engine:wren","engine:mule","engine:bison","engine:vac","srb:stand","srb:thumper","dec","sdec","fin","leg"];
 let partId=1;
-function mkPart(t,w,h,e){if(t.startsWith("engine:")){e=t.slice(7);t="engine";}const d=PT[t];
-  if(t==="engine"){e=e||"stand";w=ENG[e].w;h=ENG[e].h;}w=w||d.ws[0];const p={id:partId++,t,x:0,y:0,w,h:h||d.h(w),f:1,tw:0};if(e)p.e=e;return p;}
+// t can carry a model: "engine:mule", "srb:thumper"; n = a saved library entry's numbers to copy onto the part
+function mkPart(t,w,h,e,n){let b;if(t.startsWith("engine:")){e=t.slice(7);t="engine";}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}const d=PT[t];
+  if(t==="engine"){e=e||"stand";w=ENG[e].w;h=ENG[e].h;}w=w||d.ws[0];const p={id:partId++,t,x:0,y:0,w,h:h||d.h(w),f:1,tw:0};if(e)p.e=e;if(t==="srb")p.b=b||"stand";
+  if(n)p.n=JSON.parse(JSON.stringify(n));return p;}
 const partMass=p=>p.t==="engine"?ENG[engKey(p)].m:PT[p.t].m(p.w,p.h);
-const partName=p=>p.t==="engine"?ENG[engKey(p)].name:PT[p.t].name;
+const partName=p=>p.t==="engine"?(engKey(p)==="lib"&&p.n?p.n.name:ENG[engKey(p)].name):p.t==="srb"?(boostKey(p)==="lib"&&p.n?p.n.name:BOOST[boostKey(p)].name):PT[p.t].name;
 // a decoupler under an engine gets a shroud (interstage) that covers the engine until it separates
 function shroudsOf(ps){const out=[];ps.forEach((d,i)=>{if(d.t!=="dec"||d.shed)return;let top=-1e9;
   for(const e of ps)if(e.t==="engine"&&near(e.y,d.y+d.h)&&ovl(e.x-e.w/2,e.x+e.w/2,d.x-d.w/2,d.x+d.w/2)>0.5)top=Math.max(top,e.y+e.h);
@@ -1836,7 +1871,8 @@ function bfs(adj,start,allow){const seen=new Set([start]),q=[start];while(q.leng
 // an engine sitting on a stack decoupler waits for it to fire
 function engOn(ps,adj,i,inSet){const e=ps[i];for(const j of adj[i]){const d=ps[j];if(inSet&&!inSet.has(j))continue;if(d.t==="dec"&&near(d.y+d.h,e.y))return false;}return true;}
 // the tanks an engine can drink from: everything joined to it without passing a decoupler
-function feedOf(ps,adj,i,inSet){const s=bfs(adj,i,j=>(!inSet||inSet.has(j))&&ps[j].t!=="dec"&&ps[j].t!=="sdec");return[...s].filter(j=>ps[j].t==="tank").sort((a,b)=>a-b);}
+function feedOf(ps,adj,i,inSet){if(ps[i].t==="srb")return[i];   // a solid booster burns only what's inside it
+  const s=bfs(adj,i,j=>(!inSet||inSet.has(j))&&ps[j].t!=="dec"&&ps[j].t!=="sdec");return[...s].filter(j=>ps[j].t==="tank").sort((a,b)=>a-b);}
 // the decouplers that fire on the next Space: the lowest ones (mirror twins and anything level with them)
 function nextDecs(ps,inSet){let lo=1e9;for(const i of inSet){const p=ps[i];if(p.t==="dec"||p.t==="sdec")lo=Math.min(lo,p.y+p.h/2);}
   if(lo>1e8)return[];return[...inSet].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&Math.abs(ps[i].y+ps[i].h/2-lo)<3);}
@@ -1853,12 +1889,12 @@ function analyze(ps,_eng,fuel){
   if(out.root<0){out.warn.push("Add a probe core. It's the brain, and the rocket is built around it.");return out;}
   const adj=adjOf(ps),all=bfs(adj,out.root,()=>true);
   const loose=ps.length-all.size;if(loose)out.warn.push(`${loose} part${loose>1?"s aren't":" isn't"} attached (shown red) and will be left behind.`);
-  const F=ps.map((p,i)=>p.t==="tank"?(fuel?fuel[i]:tankCap(p.w,p.h)):0);
+  const F=ps.map((p,i)=>hasProp(p)?(fuel?fuel[i]:capOf(p)):0);
   let S=all,first=true,lo=1e9,hi=-1e9;for(const i of all){lo=Math.min(lo,ps[i].y);hi=Math.max(hi,ps[i].y+ps[i].h);}out.H=(hi-lo)/100;
   const massOf=set=>{let m=0;for(const i of set)m+=partMass(ps[i])+F[i];return m;};
   out.mass=massOf(all);
   for(let k=0;k<12;k++){
-    const act=[...S].filter(i=>ps[i].t==="engine"&&engOn(ps,adj,i,S)),decs=nextDecs(ps,S);
+    const act=[...S].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,S)),decs=nextDecs(ps,S);
     const sp=decs.length?split(ps,adj,S,decs,out.root):null,drop=new Set(sp?[...S].filter(i=>!sp.keep.has(i)):[]);
     const must=decs.length?act.filter(i=>drop.has(i)):act;
     const feeds=act.map(i=>feedOf(ps,adj,i,S)),m0=massOf(S);let m=m0,dv=0,t=0;
@@ -1910,6 +1946,14 @@ function drawPart(c,p,o={}){
       if(k==="mule"){c.fillStyle="#3b4250";c.fillRect(x+w*0.22,my+4,w*0.12,(T-my)*0.7);}
       c.beginPath();c.moveTo(x-w*0.17,my);c.quadraticCurveTo(x-w*0.22,y+h*0.25,x-w*bw,y);c.lineTo(x+w*bw,y);c.quadraticCurveTo(x+w*0.22,y+h*0.25,x+w*0.17,my);c.closePath();
       c.fillStyle=metal(c,x-w*bw,x+w*bw,"#262a33","#22262e","#767e8f","#3b414e");c.fill();c.fillStyle="#7a5a2a";c.fillRect(x-w*bw,y,w*bw*2,3);break;}
+    case"srb":{const cy=y+SRB_NZ;   // white casing with black bands (so you can see it roll), short dark nozzle under it
+      c.beginPath();c.moveTo(x-w*0.2,cy);c.lineTo(x-w*0.36,y);c.lineTo(x+w*0.36,y);c.lineTo(x+w*0.2,cy);c.closePath();c.fillStyle=metal(c,x-w*0.36,x+w*0.36,"#262a33","#22262e","#6d7484","#3b414e");c.fill();
+      c.fillStyle="#7a5a2a";c.fillRect(x-w*0.36,y,w*0.72,3);
+      c.fillStyle=metal(c,L,R,"#b3b9c6","#a2a9b8","#ffffff","#e3e7ee");c.fillRect(L,cy,w,T-cy);
+      c.fillStyle="#1f232c";for(const k of[0.18,0.5,0.82]){const yy=cy+(T-cy)*k;c.fillRect(L,yy-3,w,6);}
+      c.fillStyle="#c4402f";c.fillRect(L,T-6,w,6);c.fillStyle="#34405e";c.fillRect(L,cy,w,4);
+      if(T-cy>=45){const fx=x-w*0.5+6,fr=o.fuel!=null?o.fuel:1;c.fillStyle="rgba(10,14,26,.35)";c.fillRect(fx,cy+8,5,T-cy-16);c.fillStyle=fr>0.2?"#ffb347":"#ff6a4d";c.fillRect(fx,cy+8,5,(T-cy-16)*Math.max(0,Math.min(1,fr)));}
+      break;}
     case"dec":hazard(c,L,y,w,h,false);break;
     case"sdec":hazard(c,L,y,w,h,true);break;
     case"fin":{const ix=f>0?L:R,ox=f>0?R:L;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.18);c.lineTo(ox,y);c.lineTo(ix,y);c.closePath();
@@ -1943,6 +1987,9 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
   else if(name==="orbiter"){add("engine",0,0);add("tank",0,60,60,90);add("dec",0,150,60);add("engine",0,165);add("tank",0,225,60,45);add("probe",0,270);add("nose",0,300,60);pair("fin",52.5,60);}
   else if(name==="heavy"){add("engine",0,0);add("tank",0,60,60,150);add("dec",0,210,60);add("engine:vac",0,225);add("tank",0,330,60,60);add("probe",0,390);add("nose",0,420,60);
     pair("sdec",37.5,90);pair("engine:mule",75,30);pair("tank",75,90,60,120);pair("nose",75,210,60);pair("fin",127.5,90);}
+  else if(name==="sparrow"){   // the Orbiter with two Thumper solid boosters strapped on: they light with the throttle; Space drops them
+    add("engine",0,0);add("tank",0,60,60,90);add("dec",0,150,60);add("engine",0,165);add("tank",0,225,60,45);add("probe",0,270);add("nose",0,300,60);
+    pair("sdec",37.5,45);pair("srb:thumper",75,0);pair("nose",75,150,60);pair("fin",127.5,0);}
   else if(name==="lander"){add("engine:bison",0,0);add("tank",0,90,120,60);add("adapter",0,150);add("dec",0,210,60);add("engine:wren",0,225);add("tank",0,270,60,60);
     add("probe",0,330);add("nose",0,360,60);pair("leg",45,270);pair("fin",82.5,90);}
   return A;}
@@ -2082,7 +2129,10 @@ const overPal=e=>{const el=document.elementFromPoint(e.clientX,e.clientY);return
 const overCv=e=>document.elementFromPoint(e.clientX,e.clientY)===vcv;
 function vCarryMove(e){const q=vEvXY(e),w=v2w(q.X,q.Y),p=vcarry.p;p.x=w.x;p.y=w.y-p.h/2;vptr=q;
   const s=vps.length?snapPart(p,p.x,p.y,vps,34/vv.s*VDS):{x:vAxis(),y:0,f:p.f};vcarry.snap=s;}
-function startCarry(t,e){if(e)e.preventDefault();vcarry={p:mkPart(t),snap:null,fresh:true};vsel=null;vInspUI();if(e&&e.clientX!=null)vCarryMove(e);}
+// "lib:<id>" = something from the engine library; the part gets its own copy of the numbers
+function libPart(e){return mkPart(e.kind==="solid"?"srb:lib":"engine:lib",0,0,null,libNums(e));}
+function newPart(t){if(t.startsWith("lib:")){const e=libGet(t.slice(4));return e?libPart(e):mkPart("engine");}return mkPart(t);}
+function startCarry(t,e){if(e)e.preventDefault();vcarry={p:newPart(t),snap:null,fresh:true};vsel=null;vInspUI();if(e&&e.clientX!=null)vCarryMove(e);}
 window.addEventListener("pointermove",e=>{if(!vab.classList.contains("show"))return;if(vcarry){vCarryMove(e);vcarry.inside=overCv(e);}});
 window.addEventListener("pointerup",e=>{if(!vab.classList.contains("show")||!vcarry||!vcarry.fresh)return;vcarry.fresh=false;
   if(overCv(e)){vCarryMove(e);if(vPlace(vcarry.p))vcarry=null;}else if(!overPal(e))vcarry=null;});
@@ -2114,7 +2164,7 @@ function vUp(e){vTouch.delete(e.pointerId);if(vTouch.size<2)vPinch=null;vpan=nul
   vU.push(d.before);vR=[];vChanged();}
 vcv.addEventListener("pointerup",vUp);vcv.addEventListener("pointercancel",vUp);vcv.addEventListener("contextmenu",e=>e.preventDefault());
 vcv.addEventListener("wheel",e=>{e.preventDefault();const i=vsel?vById(vsel):-1;
-  if(e.shiftKey&&i>=0&&vps[i].t==="tank"){const p=vps[i],h=Math.max(30,Math.min(450,p.h+(e.deltaY<0?15:-15)));if(h!==p.h)vResize(i,p.w,h);return;}
+  if(e.shiftKey&&i>=0&&hasProp(vps[i])){const p=vps[i],h=Math.max(30,Math.min(450,p.h+(e.deltaY<0?15:-15)));if(h!==p.h)vResize(i,p.w,h);return;}
   const q=vEvXY(e),k=e.deltaY<0?1.15:1/1.15,s2=Math.max(0.15*VDS,Math.min(12*VDS,vv.s*k)),kk=s2/vv.s;vv.ox=q.X-(q.X-vv.ox)*kk;vv.oy=q.Y-(q.Y-vv.oy)*kk;vv.s=s2;},{passive:false});
 // ---------- keys (while the editor is open, the sandbox doesn't hear them) ----------
 addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT")return;
@@ -2126,27 +2176,37 @@ addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const t
   else if(k==="m"){vMirror=!vMirror;store.set("throat.vmirror",vMirror);vBarUI();}
   else if(k==="f"){vFitView();}
   else if(k==="enter"){$("vGo").click();}
-  else if(k==="-"||k==="="||k==="+"){const i=vsel?vById(vsel):-1;if(i>=0&&vps[i].t==="tank"){const p=vps[i];vResize(i,p.w,Math.max(30,Math.min(450,p.h+(k==="-"?-15:15))));}}
+  else if(k==="-"||k==="="||k==="+"){const i=vsel?vById(vsel):-1;if(i>=0&&hasProp(vps[i])){const p=vps[i];vResize(i,p.w,Math.max(30,Math.min(450,p.h+(k==="-"?-15:15))));}}
   e.stopImmediatePropagation();},true);
 // ---------- panels ----------
-function partIcon(t){const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=mkPart(t);partId--;
+function partIcon(t){const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
   if(t==="tank")p.h=90;const sc=Math.min(70/p.w,70/p.h,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*p.h/2);p.x=0;p.y=0;drawPart(g,p,{legs:false});return c;}
-function vPalUI(){const box=$("vParts");box.innerHTML="";for(const t of PT_ORDER){const b=document.createElement("button"),en=t.startsWith("engine:")?ENG[t.slice(7)]:null;b.className="vpart"+(en?" veng":"");b.title=en?en.desc:PT[t].desc;
-  b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=en?en.name:PT[t].name;b.appendChild(s);
-  b.addEventListener("pointerdown",e=>{startCarry(t,e);});box.appendChild(b);}}
+function vPalUI(){const box=$("vParts");box.innerHTML="";
+  const item=(t,name,desc,cls)=>{const b=document.createElement("button");b.className="vpart"+cls;b.title=desc;
+    b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=name;b.appendChild(s);
+    b.addEventListener("pointerdown",e=>{startCarry(t,e);});box.appendChild(b);};
+  for(const t of PT_ORDER){const en=t.startsWith("engine:")?ENG[t.slice(7)]:t.startsWith("srb:")?BOOST[t.slice(4)]:null;item(t,en?en.name:PT[t].name,en?en.desc:PT[t].desc,en?" veng":"");}
+  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}). Sea level ${(e.sl.F/1000).toFixed(2)} kN, ${Math.round(e.sl.isp)} s.`," vlib");}
 function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.display="none";return;}const p=vps[i],d=PT[p.t];el.style.display="";
-  const cap=p.t==="tank"?tankCap(p.w,p.h):0,isE=p.t==="engine",E=isE?engStat(p):null;
-  let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fmt(partMass(p)+cap)} kg${cap?` (${fmt(cap)} kg propellant)`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:d.desc}</div>`;
+  const cap=capOf(p),isE=p.t==="engine",isS=p.t==="srb",E=isE||isS?engStat(p):null,lib=libAll();
+  let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fmt(partMass(p)+cap)} kg${cap?` (${fmt(cap)} kg propellant)`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:isS?BOOST[boostKey(p)].desc:d.desc}</div>`;
+  if(isS){const B=E,k=boostKey(p),bt=cap*B.sl.isp*G0/B.sl.F;
+    h+=`<div class="tip" style="margin-top:4px">Sea level <b>${(B.sl.F/1000).toFixed(2)} kN · ${Math.round(B.sl.isp)} s</b>${B.sl.est?" (est.)":""}<br>Vacuum <b>${(B.vac.F/1000).toFixed(2)} kN · ${Math.round(B.vac.isp)} s</b>${B.vac.est?" (est.)":""}<br>Burns about <b>${Math.round(bt)} s</b> ${curveSvg(B.curve)}${k==="stand"?`<br>${B.src==="tested"?"From your last booster burn on the test stand.":"Not burned yet: these are the Thumper's numbers until you fire a booster on the test stand."}`:""}</div>
+    <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap"><button class="b${k==="stand"?" on":""}" data-bo="stand">Your booster</button><button class="b${k==="thumper"?" on":""}" data-bo="thumper">Thumper</button>${lib.filter(e=>e.kind==="solid").map(e=>`<button class="b${k==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-bo="${e.id}"></button>`).join("")}</div>`;}
   if(isE)h+=`<div class="tip" style="margin-top:4px">Sea level <b>${(E.sl.F/1000).toFixed(2)} kN · ${Math.round(E.sl.isp)} s</b>${E.sl.est?" (est.)":""}<br>Vacuum <b>${(E.vac.F/1000).toFixed(2)} kN · ${Math.round(E.vac.isp)} s</b>${E.vac.est?" (est.)":""}${engKey(p)==="stand"?`<br>${E.src==="tested"?"From your test stand runs.":"Not tested yet: fire your engine on the stand to record its real numbers."}`:""}</div>
-    <div class="row" style="margin-top:6px;gap:4px">${ENG_ORDER.map(k=>`<button class="b${engKey(p)===k?" on":""}" data-e="${k}">${ENG[k].name}</button>`).join("")}</div>`;
+    <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${ENG_ORDER.map(k=>`<button class="b${engKey(p)===k?" on":""}" data-e="${k}">${ENG[k].name}</button>`).join("")}${lib.filter(e=>e.kind!=="solid").map(e=>`<button class="b${engKey(p)==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-le="${e.id}"></button>`).join("")}</div>`;
   if(p.t==="leg")h+=`<div class="row" style="margin-top:6px"><button class="b${vLegsOut?" on":""}" data-legs="1">${vLegsOut?"Show folded":"Show deployed"}</button></div>`;
   h+=`<div class="row" style="margin-top:6px;gap:5px;flex-wrap:wrap">`;
   if(d.ws.length>1)for(const w of d.ws)h+=`<button class="b${p.w===w?" on":""}" data-w="${w}">${w===60?"Narrow":"Wide"}</button>`;
-  if(p.t==="tank")h+=`<button class="b" data-l="-15">− Shorter</button><button class="b" data-l="15">+ Longer</button>`;
+  if(hasProp(p))h+=`<button class="b" data-l="-15">− Shorter</button><button class="b" data-l="15">+ Longer</button>`;
   h+=`<button class="b" data-del="1" style="margin-left:auto">🗑 Remove</button></div>`;el.innerHTML=h;
   el.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{const w=+b.dataset.w;vResize(i,w,p.t==="nose"?w:p.h);});
   el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{vResize(i,p.w,Math.max(30,Math.min(450,p.h+ +b.dataset.l)));});
-  el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const k=b.dataset.e;vResize(i,ENG[k].w,ENG[k].h,q=>{q.e=k;});});
+  el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const k=b.dataset.e;vResize(i,ENG[k].w,ENG[k].h,q=>{q.e=k;delete q.n;});});
+  // saved names go in as text, not HTML
+  el.querySelectorAll("[data-le]").forEach(b=>{const e=libGet(b.dataset.le);b.textContent=e?e.name:"?";b.onclick=()=>{if(e)vResize(i,ENG.lib.w,ENG.lib.h,q=>{q.e="lib";q.n=libNums(e);});};});
+  el.querySelectorAll("[data-bo]").forEach(b=>{const k=b.dataset.bo,e=BOOST[k]?null:libGet(k);if(e)b.textContent=e.name;
+    b.onclick=()=>vResize(i,p.w,p.h,q=>{if(e){q.b="lib";q.n=libNums(e);}else{q.b=k;delete q.n;}});});
   el.querySelectorAll("[data-legs]").forEach(b=>b.onclick=()=>{vLegsOut=!vLegsOut;vBarUI();vInspUI();});
   el.querySelector("[data-del]").onclick=()=>vDelete(i);}
 function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stages;
@@ -2159,7 +2219,7 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;}
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
 function vBarUI(){$("vLegs").classList.toggle("on",vLegsOut);$("vLegs").textContent=vLegsOut?"🦿 Legs out":"🦿 Legs in";$("vMirror").classList.toggle("on",vMirror);$("vMirror").textContent=vMirror?"⇋ Mirror on":"⇋ Mirror off";
-  const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
+  const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
   sel.innerHTML=h;$("vName").value=vName;}
 $("vLoad").onchange=()=>{const v=$("vLoad").value;$("vLoad").value="";if(!v)return;vPush();
@@ -2218,6 +2278,15 @@ _rt=function(F,isp){
   const mF=sf/hist.length,mI=si/hist.length;if((hi-lo)/mF>0.06)return;            // steady to within 6%
   const k=atmo?"sl":"vac",old=card[k];
   if(!old||Math.abs(old.F-mF)/old.F>0.01||Math.abs(old.isp-mI)>2){card[k]={F:mF,isp:mI,t:Date.now()};store.set(CARD_KEY,card);vAn=null;}};
+// solid boosters: the test stand reports each finished burn (average thrust, Isp, thrust curve); kept per outside air like the engine
+_rb=function(b){if(!(b&&b.F>100&&b.isp>0&&isFinite(b.isp)))return;const k=b.atmo?"sl":"vac";card.srb=card.srb||{};
+  card.srb[k]={F:b.F,isp:b.isp,curve:b.curve,t:Date.now()};store.set(CARD_KEY,card);vAn=null;};
+function boosterNums(){
+  const c=card.srb||{};let sl=c.sl,vac=c.vac,src="tested";
+  if(!sl&&!vac){const T=BOOST.thumper;return{sl:T.sl,vac:T.vac,curve:T.curve,src:"default"};}
+  if(sl&&!vac)vac={F:sl.F*1.1,isp:sl.isp*1.1,est:true};         // same rule as the engine: about 10% more in vacuum
+  if(vac&&!sl)sl={F:vac.F*0.9,isp:vac.isp*0.9,est:true};
+  return{sl,vac,curve:(c.sl||c.vac).curve,src};}
 function engineNums(){
   let sl=card.sl,vac=card.vac,src="tested";
   if(!sl&&!vac){sl={F:2250,isp:355};src="default";}
@@ -2235,7 +2304,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   const npx=mx/m,npy=my/m;
   if(keepWorld&&v.px!=null){const dx=(npx-v.px)/100,dy=(npy-v.py)/100,c=Math.cos(v.phi),s=Math.sin(v.phi);v.x+=dx*c+dy*s;v.y+=-dx*s+dy*c;}
   v.px=npx;v.py=npy;
-  const all=new Set(ps.keys());v.eng=[...all].filter(i=>ps[i].t==="engine"&&engOn(ps,adj,i,all));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
+  const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
   v.dry=ps.reduce((s,p)=>s+partMass(p),0);
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,W=0,top=null,I=0;
   for(const p of ps){x0=Math.min(x0,p.x-p.w/2);x1=Math.max(x1,p.x+p.w/2);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y+p.h);if(!isRad(p))W=Math.max(W,p.w);
@@ -2247,12 +2316,12 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)/100,(q[1]-npy)/100)),v.H);
   v.boomS=Math.max(1.5,v.H*0.6);}
 function mkVessel(ps,name,body){const v={id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
-  for(const p of ps)if(p.t==="tank"&&p.fuel==null)p.fuel=tankCap(p.w,p.h);derive(v,false);return v;}
+  for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
 function startFlight(ps,name){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
   const a=analyze(launchPs,engineNums()),keep=a.root>=0?bfs(adjOf(launchPs),a.root,()=>true):new Set();
-  const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine)delete p.shed;EN=engineNums();
+  const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;}EN=engineNums();   // full tanks again on a retry
   const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)/100);v.x=0;v.y=PR-lo+0.005;v.landed=true;launchW=v.Wall;
   VS=[v];AV=v;FT=0;smoke=[];flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
   msg="Throttle: Shift / W (Z = full).  Steer: A / D.  Space = next stage.  G = legs.  M = map.  , . = time warp";msgT=10;
@@ -2291,11 +2360,16 @@ function stepV(v,dt,u){
   if(v.crashed)return;
   const B=BOD[v.body],rr=Math.hypot(v.x,v.y),ux=v.x/rr,uy=v.y/rr,h=rr-B.R,a=B.atm?atmP(Math.max(0,h))/P0:0,rho=B.atm?atmRho(Math.max(0,h)):0,c=Math.cos(v.phi),s=Math.sin(v.phi);
   // engines: each drinks from the tanks it's joined to
-  let F=0,fuel=0;const thr=v.thr;
-  for(let n=0;n<v.eng.length;n++){const tk=v.feeds[n];let av=0;for(const j of tk)av+=v.ps[j].fuel;v.lit[n]=thr>0&&av>1e-6;
+  let F=0,fuel=0,nS=0;const thr=v.thr;
+  for(let n=0;n<v.eng.length;n++){const tk=v.feeds[n];let av=0;for(const j of tk)av+=v.ps[j].fuel;
+    const P=v.ps[v.eng[n]];
+    if(P.t==="srb"){   // a solid booster lights the first time you throttle up, then burns flat out until it's empty: no throttle, no off switch
+      if(thr>0&&av>1e-6)P.ign=true;v.lit[n]=!!P.ign&&av>1e-6;if(!v.lit[n])continue;
+      const E=v.est[n],k=curveAt(E.curve,1-av/capOf(P));F+=(E.vac.F-(E.vac.F-E.sl.F)*a)*k;nS++;P.fuel=Math.max(0,av-E.vac.F*k/(E.vac.isp*G0)*dt);continue;}
+    v.lit[n]=thr>0&&av>1e-6;
     if(!v.lit[n])continue;const E=v.est[n];F+=(E.vac.F-(E.vac.F-E.sl.F)*a)*thr;const use=Math.min(av,E.vac.F/(E.vac.isp*G0)*thr*dt);for(const j of tk)v.ps[j].fuel-=use*v.ps[j].fuel/av;}
   for(const p of v.ps)if(p.fuel)fuel+=p.fuel;
-  const m=v.dry+fuel;v.F=F;v.a=a;v.m=m;
+  const m=v.dry+fuel;v.F=F;v.a=a;v.m=m;v.nS=nS;
   let ax=F/m*s,ay=F/m*c;const gk=-B.mu/(rr*rr);ax+=gk*ux;ay+=gk*uy;
   // air: drag depends on the shape and on how sideways you fly; fins turn you into the wind
   let tq=0;const sp=Math.hypot(v.vx,v.vy);
@@ -2389,8 +2463,9 @@ function flightFrame(now){
       for(let i=0;i<n;i++){for(const v of VS)stepV(v,h,v===AV&&!AV.crashed?u:0);FT+=h;}}
     AV.wv=wv;
     // sound: your own engines, plus anything else burning close by (boosters you just dropped)
-    if(JX){let L=AV.F>0?AV.thr:0;for(const v of VS)if(v!==AV&&v.F>0&&v.body===AV.body){const d=Math.hypot(v.x-AV.x,v.y-AV.y);if(d<2500)L+=0.5*v.thr*(1-d/2500);}
-      JX.fly.lvl=Math.min(1,L);JX.fly.air=AV.a;JX.fly.srb=0;}
+    if(JX){const own=v=>v.F>0?Math.max(v.thr*(v.lit.some((l,n)=>l&&v.ps[v.eng[n]].t!=="srb")?1:0),v.nS?0.85:0):0;
+      let L=own(AV),C=AV.nS?0.7:0;for(const v of VS)if(v!==AV&&v.F>0&&v.body===AV.body){const d=Math.hypot(v.x-AV.x,v.y-AV.y);if(d<2500){L+=0.5*own(v)*(1-d/2500);if(v.nS)C+=0.5*(1-d/2500);}}
+      JX.fly.lvl=Math.min(1,L);JX.fly.air=AV.a;JX.fly.srb=Math.min(1,C);}
     for(const v of VS)if(v.crashed)v.boomT+=dtR;
     VS=VS.filter(v=>!(v.crashed&&v!==AV&&v.boomT>8));
   }
@@ -2417,12 +2492,20 @@ function plume(ctx,x0,y0,w,thr,a,bright,vacEng){   // in the rocket's frame (y u
   if(a>0.12)for(let k=0;k<5;k++){const yy=y0-w*(1.25+1.3*k)*(1+0.4*vac),rr=w*(0.42-0.05*k),gg=ctx.createRadialGradient(x0,yy,0,x0,yy,rr);   // Mach diamonds
     gg.addColorStop(0,col([255,250,255],Math.min(1,1.1*a*thr*(1-0.17*k))));gg.addColorStop(1,col([255,150,230],0));ctx.fillStyle=gg;ctx.beginPath();ctx.arc(x0,yy,rr,0,6.2832);ctx.fill();}
   ctx.restore();}
+function srbPlume(ctx,x0,y0,w,a,bright){   // solid exhaust: a white-hot core in a long, flickering orange flame, wider in vacuum
+  const vac=1-a,fl=0.88+Math.random()*0.24,L=w*(13+5*vac)*fl,spread=Math.tan(lerp(0.05,0.42,Math.pow(vac,0.6)))*L;
+  ctx.save();ctx.globalCompositeOperation=bright>0.5?"source-over":"lighter";
+  ctx.beginPath();ctx.moveTo(x0-w*0.5,y0);ctx.lineTo(x0-w*0.5-spread,y0-L);ctx.lineTo(x0+w*0.5+spread,y0-L);ctx.lineTo(x0+w*0.5,y0);ctx.closePath();
+  const g=ctx.createLinearGradient(0,y0,0,y0-L);g.addColorStop(0,col([255,244,200],0.95));g.addColorStop(0.22,col([255,175,65],0.85));g.addColorStop(0.65,col([235,105,30],0.4));g.addColorStop(1,col([190,60,20],0));
+  ctx.fillStyle=g;ctx.fill();
+  ctx.beginPath();ctx.moveTo(x0-w*0.45,y0);ctx.lineTo(x0,y0-w*(2.6+1.5*vac)*fl);ctx.lineTo(x0+w*0.45,y0);ctx.closePath();ctx.fillStyle=col([255,255,240],0.95);ctx.fill();
+  ctx.restore();}
 function drawVessel(c,v,bright){
   c.save();c.translate(v.x,v.y);c.rotate(-v.phi);
   if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))/100);boom(c,v);c.restore();return;}
   c.scale(0.01,0.01);c.translate(-v.px,-v.py);
-  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.72:0.95),v.thr,v.a,bright,k==="vac");}});
-  for(const p of v.ps)drawPart(c,p,{fuel:p.t==="tank"?p.fuel/tankCap(p.w,p.h):null,legs:v.legs});
+  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.72:0.95),v.thr,v.a,bright,k==="vac");}});
+  for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
   c.restore();}
 function boom(c,v){   // fireball, flying debris and a smoke column, in local up-is-up metres
@@ -2473,9 +2556,9 @@ function renderFlight(dt){
   flyers=flyers.filter(q=>q.t<25&&Math.hypot(q.x,q.y)>BOD[q.body].R);
   // every craft near this one: the one you fly, dropped stages, boosters
   for(const v of VS){if(v.body!==r.body||Math.hypot(v.x-r.x,v.y-r.y)>Math.max(4000,FH/s*2))continue;
-    if(v.F>0&&v.a>0.03&&smoke.length<600){const cc=Math.cos(v.phi),ss=Math.sin(v.phi);v.eng.forEach((i,n)=>{if(!v.lit[n]||Math.random()>0.8*v.thr*v.a)return;const p=v.ps[i];
+    if(v.F>0&&v.a>0.03&&smoke.length<600){const cc=Math.cos(v.phi),ss=Math.sin(v.phi);v.eng.forEach((i,n)=>{const p=v.ps[i],sol=p.t==="srb";if(!v.lit[n]||Math.random()>(sol?1.6:0.8*v.thr)*v.a)return;
       const[wx,wy]=loc(v,(p.x-v.px)/100,(p.y-v.py)/100),sp=25+Math.random()*25;
-      smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:3+Math.random()*3,r0:p.w/100*0.8,r1:6+Math.random()*10,o:v.a});});}
+      smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w/100*0.8,r1:(sol?10:6)+Math.random()*10,o:v.a*(sol?1.6:1)});});}
     drawVessel(c,v,bright);}
   c.setTransform(1,0,0,1,0,0);}
 // ---------- readouts ----------
@@ -2489,7 +2572,7 @@ function hudFlight(dt){
   set("fT",(r.t<60?r.t.toFixed(1)+" s":Math.floor(r.t/60)+":"+String(Math.floor(r.t%60)).padStart(2,"0")));
   set("fWarp",(r.wv<warp?r.wv+"× ("+warpWhy+")":warp+"×"));
   if(!anAV||++hudN%15===0)anAV=analyze(r.ps,EN,r.ps.map(p=>p.fuel||0));
-  const st=anAV.stages[0]||{dv:0};let sf=0,sc=0;const seen=new Set();r.feeds.forEach(f=>f.forEach(j=>{if(!seen.has(j)){seen.add(j);sf+=r.ps[j].fuel;sc+=tankCap(r.ps[j].w,r.ps[j].h);}}));
+  const st=anAV.stages[0]||{dv:0};let sf=0,sc=0;const seen=new Set();r.feeds.forEach(f=>f.forEach(j=>{if(!seen.has(j)){seen.add(j);sf+=r.ps[j].fuel;sc+=capOf(r.ps[j]);}}));
   set("fThrO",Math.round(r.thr*100)+"%");set("fFuel",fmt(sf)+" kg");$("fFuelBar").style.width=(sc?100*sf/sc:0)+"%";
   const Fn=r.est.reduce((q,E)=>q+E.vac.F-(E.vac.F-E.sl.F)*r.a,0);set("fTwr",(Fn/((r.m||1)*B.mu/(rr*rr))).toFixed(2));
   set("fDv",fmt(st.dv)+" m/s");set("fDvT",fmt(anAV.total)+" m/s");
@@ -2595,6 +2678,50 @@ function renderMap(c){
   for(const[x,y,n,r]of[[0,0,"EARTH",er],[M.x,M.y,"MOON",mr]]){const X=SX(x),Y=SY(y)+r*s+12*FDS;c.textAlign="center";c.fillText(n,X,Math.min(FH-8,Y));}
   c.textAlign="left";c.textBaseline="alphabetic";
   c.fillStyle="#8a94b4";c.textAlign="center";c.fillText("drag to pan · wheel / pinch to zoom · F changes focus · click a craft to fly it · M to go back",FW/2,FH-(FW<760*FDS?150:66)*FDS);c.textAlign="left";}
+
+// ================= ENGINE LIBRARY =================
+// Save what you tested on the stand under a name: liquid engines (sea-level + vacuum thrust and Isp) and solid boosters
+// (the same, plus the thrust curve your grain shape made). Saved ones show up in the rocket editor's parts list.
+// A part copies the numbers when you place it, so deleting a library entry never breaks a rocket you already built.
+const ELIB="throat.englib.v1";
+const libAll=()=>store.get(ELIB,[]);
+const libGet=id=>libAll().find(e=>e.id===id);
+const libNums=e=>({name:e.name,sl:e.sl,vac:e.vac,curve:e.curve});
+function libSave(kind,name){const N=kind==="solid"?boosterNums():engineNums();if(N.src!=="tested")return null;
+  const L=libAll(),e={id:"e"+Date.now().toString(36),name,kind,sl:{F:N.sl.F,isp:N.sl.isp,est:!!N.sl.est},vac:{F:N.vac.F,isp:N.vac.isp,est:!!N.vac.est},t:Date.now()};
+  if(kind==="solid")e.curve=N.curve;
+  const i=L.findIndex(x=>x.name===name&&x.kind===kind);if(i>=0){e.id=L[i].id;L[i]=e;}else L.push(e);store.set(ELIB,L.slice(-40));return e;}
+const kN=F=>(F/1000).toFixed(2)+" kN";
+function numsTxt(N){return`Sea level <b>${kN(N.sl.F)} · ${Math.round(N.sl.isp)} s</b>${N.sl.est?" (est.)":""} &nbsp; Vacuum <b>${kN(N.vac.F)} · ${Math.round(N.vac.isp)} s</b>${N.vac.est?" (est.)":""}`;}
+// a tiny picture of a thrust curve: how hard it pushes from lighting (left) to burnout (right)
+function curveSvg(c){if(!c||c.length<2)return"";const mx=Math.max(1.3,...c),pts=c.map((v,i)=>`${(i/(c.length-1)*96+2).toFixed(1)},${(26-v/mx*22).toFixed(1)}`).join(" ");
+  return`<svg viewBox="0 0 100 28" width="100" height="28" style="vertical-align:middle;background:#0d1326;border-radius:3px"><polyline points="2,26 ${pts} 98,26" fill="rgba(255,170,40,.25)" stroke="#ffaa28" stroke-width="1.5"/></svg>`;}
+// ---------- the dialog ----------
+const lbx=document.createElement("div");lbx.className="help";lbx.id="engLib";
+lbx.innerHTML=`<div class="card"><h2>Engine library</h2>
+  <div class="lsec"><h3>🔥 Your engine now</h3><div class="tip" id="lEng"></div>
+    <div class="row" style="flex-wrap:nowrap;margin-top:6px"><input id="lEngN" class="lname" maxlength="30" placeholder="Name it, e.g. Hornet"><button class="b go" id="lEngS">Save engine</button></div></div>
+  <div class="lsec"><h3>🧨 Your last booster burn</h3><div class="tip" id="lSrb"></div>
+    <div class="row" style="flex-wrap:nowrap;margin-top:6px"><input id="lSrbN" class="lname" maxlength="30" placeholder="Name it, e.g. Firecracker"><button class="b go" id="lSrbS">Save booster</button></div></div>
+  <h3 style="margin-top:12px">Saved</h3><div id="lList" class="llist"></div>
+  <p class="tip" style="margin:10px 0 0">Saved engines and boosters appear in the 🚀 Rocket editor's parts list. Strap boosters to the side with a side decoupler. Esc to close.</p></div>`;
+$("stage").appendChild(lbx);
+function libUI(){const E=engineNums(),B=boosterNums();
+  $("lEng").innerHTML=E.src==="tested"?numsTxt(E):"Not tested yet. Run the First engine scenario (2 for the torch, then 1) until the thrust holds steady.";
+  $("lEngS").disabled=E.src!=="tested";
+  $("lSrb").innerHTML=B.src==="tested"?numsTxt(B)+`<br>Thrust curve ${curveSvg(B.curve)}`:"No full burn yet. Pick “Solid booster”, press 1 and let it burn out.";
+  $("lSrbS").disabled=B.src!=="tested";
+  const el=$("lList"),L=libAll();el.innerHTML=L.length?"":'<span class="tip">Nothing saved yet.</span>';
+  for(const e of L){const r=document.createElement("div");r.className="dl";
+    r.innerHTML=`<b></b><small>${e.kind==="solid"?"🧨 booster":"🔥 engine"} · SL ${kN(e.sl.F)} ${Math.round(e.sl.isp)} s · Vac ${kN(e.vac.F)} ${Math.round(e.vac.isp)} s</small>${e.kind==="solid"?curveSvg(e.curve):""}<button class="b danger">Delete</button>`;
+    r.querySelector("b").textContent=e.name;r.querySelector(".danger").onclick=()=>{store.set(ELIB,libAll().filter(x=>x.id!==e.id));libUI();};el.appendChild(r);}}
+function libSaveUI(kind){const inp=$(kind==="solid"?"lSrbN":"lEngN"),n=(inp.value||"").trim()||(kind==="solid"?"Booster ":"Engine ")+(libAll().filter(x=>x.kind===kind).length+1);
+  if(libSave(kind,n)){inp.value="";libUI();if(JX)JX.toast(`<small>Saved to the engine library</small>${kind==="solid"?"🧨":"🔥"} ${n.replace(/</g,"&lt;")}`);}}
+$("lEngS").onclick=()=>libSaveUI("liquid");$("lSrbS").onclick=()=>libSaveUI("solid");
+for(const[id,k]of[["lEngN","liquid"],["lSrbN","solid"]])$(id).addEventListener("keydown",e=>{if(e.key==="Enter")libSaveUI(k);if(e.key==="Escape")lbx.classList.remove("show");});
+$("bLib").onclick=()=>{libUI();lbx.classList.add("show");};
+lbx.onclick=e=>{if(e.target===lbx)lbx.classList.remove("show");};
+addEventListener("keydown",e=>{if(e.key==="Escape"&&lbx.classList.contains("show")){lbx.classList.remove("show");e.stopImmediatePropagation();}},true);
 
 })();
 

@@ -7,6 +7,7 @@ echo "== core: solid booster burn (pressure, thrust)";   node core/booster_burn.
 echo "== core: booster delivered Isp";                   node core/booster_isp.js
 echo "== flight: ready-made rockets";                    node flight/templates.js
 echo "== flight: autopilot to orbit (Orbiter)";          node flight/orbit_ascent.js orbiter | tail -1
+echo "== flight: autopilot to orbit (Sparrow, solid boosters)"; node flight/orbit_ascent.js sparrow | tail -1
 echo "== flight: landing limits";                        node flight/landing_limits.js
 echo "== flight: Moon landing + take-off";               node flight/moon_landing.js
 echo "== flight: on-rails warp matches map prediction";  node flight/rails_vs_prediction.js

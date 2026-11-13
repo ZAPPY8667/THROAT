@@ -25,13 +25,14 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 | `shell.html` | Page markup + CSS; placeholders `/*CORE*/ /*GLUE*/ /*GASES_VIEWS*/ /*UI*/`. |
 | `juice.js` | Sound + goals (`JUICE`). Synthesized WebAudio: roar/hiss follow thrust (muffled in vacuum), ignition bang on a thrust jump, booster crackle, stage clunk, crash, goal chime; U / 🔊 mutes (`throat.sound.v1`). Goals checklist with toasts (`throat.goals.v1`), 🏆 card. The test stand sets `JUICE.stand`, flight sets `JUICE.fly`; its own rAF loop plays whichever screen is open. Built into the UI closure just before the flight bundle; flight reaches it through `JX` (null in the headless tests). `window.__juice` for browser tests. |
 | `gv.js` | Tiny legacy gas-list snippet (kept so the build placeholders stay the same). |
-| `parts.js` | Rocket parts catalog (probe, nose, tank, adapter, engines, decoupler, side decoupler, fin, leg), engine models (`ENG`: your engine + Wren, Mule, Bison, Lumen Vac), joining by touching edges, staging analysis (Δv/TWR per stage), part drawing, shrouds, ready-made rockets. Parts are in cm (x = centre, y = bottom). |
+| `parts.js` | Rocket parts catalog (probe, nose, tank, adapter, engines, decoupler, side decoupler, fin, leg), engine models (`ENG`: your engine + Wren, Mule, Bison, Lumen Vac, `lib`), solid boosters (`srb` part, `BOOST`: your booster / Thumper / `lib`; own propellant `srbCap`, `RHO_S` 220; thrust curve over burned fraction via `curveAt`), joining by touching edges, staging analysis (Δv/TWR per stage), part drawing, shrouds, ready-made rockets. Parts are in cm (x = centre, y = bottom). |
 | `orbit.js` | Earth (R 300 km, g 9.81, air to 40 km) and Moon (R 90 km, 1.62 g, 2,500 km away, SOI ≈464 km). Universal-variable Kepler propagation, orbit elements, `predict()` for the map (legs across SOIs, Ap/Pe/encounter/impact marks). |
+| `lib.js` | Engine library (`throat.englib.v1`): 📚 Engines dialog on the test stand saves the current liquid engine and the last booster burn by name. Library items show in the editor palette as `lib:<id>`; a placed part copies the numbers into `p.n` so rockets survive deletes. |
 | `vab.js` | Rocket editor: palette, snapping, mirror pairs (move one onto the centre line → its twin is deleted), drag moves a part + everything under it (Alt: just it), resize tanks, inspector, saved rockets, stage list. |
 | `flight.js` | Real-time flight: several vessels at once, staging, fly-by-wire steering + heading hold, basic aero (shape/AoA drag, fins weathervane), legs and landing rules, pads, on-rails warp (≥50×), SOI hand-over, procedural plume, crash effects, HUD. |
 | `map.js` | Map view: pan/zoom/focus, path ahead with labelled Ap/Pe (altitude + T−), Moon encounter / leave / impact, click a craft to fly it. |
 
-The flight files are concatenated inside one closure (see `build.py`); only `FLT`, `recordTest` and `_rt` are outside.
+The flight files are concatenated inside one closure (see `build.py`); only `FLT`, `recordTest`/`_rt` and `recordBurn`/`_rb` are outside.
 
 ## Physics notes worth knowing
 - Gases: `NS=6` — H₂, O₂, N₂, H₂O, CO₂, Al₂O₃ smoke (`AL`). `NSA` = how many are present anywhere; the solver only
@@ -47,6 +48,9 @@ The flight files are concatenated inside one closure (see `build.py`); only `FLT
   refills "for free" in the time-lapse; not fixed yet.
 - The test stand records the liquid engine's steady thrust/Isp (sea level and vacuum) for "Your engine" in flight
   (`throat.card.v1` in localStorage). Not recorded while a booster burns.
+- Booster burns: when a burn finishes, `burnDone()` (ui.js) reports average thrust, Isp and a 12-point thrust curve (sampled against
+  impulse delivered, normalised to mean 1) through `recordBurn` → `card.srb.sl|vac`. In flight a booster lights on the first
+  throttle-up, ignores the throttle, follows the curve until empty, and keeps burning after it's dropped (`p.ign`).
 - Flight is real time and uses those numbers; the CFD is far too slow for real time (~70 steps/s × ~3 µs).
 
 ## More context
@@ -60,7 +64,7 @@ See `HISTORY.md` for the version history, why things are tuned the way they are,
 
 ## Backlog (agreed with Wyatt)
 1. ✅ (v1.9) Sound (WebAudio, synthesized: roar with thrust, ignition bang, booster crackle, crash) + a goals checklist with toasts.
-2. Engine library: save test-stand engines and boosters by name with their measured numbers; use them in the editor,
+2. ✅ (v1.10) Engine library: save test-stand engines and boosters by name with their measured numbers; use them in the editor,
    including strap-on solid boosters.
 3. Methane and kerosene on the test stand (blue-violet methane flame, sooty orange kerosene).
 4. Fix booster Isp (see above).

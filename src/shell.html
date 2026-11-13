@@ -166,6 +166,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   color:var(--acc2);font:700 15px var(--body);box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .35s cubic-bezier(.2,1.4,.4,1);pointer-events:none;text-align:center;max-width:92vw}
 .toast.in{transform:translate(-50%,0)}.toast small{display:block;font:400 10px var(--display);color:var(--dim);letter-spacing:1px;margin-bottom:2px}
 .topb{display:flex;gap:6px}
+/* engine library dialog */
+.lsec{border:1px solid var(--edge);border-radius:7px;padding:8px 10px;margin-top:8px;background:#10162b}.lsec h3,#engLib h3{margin:0 0 4px;font-size:12.5px;color:var(--acc2)}
+.lname{flex:1;height:30px;background:#141b31;border:1px solid var(--edge);border-radius:5px;color:var(--txt);font:600 13px var(--body);padding:0 8px;min-width:0}
+.llist{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:auto}.llist .dl{flex-wrap:wrap}.llist .dl small{flex-basis:100%;order:3}
+.vpart.vlib{background:#22190e}
 .help.goals{position:fixed;z-index:55}.help.goals .card{max-width:560px}
 .glist{display:flex;flex-direction:column;gap:2px;max-height:60vh;overflow:auto}
 .gi{display:grid;grid-template-columns:22px 1fr;gap:0 6px;padding:5px 2px;border-bottom:1px solid #1d2540;font-size:13px}
@@ -219,6 +224,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       <button class="b" id="bClear" title="Clear all loose gas (C)">Clear</button>
       <button class="b" id="bUndo" title="Undo (Ctrl+Z)">↶</button><button class="b" id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button>
       <button class="b" id="bDesigns" title="Save / load your designs">Designs</button>
+      <button class="b" id="bLib" title="Engine library: save the engines and boosters you tested, then use them on rockets">📚 Engines</button>
       <button class="b go" id="bLaunch" title="Build a rocket around your engine and fly it in real time">🚀 Rocket</button>
       <select id="wsize" title="World size (bigger = more room, slower flow). Reloads the page."><option value="160x90">World: S</option><option value="240x135">World: L</option><option value="320x180">World: XL</option></select>
     </div>
@@ -273,7 +279,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 <script>var THROAT_SIZE=(function(){try{var s=JSON.parse(localStorage.getItem("throat.size.v1"));if(s&&s.length===2)return s;}catch(e){}return [240,135];})();</script>
 <div class="vab" id="vab">
   <canvas id="vcv" aria-label="Rocket editor"></canvas>
-  <div class="vhint">Drag parts in from the left: they snap together. Drag a part to move it and everything under it (Alt: just that one). Shift+wheel stretches a tank. Del removes. M mirror.</div>
+  <div class="vhint">Drag parts in from the left: they snap together. Drag a part to move it and everything under it (Alt: just that one). Shift+wheel stretches a tank or solid booster. Del removes. M mirror.</div>
   <div class="vpanel vpal" id="vPal"><h3>Parts</h3><div id="vParts"></div></div>
   <div class="vpanel vstat"><h3>Rocket</h3><input id="vName" class="vname" maxlength="40" aria-label="Rocket name"><div id="vStats"></div></div>
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>

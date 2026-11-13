@@ -15,6 +15,15 @@ _rt=function(F,isp){
   const mF=sf/hist.length,mI=si/hist.length;if((hi-lo)/mF>0.06)return;            // steady to within 6%
   const k=atmo?"sl":"vac",old=card[k];
   if(!old||Math.abs(old.F-mF)/old.F>0.01||Math.abs(old.isp-mI)>2){card[k]={F:mF,isp:mI,t:Date.now()};store.set(CARD_KEY,card);vAn=null;}};
+// solid boosters: the test stand reports each finished burn (average thrust, Isp, thrust curve); kept per outside air like the engine
+_rb=function(b){if(!(b&&b.F>100&&b.isp>0&&isFinite(b.isp)))return;const k=b.atmo?"sl":"vac";card.srb=card.srb||{};
+  card.srb[k]={F:b.F,isp:b.isp,curve:b.curve,t:Date.now()};store.set(CARD_KEY,card);vAn=null;};
+function boosterNums(){
+  const c=card.srb||{};let sl=c.sl,vac=c.vac,src="tested";
+  if(!sl&&!vac){const T=BOOST.thumper;return{sl:T.sl,vac:T.vac,curve:T.curve,src:"default"};}
+  if(sl&&!vac)vac={F:sl.F*1.1,isp:sl.isp*1.1,est:true};         // same rule as the engine: about 10% more in vacuum
+  if(vac&&!sl)sl={F:vac.F*0.9,isp:vac.isp*0.9,est:true};
+  return{sl,vac,curve:(c.sl||c.vac).curve,src};}
 function engineNums(){
   let sl=card.sl,vac=card.vac,src="tested";
   if(!sl&&!vac){sl={F:2250,isp:355};src="default";}
@@ -32,7 +41,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   const npx=mx/m,npy=my/m;
   if(keepWorld&&v.px!=null){const dx=(npx-v.px)/100,dy=(npy-v.py)/100,c=Math.cos(v.phi),s=Math.sin(v.phi);v.x+=dx*c+dy*s;v.y+=-dx*s+dy*c;}
   v.px=npx;v.py=npy;
-  const all=new Set(ps.keys());v.eng=[...all].filter(i=>ps[i].t==="engine"&&engOn(ps,adj,i,all));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
+  const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
   v.dry=ps.reduce((s,p)=>s+partMass(p),0);
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,W=0,top=null,I=0;
   for(const p of ps){x0=Math.min(x0,p.x-p.w/2);x1=Math.max(x1,p.x+p.w/2);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y+p.h);if(!isRad(p))W=Math.max(W,p.w);
@@ -44,12 +53,12 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)/100,(q[1]-npy)/100)),v.H);
   v.boomS=Math.max(1.5,v.H*0.6);}
 function mkVessel(ps,name,body){const v={id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
-  for(const p of ps)if(p.t==="tank"&&p.fuel==null)p.fuel=tankCap(p.w,p.h);derive(v,false);return v;}
+  for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
 function startFlight(ps,name){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
   const a=analyze(launchPs,engineNums()),keep=a.root>=0?bfs(adjOf(launchPs),a.root,()=>true):new Set();
-  const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine)delete p.shed;EN=engineNums();
+  const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;}EN=engineNums();   // full tanks again on a retry
   const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)/100);v.x=0;v.y=PR-lo+0.005;v.landed=true;launchW=v.Wall;
   VS=[v];AV=v;FT=0;smoke=[];flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
   msg="Throttle: Shift / W (Z = full).  Steer: A / D.  Space = next stage.  G = legs.  M = map.  , . = time warp";msgT=10;
@@ -88,11 +97,16 @@ function stepV(v,dt,u){
   if(v.crashed)return;
   const B=BOD[v.body],rr=Math.hypot(v.x,v.y),ux=v.x/rr,uy=v.y/rr,h=rr-B.R,a=B.atm?atmP(Math.max(0,h))/P0:0,rho=B.atm?atmRho(Math.max(0,h)):0,c=Math.cos(v.phi),s=Math.sin(v.phi);
   // engines: each drinks from the tanks it's joined to
-  let F=0,fuel=0;const thr=v.thr;
-  for(let n=0;n<v.eng.length;n++){const tk=v.feeds[n];let av=0;for(const j of tk)av+=v.ps[j].fuel;v.lit[n]=thr>0&&av>1e-6;
+  let F=0,fuel=0,nS=0;const thr=v.thr;
+  for(let n=0;n<v.eng.length;n++){const tk=v.feeds[n];let av=0;for(const j of tk)av+=v.ps[j].fuel;
+    const P=v.ps[v.eng[n]];
+    if(P.t==="srb"){   // a solid booster lights the first time you throttle up, then burns flat out until it's empty: no throttle, no off switch
+      if(thr>0&&av>1e-6)P.ign=true;v.lit[n]=!!P.ign&&av>1e-6;if(!v.lit[n])continue;
+      const E=v.est[n],k=curveAt(E.curve,1-av/capOf(P));F+=(E.vac.F-(E.vac.F-E.sl.F)*a)*k;nS++;P.fuel=Math.max(0,av-E.vac.F*k/(E.vac.isp*G0)*dt);continue;}
+    v.lit[n]=thr>0&&av>1e-6;
     if(!v.lit[n])continue;const E=v.est[n];F+=(E.vac.F-(E.vac.F-E.sl.F)*a)*thr;const use=Math.min(av,E.vac.F/(E.vac.isp*G0)*thr*dt);for(const j of tk)v.ps[j].fuel-=use*v.ps[j].fuel/av;}
   for(const p of v.ps)if(p.fuel)fuel+=p.fuel;
-  const m=v.dry+fuel;v.F=F;v.a=a;v.m=m;
+  const m=v.dry+fuel;v.F=F;v.a=a;v.m=m;v.nS=nS;
   let ax=F/m*s,ay=F/m*c;const gk=-B.mu/(rr*rr);ax+=gk*ux;ay+=gk*uy;
   // air: drag depends on the shape and on how sideways you fly; fins turn you into the wind
   let tq=0;const sp=Math.hypot(v.vx,v.vy);
@@ -186,8 +200,9 @@ function flightFrame(now){
       for(let i=0;i<n;i++){for(const v of VS)stepV(v,h,v===AV&&!AV.crashed?u:0);FT+=h;}}
     AV.wv=wv;
     // sound: your own engines, plus anything else burning close by (boosters you just dropped)
-    if(JX){let L=AV.F>0?AV.thr:0;for(const v of VS)if(v!==AV&&v.F>0&&v.body===AV.body){const d=Math.hypot(v.x-AV.x,v.y-AV.y);if(d<2500)L+=0.5*v.thr*(1-d/2500);}
-      JX.fly.lvl=Math.min(1,L);JX.fly.air=AV.a;JX.fly.srb=0;}
+    if(JX){const own=v=>v.F>0?Math.max(v.thr*(v.lit.some((l,n)=>l&&v.ps[v.eng[n]].t!=="srb")?1:0),v.nS?0.85:0):0;
+      let L=own(AV),C=AV.nS?0.7:0;for(const v of VS)if(v!==AV&&v.F>0&&v.body===AV.body){const d=Math.hypot(v.x-AV.x,v.y-AV.y);if(d<2500){L+=0.5*own(v)*(1-d/2500);if(v.nS)C+=0.5*(1-d/2500);}}
+      JX.fly.lvl=Math.min(1,L);JX.fly.air=AV.a;JX.fly.srb=Math.min(1,C);}
     for(const v of VS)if(v.crashed)v.boomT+=dtR;
     VS=VS.filter(v=>!(v.crashed&&v!==AV&&v.boomT>8));
   }
@@ -214,12 +229,20 @@ function plume(ctx,x0,y0,w,thr,a,bright,vacEng){   // in the rocket's frame (y u
   if(a>0.12)for(let k=0;k<5;k++){const yy=y0-w*(1.25+1.3*k)*(1+0.4*vac),rr=w*(0.42-0.05*k),gg=ctx.createRadialGradient(x0,yy,0,x0,yy,rr);   // Mach diamonds
     gg.addColorStop(0,col([255,250,255],Math.min(1,1.1*a*thr*(1-0.17*k))));gg.addColorStop(1,col([255,150,230],0));ctx.fillStyle=gg;ctx.beginPath();ctx.arc(x0,yy,rr,0,6.2832);ctx.fill();}
   ctx.restore();}
+function srbPlume(ctx,x0,y0,w,a,bright){   // solid exhaust: a white-hot core in a long, flickering orange flame, wider in vacuum
+  const vac=1-a,fl=0.88+Math.random()*0.24,L=w*(13+5*vac)*fl,spread=Math.tan(lerp(0.05,0.42,Math.pow(vac,0.6)))*L;
+  ctx.save();ctx.globalCompositeOperation=bright>0.5?"source-over":"lighter";
+  ctx.beginPath();ctx.moveTo(x0-w*0.5,y0);ctx.lineTo(x0-w*0.5-spread,y0-L);ctx.lineTo(x0+w*0.5+spread,y0-L);ctx.lineTo(x0+w*0.5,y0);ctx.closePath();
+  const g=ctx.createLinearGradient(0,y0,0,y0-L);g.addColorStop(0,col([255,244,200],0.95));g.addColorStop(0.22,col([255,175,65],0.85));g.addColorStop(0.65,col([235,105,30],0.4));g.addColorStop(1,col([190,60,20],0));
+  ctx.fillStyle=g;ctx.fill();
+  ctx.beginPath();ctx.moveTo(x0-w*0.45,y0);ctx.lineTo(x0,y0-w*(2.6+1.5*vac)*fl);ctx.lineTo(x0+w*0.45,y0);ctx.closePath();ctx.fillStyle=col([255,255,240],0.95);ctx.fill();
+  ctx.restore();}
 function drawVessel(c,v,bright){
   c.save();c.translate(v.x,v.y);c.rotate(-v.phi);
   if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))/100);boom(c,v);c.restore();return;}
   c.scale(0.01,0.01);c.translate(-v.px,-v.py);
-  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.72:0.95),v.thr,v.a,bright,k==="vac");}});
-  for(const p of v.ps)drawPart(c,p,{fuel:p.t==="tank"?p.fuel/tankCap(p.w,p.h):null,legs:v.legs});
+  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.72:0.95),v.thr,v.a,bright,k==="vac");}});
+  for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
   c.restore();}
 function boom(c,v){   // fireball, flying debris and a smoke column, in local up-is-up metres
@@ -270,9 +293,9 @@ function renderFlight(dt){
   flyers=flyers.filter(q=>q.t<25&&Math.hypot(q.x,q.y)>BOD[q.body].R);
   // every craft near this one: the one you fly, dropped stages, boosters
   for(const v of VS){if(v.body!==r.body||Math.hypot(v.x-r.x,v.y-r.y)>Math.max(4000,FH/s*2))continue;
-    if(v.F>0&&v.a>0.03&&smoke.length<600){const cc=Math.cos(v.phi),ss=Math.sin(v.phi);v.eng.forEach((i,n)=>{if(!v.lit[n]||Math.random()>0.8*v.thr*v.a)return;const p=v.ps[i];
+    if(v.F>0&&v.a>0.03&&smoke.length<600){const cc=Math.cos(v.phi),ss=Math.sin(v.phi);v.eng.forEach((i,n)=>{const p=v.ps[i],sol=p.t==="srb";if(!v.lit[n]||Math.random()>(sol?1.6:0.8*v.thr)*v.a)return;
       const[wx,wy]=loc(v,(p.x-v.px)/100,(p.y-v.py)/100),sp=25+Math.random()*25;
-      smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:3+Math.random()*3,r0:p.w/100*0.8,r1:6+Math.random()*10,o:v.a});});}
+      smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w/100*0.8,r1:(sol?10:6)+Math.random()*10,o:v.a*(sol?1.6:1)});});}
     drawVessel(c,v,bright);}
   c.setTransform(1,0,0,1,0,0);}
 // ---------- readouts ----------
@@ -286,7 +309,7 @@ function hudFlight(dt){
   set("fT",(r.t<60?r.t.toFixed(1)+" s":Math.floor(r.t/60)+":"+String(Math.floor(r.t%60)).padStart(2,"0")));
   set("fWarp",(r.wv<warp?r.wv+"× ("+warpWhy+")":warp+"×"));
   if(!anAV||++hudN%15===0)anAV=analyze(r.ps,EN,r.ps.map(p=>p.fuel||0));
-  const st=anAV.stages[0]||{dv:0};let sf=0,sc=0;const seen=new Set();r.feeds.forEach(f=>f.forEach(j=>{if(!seen.has(j)){seen.add(j);sf+=r.ps[j].fuel;sc+=tankCap(r.ps[j].w,r.ps[j].h);}}));
+  const st=anAV.stages[0]||{dv:0};let sf=0,sc=0;const seen=new Set();r.feeds.forEach(f=>f.forEach(j=>{if(!seen.has(j)){seen.add(j);sf+=r.ps[j].fuel;sc+=capOf(r.ps[j]);}}));
   set("fThrO",Math.round(r.thr*100)+"%");set("fFuel",fmt(sf)+" kg");$("fFuelBar").style.width=(sc?100*sf/sc:0)+"%";
   const Fn=r.est.reduce((q,E)=>q+E.vac.F-(E.vac.F-E.sl.F)*r.a,0);set("fTwr",(Fn/((r.m||1)*B.mu/(rr*rr))).toFixed(2));
   set("fDv",fmt(st.dv)+" m/s");set("fDvT",fmt(anAV.total)+" m/s");

@@ -60,7 +60,10 @@ const overPal=e=>{const el=document.elementFromPoint(e.clientX,e.clientY);return
 const overCv=e=>document.elementFromPoint(e.clientX,e.clientY)===vcv;
 function vCarryMove(e){const q=vEvXY(e),w=v2w(q.X,q.Y),p=vcarry.p;p.x=w.x;p.y=w.y-p.h/2;vptr=q;
   const s=vps.length?snapPart(p,p.x,p.y,vps,34/vv.s*VDS):{x:vAxis(),y:0,f:p.f};vcarry.snap=s;}
-function startCarry(t,e){if(e)e.preventDefault();vcarry={p:mkPart(t),snap:null,fresh:true};vsel=null;vInspUI();if(e&&e.clientX!=null)vCarryMove(e);}
+// "lib:<id>" = something from the engine library; the part gets its own copy of the numbers
+function libPart(e){return mkPart(e.kind==="solid"?"srb:lib":"engine:lib",0,0,null,libNums(e));}
+function newPart(t){if(t.startsWith("lib:")){const e=libGet(t.slice(4));return e?libPart(e):mkPart("engine");}return mkPart(t);}
+function startCarry(t,e){if(e)e.preventDefault();vcarry={p:newPart(t),snap:null,fresh:true};vsel=null;vInspUI();if(e&&e.clientX!=null)vCarryMove(e);}
 window.addEventListener("pointermove",e=>{if(!vab.classList.contains("show"))return;if(vcarry){vCarryMove(e);vcarry.inside=overCv(e);}});
 window.addEventListener("pointerup",e=>{if(!vab.classList.contains("show")||!vcarry||!vcarry.fresh)return;vcarry.fresh=false;
   if(overCv(e)){vCarryMove(e);if(vPlace(vcarry.p))vcarry=null;}else if(!overPal(e))vcarry=null;});
@@ -92,7 +95,7 @@ function vUp(e){vTouch.delete(e.pointerId);if(vTouch.size<2)vPinch=null;vpan=nul
   vU.push(d.before);vR=[];vChanged();}
 vcv.addEventListener("pointerup",vUp);vcv.addEventListener("pointercancel",vUp);vcv.addEventListener("contextmenu",e=>e.preventDefault());
 vcv.addEventListener("wheel",e=>{e.preventDefault();const i=vsel?vById(vsel):-1;
-  if(e.shiftKey&&i>=0&&vps[i].t==="tank"){const p=vps[i],h=Math.max(30,Math.min(450,p.h+(e.deltaY<0?15:-15)));if(h!==p.h)vResize(i,p.w,h);return;}
+  if(e.shiftKey&&i>=0&&hasProp(vps[i])){const p=vps[i],h=Math.max(30,Math.min(450,p.h+(e.deltaY<0?15:-15)));if(h!==p.h)vResize(i,p.w,h);return;}
   const q=vEvXY(e),k=e.deltaY<0?1.15:1/1.15,s2=Math.max(0.15*VDS,Math.min(12*VDS,vv.s*k)),kk=s2/vv.s;vv.ox=q.X-(q.X-vv.ox)*kk;vv.oy=q.Y-(q.Y-vv.oy)*kk;vv.s=s2;},{passive:false});
 // ---------- keys (while the editor is open, the sandbox doesn't hear them) ----------
 addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT")return;
@@ -104,27 +107,37 @@ addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const t
   else if(k==="m"){vMirror=!vMirror;store.set("throat.vmirror",vMirror);vBarUI();}
   else if(k==="f"){vFitView();}
   else if(k==="enter"){$("vGo").click();}
-  else if(k==="-"||k==="="||k==="+"){const i=vsel?vById(vsel):-1;if(i>=0&&vps[i].t==="tank"){const p=vps[i];vResize(i,p.w,Math.max(30,Math.min(450,p.h+(k==="-"?-15:15))));}}
+  else if(k==="-"||k==="="||k==="+"){const i=vsel?vById(vsel):-1;if(i>=0&&hasProp(vps[i])){const p=vps[i];vResize(i,p.w,Math.max(30,Math.min(450,p.h+(k==="-"?-15:15))));}}
   e.stopImmediatePropagation();},true);
 // ---------- panels ----------
-function partIcon(t){const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=mkPart(t);partId--;
+function partIcon(t){const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
   if(t==="tank")p.h=90;const sc=Math.min(70/p.w,70/p.h,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*p.h/2);p.x=0;p.y=0;drawPart(g,p,{legs:false});return c;}
-function vPalUI(){const box=$("vParts");box.innerHTML="";for(const t of PT_ORDER){const b=document.createElement("button"),en=t.startsWith("engine:")?ENG[t.slice(7)]:null;b.className="vpart"+(en?" veng":"");b.title=en?en.desc:PT[t].desc;
-  b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=en?en.name:PT[t].name;b.appendChild(s);
-  b.addEventListener("pointerdown",e=>{startCarry(t,e);});box.appendChild(b);}}
+function vPalUI(){const box=$("vParts");box.innerHTML="";
+  const item=(t,name,desc,cls)=>{const b=document.createElement("button");b.className="vpart"+cls;b.title=desc;
+    b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=name;b.appendChild(s);
+    b.addEventListener("pointerdown",e=>{startCarry(t,e);});box.appendChild(b);};
+  for(const t of PT_ORDER){const en=t.startsWith("engine:")?ENG[t.slice(7)]:t.startsWith("srb:")?BOOST[t.slice(4)]:null;item(t,en?en.name:PT[t].name,en?en.desc:PT[t].desc,en?" veng":"");}
+  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}). Sea level ${(e.sl.F/1000).toFixed(2)} kN, ${Math.round(e.sl.isp)} s.`," vlib");}
 function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.display="none";return;}const p=vps[i],d=PT[p.t];el.style.display="";
-  const cap=p.t==="tank"?tankCap(p.w,p.h):0,isE=p.t==="engine",E=isE?engStat(p):null;
-  let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fmt(partMass(p)+cap)} kg${cap?` (${fmt(cap)} kg propellant)`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:d.desc}</div>`;
+  const cap=capOf(p),isE=p.t==="engine",isS=p.t==="srb",E=isE||isS?engStat(p):null,lib=libAll();
+  let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fmt(partMass(p)+cap)} kg${cap?` (${fmt(cap)} kg propellant)`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:isS?BOOST[boostKey(p)].desc:d.desc}</div>`;
+  if(isS){const B=E,k=boostKey(p),bt=cap*B.sl.isp*G0/B.sl.F;
+    h+=`<div class="tip" style="margin-top:4px">Sea level <b>${(B.sl.F/1000).toFixed(2)} kN · ${Math.round(B.sl.isp)} s</b>${B.sl.est?" (est.)":""}<br>Vacuum <b>${(B.vac.F/1000).toFixed(2)} kN · ${Math.round(B.vac.isp)} s</b>${B.vac.est?" (est.)":""}<br>Burns about <b>${Math.round(bt)} s</b> ${curveSvg(B.curve)}${k==="stand"?`<br>${B.src==="tested"?"From your last booster burn on the test stand.":"Not burned yet: these are the Thumper's numbers until you fire a booster on the test stand."}`:""}</div>
+    <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap"><button class="b${k==="stand"?" on":""}" data-bo="stand">Your booster</button><button class="b${k==="thumper"?" on":""}" data-bo="thumper">Thumper</button>${lib.filter(e=>e.kind==="solid").map(e=>`<button class="b${k==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-bo="${e.id}"></button>`).join("")}</div>`;}
   if(isE)h+=`<div class="tip" style="margin-top:4px">Sea level <b>${(E.sl.F/1000).toFixed(2)} kN · ${Math.round(E.sl.isp)} s</b>${E.sl.est?" (est.)":""}<br>Vacuum <b>${(E.vac.F/1000).toFixed(2)} kN · ${Math.round(E.vac.isp)} s</b>${E.vac.est?" (est.)":""}${engKey(p)==="stand"?`<br>${E.src==="tested"?"From your test stand runs.":"Not tested yet: fire your engine on the stand to record its real numbers."}`:""}</div>
-    <div class="row" style="margin-top:6px;gap:4px">${ENG_ORDER.map(k=>`<button class="b${engKey(p)===k?" on":""}" data-e="${k}">${ENG[k].name}</button>`).join("")}</div>`;
+    <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${ENG_ORDER.map(k=>`<button class="b${engKey(p)===k?" on":""}" data-e="${k}">${ENG[k].name}</button>`).join("")}${lib.filter(e=>e.kind!=="solid").map(e=>`<button class="b${engKey(p)==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-le="${e.id}"></button>`).join("")}</div>`;
   if(p.t==="leg")h+=`<div class="row" style="margin-top:6px"><button class="b${vLegsOut?" on":""}" data-legs="1">${vLegsOut?"Show folded":"Show deployed"}</button></div>`;
   h+=`<div class="row" style="margin-top:6px;gap:5px;flex-wrap:wrap">`;
   if(d.ws.length>1)for(const w of d.ws)h+=`<button class="b${p.w===w?" on":""}" data-w="${w}">${w===60?"Narrow":"Wide"}</button>`;
-  if(p.t==="tank")h+=`<button class="b" data-l="-15">− Shorter</button><button class="b" data-l="15">+ Longer</button>`;
+  if(hasProp(p))h+=`<button class="b" data-l="-15">− Shorter</button><button class="b" data-l="15">+ Longer</button>`;
   h+=`<button class="b" data-del="1" style="margin-left:auto">🗑 Remove</button></div>`;el.innerHTML=h;
   el.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{const w=+b.dataset.w;vResize(i,w,p.t==="nose"?w:p.h);});
   el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{vResize(i,p.w,Math.max(30,Math.min(450,p.h+ +b.dataset.l)));});
-  el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const k=b.dataset.e;vResize(i,ENG[k].w,ENG[k].h,q=>{q.e=k;});});
+  el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const k=b.dataset.e;vResize(i,ENG[k].w,ENG[k].h,q=>{q.e=k;delete q.n;});});
+  // saved names go in as text, not HTML
+  el.querySelectorAll("[data-le]").forEach(b=>{const e=libGet(b.dataset.le);b.textContent=e?e.name:"?";b.onclick=()=>{if(e)vResize(i,ENG.lib.w,ENG.lib.h,q=>{q.e="lib";q.n=libNums(e);});};});
+  el.querySelectorAll("[data-bo]").forEach(b=>{const k=b.dataset.bo,e=BOOST[k]?null:libGet(k);if(e)b.textContent=e.name;
+    b.onclick=()=>vResize(i,p.w,p.h,q=>{if(e){q.b="lib";q.n=libNums(e);}else{q.b=k;delete q.n;}});});
   el.querySelectorAll("[data-legs]").forEach(b=>b.onclick=()=>{vLegsOut=!vLegsOut;vBarUI();vInspUI();});
   el.querySelector("[data-del]").onclick=()=>vDelete(i);}
 function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stages;
@@ -137,7 +150,7 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;}
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
 function vBarUI(){$("vLegs").classList.toggle("on",vLegsOut);$("vLegs").textContent=vLegsOut?"🦿 Legs out":"🦿 Legs in";$("vMirror").classList.toggle("on",vMirror);$("vMirror").textContent=vMirror?"⇋ Mirror on":"⇋ Mirror off";
-  const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
+  const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
   sel.innerHTML=h;$("vName").value=vName;}
 $("vLoad").onchange=()=>{const v=$("vLoad").value;$("vLoad").value="";if(!v)return;vPush();

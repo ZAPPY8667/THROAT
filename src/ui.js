@@ -684,10 +684,17 @@ function measureThrust(){let fx=0,fy=0;const A=DX*DX;
   // a solid motor's propellant use is what the grain burns (the hollow it leaves refills for free in the time-lapse)
   if(simTime>lastMassT&&lastMassT>0){const dt=simTime-lastMassT,md=srbMass>lastSrb||srbBurning?(srbMass-lastSrb)/dt:(m-lastMass)/dt;if(isFinite(md))mdotS=mdotS*0.7+md*0.3;
     // booster burn summary: impulse and average Isp over the whole burn
-    if(srbBurning&&!burn)burn={t0:lastMassT,m0:lastSrb,imp:0,peak:0,done:false};
-    if(burn&&!burn.done){const F=Math.hypot(thrX,thrY);burn.imp+=F*dt;burn.peak=Math.max(burn.peak,F);if(!srbBurning&&srbMass-burn.m0>0){burn.done=true;burn.t1=simTime;}}}
+    if(srbBurning&&!burn)burn={t0:lastMassT,m0:lastSrb,imp:0,peak:0,done:false,s:[],air:atmo};
+    if(burn&&!burn.done){const F=Math.hypot(thrX,thrY);burn.imp+=F*dt;burn.peak=Math.max(burn.peak,F);burn.s.push([burn.imp,F]);if(!srbBurning&&srbMass-burn.m0>0){burn.done=true;burn.t1=simTime;burnDone(burn);}}}
   if(srbMass<lastSrb)burn=null;
   lastMass=m;lastMassT=simTime;lastSrb=srbMass;}
+// a finished booster burn goes to flight (and the engine library): average thrust, Isp, and the thrust curve. The curve is sampled
+// against impulse delivered so far, which is the same as propellant burned (Isp is steady), because flight burns it that way
+function burnDone(b){const mp=srbMass-b.m0,dur=b.t1-b.t0;if(!(mp>0&&dur>0&&b.imp>0)||b.s.length<4)return;
+  const Fa=b.imp/dur,N=12,c=[];let j=0;
+  for(let i=0;i<N;i++){const I=b.imp*(i+0.5)/N;while(j<b.s.length-1&&b.s[j][0]<I)j++;c.push(b.s[j][1]/Fa);}
+  const mean=c.reduce((a,x)=>a+x,0)/N;
+  recordBurn({F:Fa,isp:b.imp/(mp*9.80665),curve:c.map(x=>+(x/mean).toFixed(3)),atmo:b.air,dur});}
 const ARW=["→","↘","↓","↙","←","↖","↑","↗"];
 function readouts(){
   const set=(id,v)=>{const el=$(id);if(el.textContent!==v)el.textContent=v;};
