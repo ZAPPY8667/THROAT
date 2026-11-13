@@ -28,6 +28,7 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 | `parts.js` | Rocket parts catalog (probe, nose, tank, adapter, engines, decoupler, side decoupler, fin, leg), engine models (`ENG`: your engine + Wren, Mule, Bison, Lumen Vac, `lib`), solid boosters (`srb` part, `BOOST`: your booster / Thumper / `lib`; own propellant `srbCap`, `RHO_S` 220; thrust curve over burned fraction via `curveAt`), joining by touching edges, staging analysis (Δv/TWR per stage), part drawing, shrouds, ready-made rockets. Parts are in cm (x = centre, y = bottom). |
 | `orbit.js` | Earth (R 300 km, g 9.81, air to 40 km) and Moon (R 90 km, 1.62 g, 2,500 km away, SOI ≈464 km). Universal-variable Kepler propagation, orbit elements, `predict()` for the map (legs across SOIs, Ap/Pe/encounter/impact marks). |
 | `lib.js` | Engine library (`throat.englib.v1`): 📚 Engines dialog on the test stand saves the current liquid engine and the last booster burn by name. Library items show in the editor palette as `lib:<id>`; a placed part copies the numbers into `p.n` so rockets survive deletes. |
+| `tut.js` | First-time tutorial (`throat.tut.v1`): coach cards + a ring on the thing to press; each step advances when the player does it (torch → valves → Rocket → Launch → fly). Auto-starts on a first visit; Skip; "Start the tutorial" in Controls. `window.__tut` for tests. |
 | `vab.js` | Rocket editor: palette, snapping, mirror pairs (move one onto the centre line → its twin is deleted), drag moves a part + everything under it (Alt: just it), resize tanks, inspector, saved rockets, stage list. |
 | `flight.js` | Real-time flight: several vessels at once, staging, fly-by-wire steering + heading hold, basic aero (shape/AoA drag, fins weathervane), legs and landing rules, pads, on-rails warp (≥50×), SOI hand-over, procedural plume, crash effects, HUD. |
 | `map.js` | Map view: pan/zoom/focus, path ahead with labelled Ap/Pe (altitude + T−), Moon encounter / leave / impact, click a craft to fly it. |
@@ -80,7 +81,7 @@ See `HISTORY.md` for the version history, why things are tuned the way they are,
    including strap-on solid boosters.
 3. ✅ (v1.11) Methane and kerosene on the test stand (blue-violet methane flame, sooty orange kerosene).
 4. ✅ (v1.13) Fix booster Isp (see above).
-5. Short first-time tutorial (light the engine → build a rocket → launch).
+5. ✅ (v1.14) Short first-time tutorial (light the engine → build a rocket → launch).
 6. Later: centre of mass / centre of lift / centre of thrust in flight.
 
 ## Working with Wyatt
