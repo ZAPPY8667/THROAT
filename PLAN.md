@@ -1,6 +1,6 @@
-# Plan: webcast look + cinematic launch (v1.15 → v1.18)
+# Plan: webcast look, flight computer, cinematic launch (v1.15 → v1.19)
 
-Agreed with Wyatt on 2026-11-13 through a round of questions. Read `CLAUDE.md` first. Work in four phases. After **each**
+Agreed with Wyatt on 2026-11-13 through a round of questions. Read `CLAUDE.md` first. Work in five phases. After **each**
 phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280×720 and phone 390×844), commit, push to
 `main`, and post a short summary.
 
@@ -19,8 +19,10 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
 - **Font:** a thin, wide, techy open-licence font built into the file (offline). First choice **D-DIN** (SIL OFL); fallback
   **Rajdhani** (OFL). Subset to Latin + digits + symbols used (°, ×, Δ, ₂, ₄, ·, –, →), woff2, base64 `@font-face`,
   target ≤ 60 KB. **Downloading the font needs Wyatt's OK first.** Keep the monospace stack for numbers that must align.
-- **Density: minimal.** Only key numbers and a slim toolbar on screen. Side panels (probe, tool/keys, inspector, editor
-  stats) fold into edge tabs and slide out on click/hover; remember open/closed per panel.
+- **Density: minimal on screen, deep when pulled out.** Only key numbers and a slim toolbar are always visible. Every data panel
+  (probe, tool/keys, inspector, editor stats, and all flight panels) lives behind a small labelled **edge tab** (INFO, SAS,
+  ASCENT, NODE, LAND, …). Click a tab to slide its panel out, click again to hide it. Several can be open at once; remember
+  which are open. Pulled-out panels are **detailed, MechJeb-style**: lots of numbers, clearly grouped.
 - **Motion everywhere:**
   - Smooth transitions between test stand ↔ editor ↔ flight (fade plus a slight scale).
   - Rolling numbers: readouts ease toward new values instead of jumping.
@@ -41,6 +43,19 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
      current `fmsg` box for events; keep `fmsg` for hints.
    - **Live feel:** a small red ● LIVE tag, slight camera drift, and shake that scales with thrust and dynamic pressure.
    - Secondary numbers (Ap/Pe, TWR, Δv, fuel) stay small and can be folded away.
+5. **INFO pull-out panels (MechJeb-style readouts),** each its own edge tab or a section of INFO:
+   - **Orbit:** Ap, Pe, period, eccentricity, semi-major axis, time to Ap and Pe, orbital speed, SOI (Earth/Moon).
+   - **Surface:** altitude above ground, vertical and horizontal speed, surface speed, dynamic pressure q (with Max-Q marker),
+     drag, air density, distance to the pad and landing zone.
+   - **Vessel:** mass (wet/dry), TWR now and max, Δv per stage and total, burn time per stage, engines lit, booster burn left.
+6. **SAS hold modes** (a SAS tab plus a compact always-visible strip of icon buttons in flight, with hotkeys):
+   - Stability (hold current heading, as now), Prograde, Retrograde, Radial out, Radial in (relative to the current orbit).
+   - Surface prograde and surface retrograde: follow the path over the ground, for landings.
+   - Horizon east and horizon west: flat along the ground.
+   - Normal and anti-normal are left out on purpose, because in 2D they point out of the screen.
+   - Steering input (A/D) drops back to Stability; the active hold shows as a red marker on the navball-style heading ring.
+   - The holds use the existing fly-by-wire/heading-hold torque limits in `stepV` (`flight.js`), so an active hold can't do
+     anything the rocket couldn't do already. Add a headless test that each hold settles within a few degrees.
 
 ## Phase 2: test stand as an engineering cutaway (v1.16)
 - Walls render as **crisp white outlines** (contours of the solid regions) on a near-black blue background, instead of pixel steel.
@@ -54,6 +69,14 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
 - The **rocket editor** gets the same blueprint/cutaway style (white-line parts on a grid). **Flight keeps realistic rocket art.**
 
 ## Phase 3: cinematic launch (v1.17)
+- **Pre-launch on the pad** (while the rocket sits waiting and through the countdown):
+  - **Umbilical arms** from the tower connect to each stage's tanks. Upper arms swing away from T-5 to T-2, the base
+    umbilicals drop at T-0. Draw the hoses with sag; arms retract with easing.
+  - **Boil-off venting:** white cold-vapour plumes from vents on fuelled tanks. They puff and drift with a little wind,
+    get stronger while waiting, and stop about T-10 (vents close).
+  - **Frost on the tanks:** a frosty white coating on cold propellant tanks (cryogenic H₂/O₂, and methane). It flakes off as
+    small falling particles during the climb and is gone by about 10 km. Solid boosters get no frost.
+  - **Hold-down clamps** at the base hold the rocket while the engines spool up from T-3. They open at T-0.
 - **Flow:** Launch in the editor puts the rocket on the pad and it waits. **Space (or an on-screen START COUNTDOWN button)**
   starts a **10 s countdown**. Space during the countdown skips to T-0. After lift-off, Space stages as now.
 - **Countdown:**
@@ -77,6 +100,21 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
 - **Sky colour shift:** blue → deep blue → black with stars; a thin glowing horizon line and the planet's curve appear high up
   (from roughly 20 km). Keep it consistent with the existing `renderFlight` sky gradient and star field (`flight.js`).
 - Random but stable per launch (seeded), so a retry looks the same.
+
+## Phase 5: flight computer, the MechJeb-style autopilots (v1.19)
+Each is a pull-out edge-tab panel with clear Engage/Abort buttons, status text ("Gravity turn… 34%"), and the autopilot's
+plan drawn on the map. The player can take over at any moment (any steering or throttle input disengages it, with a callout).
+- **ASCENT:** set the target orbit altitude (default 60 km). It flies a gravity turn (start speed, turn shape, end angle, all
+  tweakable), limits throttle near Max-Q, auto-stages when a stage runs dry, coasts to Ap and circularises. Base it on the
+  proven headless autopilot in `tests/flight/orbit_ascent.js`, which already reaches orbit with the Orbiter and Sparrow.
+- **NODE:** maneuver planner plus executor. Presets: circularise at Ap or Pe, change Ap, change Pe, Hohmann transfer to the
+  Moon (reuse the search in `tests/flight/rails_vs_prediction.js`), return from the Moon. Show the planned orbit on the map
+  (dashed, using `predict()` in `orbit.js`), the burn Δv and time to the burn. Execute: warp to the burn, point at the burn
+  direction, burn and trim.
+- **LAND:** target the landing zone or the current spot on the Moon. De-orbit burn, coast, then a suicide burn with legs down,
+  aiming for under 3 m/s touchdown. Base it on `tests/flight/moon_landing.js` and `landing_limits.js`.
+- Add headless tests: ascent to orbit for every ready-made rocket, Moon transfer to a Moon periapsis between 20 and 200 km,
+  landing on the landing zone and on the Moon with no crash.
 
 ## Out of scope / open
 - **Still waiting on Wyatt:** make the repo public and turn on GitHub Pages? The repo is private and Pages is off, so the
