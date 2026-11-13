@@ -1,0 +1,3 @@
+(()=>{const g=document.getElementById("gases");const L=[["H₂","#5ae1f5"],["O₂","#5f87ff"],["N₂","#969caf"],["H₂O","#e1e8f0"],["H₂+O₂ 2:1","linear-gradient(90deg,#5ae1f5 50%,#5f87ff 50%)"],["Air","#7d8aa8"]];
+L.forEach(([n,c],i)=>{const b=document.createElement("button");b.dataset.g=i;b.innerHTML=`<span class="sw" style="background:${c}"></span>${n}`;g.appendChild(b);});
+const v=document.getElementById("views");[[6,"Real"],[0,"Glow"],[1,"Species"],[2,"Pressure"],[3,"Temp"],[4,"Mach"],[5,"Schlieren"]].forEach(([i,n])=>{const b=document.createElement("button");b.dataset.v=i;b.textContent=n;v.appendChild(b);});})();

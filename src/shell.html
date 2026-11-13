@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THROAT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* One screen: the world fills the window; panels float on it. Phones stack instead. Single dark theme. */
+:root{--bg:#06080e;--glass:rgba(12,16,30,.86);--glass2:rgba(20,26,46,.92);--edge:#2c3758;--edge2:#3d4b78;--txt:#dfe6f7;--dim:#8a94b4;--faint:#5c6688;
+  --acc:#ffaa28;--acc2:#ffcf7a;--violet:#c9a7ff;--good:#6fe28f;--warn:#ff6a4d;--h2:#5ae1f5;--o2:#6f93ff;
+  --display:"Silkscreen",ui-monospace,monospace;--body:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--txt);font:13px/1.4 var(--body)}
+.stage{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(100vw,177.78vh);aspect-ratio:16/9}
+canvas{width:100%;height:100%;display:block;image-rendering:pixelated;cursor:crosshair;touch-action:none}
+canvas.sel{cursor:default}
+.panel{position:absolute;background:var(--glass);border:1px solid var(--edge);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.45);backdrop-filter:blur(4px)}
+/* top bar */
+.top{left:8px;right:8px;top:8px;height:46px;display:flex;align-items:center;gap:10px;padding:0 8px}
+.logo{font:400 18px var(--display);color:var(--acc);letter-spacing:2px;padding:0 6px 0 2px;white-space:nowrap}
+.logo small{display:block;font:600 9px var(--body);color:var(--faint);letter-spacing:1px;margin-top:-3px}
+.tools{display:flex;gap:4px;flex:1;justify-content:center}
+.tool{display:flex;align-items:center;gap:5px;height:34px;padding:0 7px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--dim);font:600 12.5px var(--body);cursor:pointer}
+.tool svg{width:18px;height:18px;flex:none}
+.tool kbd{font:700 10px var(--body);color:var(--faint);border:1px solid var(--edge);border-radius:3px;padding:0 4px}
+.tool:hover{color:var(--txt);background:#18203a}
+.tool.on{color:#fff3dc;background:#3a2c14;border-color:var(--acc)}
+.tool.on kbd{color:var(--acc2);border-color:#7a5520}
+.seg{display:flex;border:1px solid var(--edge);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-right:1px solid var(--edge);border-radius:0;background:transparent;color:var(--dim);height:30px;padding:0 9px;font:600 11.5px var(--body);cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button:hover{color:var(--txt);background:#18203a}
+.seg button.on{background:#2b2350;color:#efe6ff}
+/* probe readouts */
+.probe{left:8px;top:62px;width:330px;padding:8px 10px}
+/* panels: drag by the title bar, – to minimise, double-click the title to put it back */
+.ph{display:flex;align-items:center;gap:6px;cursor:grab;user-select:none;touch-action:none;margin:-2px 0 4px}
+.ph h3{flex:1;margin:0!important}
+.dragging .ph{cursor:grabbing}
+.panel.dragging,.insp.dragging{opacity:.92;box-shadow:0 14px 34px rgba(0,0,0,.6)}
+.mn{border:0;background:transparent;color:var(--dim);font:700 15px var(--body);line-height:1;cursor:pointer;width:20px;height:18px;padding:0;border-radius:4px}
+.mn:hover{color:var(--txt);background:#1d2645}
+.panel.min .pbody{display:none!important}.panel.min .ph{margin:0}
+.insp.min>:not(.hd){display:none!important}
+.insp .hd{cursor:grab;user-select:none;touch-action:none}
+.probe h3,.ctx h3{margin:0 0 5px;font:600 10px var(--body);letter-spacing:1.5px;color:var(--faint);text-transform:uppercase}
+.read{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:1px 10px;font-variant-numeric:tabular-nums}
+.read .w{grid-column:2/5}
+.read span{color:var(--dim)}
+.read b{text-align:right;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.read hr{grid-column:1/5;border:0;border-top:1px solid var(--edge);margin:3px 0}
+.ok{color:var(--good)}.bad{color:var(--warn)}
+/* context panel (right) */
+.ctx{right:8px;top:62px;width:260px;padding:8px 10px;display:flex;flex-direction:column;gap:7px}
+.row{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.chip{display:flex;align-items:center;gap:5px;height:28px;padding:0 9px;border-radius:5px;border:1px solid var(--edge);background:#141b31;color:var(--txt);font:600 12px var(--body);cursor:pointer}
+.chip:hover{border-color:var(--edge2)}
+.chip.on{border-color:var(--acc);background:#33280f}
+.sw{width:10px;height:10px;border-radius:2px;flex:none}
+.keyb{height:30px;padding:0 10px;border-radius:5px;border:1px solid #6b2f2a;background:#2a1414;color:#ffcfc6;font:700 12px var(--body);cursor:pointer}
+.keyb.open{border-color:#3f9a5a;background:#123020;color:#c9f5d3}
+.keyb small{font-weight:400;color:inherit;opacity:.75;margin-left:4px}
+label.sl{display:grid;grid-template-columns:78px 1fr 62px;align-items:center;gap:6px;color:var(--dim);font-size:12px}
+label.sl output{color:var(--txt);text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--acc);height:16px}
+.tip{color:var(--dim);font-size:11.5px;line-height:1.45}
+.tip b{color:var(--acc2);font-weight:600}
+/* bottom bar */
+.bot{left:8px;right:8px;bottom:8px;padding:7px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.bot .grp{display:flex;align-items:center;gap:6px}
+.bot{gap:8px 10px}
+.bot label.sl{grid-template-columns:auto 64px 36px;gap:5px}
+.bot .seg button{padding:0 7px}
+.sep{width:1px;height:26px;background:var(--edge)}
+button.b,select{height:30px;padding:0 10px;border-radius:5px;border:1px solid var(--edge);background:#161d36;color:var(--txt);font:600 12px var(--body);cursor:pointer}
+button.b:hover,select:hover{border-color:var(--edge2)}
+button.b.on{border-color:var(--acc);background:#33280f;color:#ffe3b0}
+button.b.go{border-color:#3f9a5a;background:#123020;color:#c9f5d3}
+button.b.danger{border-color:#7a2f28;background:#2a1414;color:#ffcfc6}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+/* settings panel (docked on the right, middle) */
+.insp{position:absolute;right:8px;top:50%;width:238px;padding:8px 10px;background:var(--glass2);border:1px solid var(--edge2);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.55);display:none;flex-direction:column;gap:6px;z-index:5}
+.insp.show{display:flex}
+.insp .hd{display:flex;align-items:center;gap:8px}
+.insp .hd b{font:400 12px var(--display);color:var(--acc);letter-spacing:1px;flex:1}
+.insp .x{border:0;background:transparent;color:var(--dim);font-size:17px;line-height:1;cursor:pointer;padding:0 2px}
+.insp .x:hover{color:var(--txt)}
+.insp .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.insp .lb{display:flex;flex-direction:column;gap:2px;font-size:10.5px;color:var(--dim);letter-spacing:.3px}
+.insp .sl2{display:grid;grid-template-columns:58px 1fr 56px;align-items:center;gap:6px;font-size:11.5px;color:var(--dim)}
+.insp .sl2 output{color:var(--txt);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.insp select,.insp input[type=number]{height:26px;width:100%;background:#141b31;border:1px solid var(--edge);border-radius:5px;color:var(--txt);font:600 12px var(--body);padding:0 5px}
+.insp button.b{height:26px;padding:0 8px;font-size:11.5px}
+.insp .state{width:100%;font-weight:700;letter-spacing:.5px}
+.insp .seg{width:100%}.insp .seg button{flex:1;height:26px}
+.insp .foot{display:flex;justify-content:space-between;align-items:center}
+.insp .foot .tip{font-size:10.5px}
+/* flight */
+.flight{position:fixed;inset:0;display:none;z-index:30;background:#000}.flight.show{display:block}
+#fcv{width:100%;height:100%;image-rendering:auto;cursor:default}
+.fpanel{position:absolute;background:var(--glass);border:1px solid var(--edge);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.45);padding:8px 12px}
+.ftl{left:10px;top:10px;width:370px}.ftr{right:10px;top:10px;width:300px}
+.fbt{left:50%;transform:translateX(-50%);width:max-content;bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:96vw}
+.fmsg{position:absolute;left:50%;top:16%;transform:translateX(-50%);background:rgba(8,11,22,.88);border:1px solid var(--edge2);padding:10px 16px;border-radius:8px;color:var(--acc2);font:600 14px var(--body);text-align:center;max-width:80%}
+@media (max-width:700px){.ftl,.ftr{width:auto;left:6px;right:6px}.ftr{top:112px}.fbt{gap:5px;padding:6px 8px}.fbt button{padding:6px 9px}.fmsg{top:30%;font-size:12px}.ftl .read,.ftr .read{grid-template-columns:auto 1fr auto 1fr}}
+/* vehicle editor */
+.vab{position:fixed;inset:0;display:none;z-index:29;background:#0a0f1d}.vab.show{display:block}
+#vcv{width:100%;height:100%;touch-action:none;display:block}
+.vpanel{position:absolute;background:var(--glass);border:1px solid var(--edge);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.45);padding:8px 10px}
+.vpanel h3{margin:0 0 6px;font:600 10px var(--body);letter-spacing:1.5px;color:var(--faint);text-transform:uppercase}
+.vpal{left:10px;top:10px;bottom:66px;width:188px;overflow:auto}
+#vParts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.vpart{display:flex;flex-direction:column;align-items:center;gap:2px;background:#141b31;border:1px solid var(--edge);border-radius:6px;color:var(--txt);font:600 10.5px var(--body);padding:4px 2px 6px;cursor:grab;touch-action:none;user-select:none}
+.vpart:hover{border-color:var(--acc)}.vpart.veng{background:#1a1a2c}.vpart canvas{width:44px;height:44px;pointer-events:none}.vpart span{pointer-events:none;text-align:center;line-height:1.15}
+.vstat{right:10px;top:10px;width:292px;max-height:calc(100% - 250px);overflow:auto}
+.vinsp{right:10px;bottom:66px;width:292px}.vinsp .ih{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:3px}
+.vinsp button.b{height:28px;padding:0 9px;font-size:11.5px}
+.vbar{left:50%;transform:translateX(-50%);width:max-content;bottom:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 20px)}
+.vbar select{max-width:150px}
+.vname{width:100%;box-sizing:border-box;background:#0d1326;border:1px solid var(--edge);border-radius:5px;color:var(--acc2);font:700 13px var(--body);padding:5px 7px;margin-bottom:6px}
+.vst{margin:6px 0}.vst .sr{display:grid;grid-template-columns:58px 1fr auto;gap:2px 8px;align-items:baseline;padding:5px 0;border-bottom:1px solid #1d2540;font-size:12px;color:var(--dim)}
+.vst .sr b{color:var(--txt)}.vst .sr i{grid-column:2/4;font-style:normal;font-size:11px}.vst .vsep{color:var(--acc2);font-size:11px;padding:3px 0 1px 8px}
+.warn{color:var(--warn);font-size:12px;margin-top:6px;line-height:1.4}
+.vhint{position:absolute;left:50%;top:10px;transform:translateX(-50%);color:var(--dim);font-size:11.5px;background:rgba(8,11,22,.72);padding:5px 10px;border-radius:6px;pointer-events:none;text-align:center;max-width:46vw}
+#vMsg{top:70px}
+@media (max-width:760px){.vpal{top:6px;left:6px;right:6px;bottom:auto;width:auto;height:72px;overflow-x:auto;overflow-y:hidden;padding:4px}#vParts{display:flex;gap:4px}.vpart{min-width:62px;padding:2px 2px 4px}.vpart canvas{width:34px;height:34px}.vpart span{font-size:9.5px}.vpal h3,.vhint{display:none}
+  .vstat{top:86px;right:6px;width:178px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}
+  .vbar{bottom:6px;gap:4px;padding:5px 6px}.vbar button.b{padding:0 7px;height:30px;font-size:11.5px}.vbar select{max-width:96px}#vMsg{top:45%}}
+.fmapbar{left:50%;top:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:6px 8px}.fmapbar button.b{height:28px;padding:0 10px}
+@media (max-width:700px){.fmapbar{top:auto;bottom:118px}}
+.fves{font:700 11px var(--body);color:var(--acc2);margin-bottom:4px;letter-spacing:.5px}
+/* help */
+.help{position:absolute;inset:0;background:rgba(5,7,14,.82);display:none;align-items:center;justify-content:center;z-index:10}
+.help.show{display:flex}
+.dl{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--edge);border-radius:6px;background:#121831}
+.dl b{flex:1;font-weight:600}.dl small{color:var(--dim)}
+.help .card{background:var(--glass2);border:1px solid var(--edge2);border-radius:10px;padding:16px 20px;max-width:720px;width:92%}
+.help h2{margin:0 0 10px;font:400 18px var(--display);color:var(--acc)}
+.help .cols{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;font-size:12.5px}
+.help .cols div{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #1d2540;padding:3px 0}
+.help .cols div i{font-style:normal;color:var(--dim);white-space:nowrap}
+.help kbd{font:700 11px var(--body);color:var(--acc2);border:1px solid var(--edge2);border-radius:3px;padding:0 5px;white-space:nowrap}
+@media (max-width:900px),(max-height:520px){
+  html,body{height:auto;overflow:auto}
+  .stage{position:static;transform:none;width:100%;aspect-ratio:auto;display:flex;flex-direction:column;gap:8px;padding:8px}
+  canvas{width:100%;height:auto;aspect-ratio:16/9;max-width:calc((100svh - 16px)*1.7778);margin:0 auto;border:1px solid var(--edge);border-radius:6px}
+  .panel{position:static;backdrop-filter:none;width:auto!important;height:auto!important;left:auto!important;top:auto!important}
+  .ph,.insp .hd{cursor:default}
+  .top{order:-1;flex-direction:column;align-items:stretch;padding:6px;gap:6px}.tools{flex-wrap:wrap;justify-content:space-between;gap:3px}.tool{height:42px;flex:1 1 0;justify-content:center;padding:0 4px;min-width:38px}
+  #bHelp,.sep{display:none}
+  .insp{position:static;width:auto;order:1;transform:none!important}.probe{order:2}.ctx{order:3}.bot{order:4}
+  .bot .grp{flex-wrap:wrap}
+  button.b,select,.chip,.keyb{min-height:38px}
+  .bot label.sl{grid-template-columns:90px 1fr 52px;width:100%}
+  kbd,.keyhint{display:none!important}
+}
+@media (max-width:1300px){.tool kbd{display:none}}
+@media (max-width:1120px){.tool span{display:none}}
+@media (max-width:600px){.tool span{display:none}}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <canvas id="cv" width="1280" height="720" aria-label="THROAT play area"></canvas>
+
+  <div class="panel top">
+    <div class="logo">THROAT<small>ROCKET ENGINE SANDBOX</small></div>
+    <div class="tools" id="tools"></div>
+    <button class="b" id="bHelp" title="Controls (H)">? Controls</button>
+  </div>
+
+  <div class="panel probe" id="probe">
+    <div class="ph"><h3>Probe · under cursor</h3><button class="mn" title="Minimise">–</button></div>
+    <div class="read pbody">
+      <span>Pressure</span><b id="rP">–</b><span>Temp</span><b id="rT">–</b>
+      <span>Flow</span><b id="rV">–</b><span>Mach</span><b id="rM" style="color:var(--violet)">–</b>
+      <span>Gas</span><b id="rG" class="w">–</b>
+      <span>H₂:O₂</span><b id="rX" class="w">–</b>
+      <hr>
+      <span>Thrust</span><b id="rF" style="color:var(--acc2)" title="Net push of the gas on everything solid, per 1 cm slice of this 2D engine">–</b><span>Isp</span><b id="rI" title="Specific impulse: seconds of thrust per weight of propellant. Higher = more efficient">–</b>
+      <span>H₂O</span><b id="rW">–</b><span>Atoms</span><b id="rA" class="ok">–</b>
+      <span id="rowB" style="display:none;grid-column:1/5;color:var(--acc2)"><span style="color:var(--dim)">Booster </span><b id="rBurn">–</b></span>
+      <span>Sim</span><b id="rS" class="w">–</b>
+    </div>
+  </div>
+
+  <div class="panel ctx" id="ctx">
+    <div class="ph"><h3 id="ctxTitle">Tool</h3><button class="mn" title="Minimise">–</button></div>
+    <div class="pbody" style="display:flex;flex-direction:column;gap:7px">
+      <div id="ctxBody"></div>
+      <div class="tip" id="ctxTip"></div>
+      <h3 style="margin-top:2px">Engine keys</h3>
+      <div class="row" id="keys"></div>
+    </div>
+  </div>
+
+  <div class="insp" id="insp" role="dialog" aria-label="Settings"></div>
+
+  <div class="panel bot">
+    <div class="grp">
+      <select id="scen" aria-label="Scenario"><option value="custom" hidden>My design</option><option value="engine">First engine</option><option value="srb">Solid booster</option><option value="spark">Spark a mix</option><option value="two">Two chambers</option><option value="empty">Empty</option></select>
+      <button class="b" id="bReload" title="Reload scenario (R)">Reload</button>
+      <button class="b" id="bPause" title="Pause (Space)">Pause</button>
+      <button class="b" id="bAir" title="Outside air (A)">Sea level</button>
+      <button class="b" id="bClear" title="Clear all loose gas (C)">Clear</button>
+      <button class="b" id="bUndo" title="Undo (Ctrl+Z)">↶</button><button class="b" id="bRedo" title="Redo (Ctrl+Shift+Z)">↷</button>
+      <button class="b" id="bDesigns" title="Save / load your designs">Designs</button>
+      <button class="b go" id="bLaunch" title="Build a rocket around your engine and fly it in real time">🚀 Rocket</button>
+      <select id="wsize" title="World size (bigger = more room, slower flow). Reloads the page."><option value="160x90">World: S</option><option value="240x135">World: L</option><option value="320x180">World: XL</option></select>
+    </div>
+    <div class="sep"></div>
+    <label class="sl" for="heat" title="How much heat the fuel releases (1× = normal)">Fuel<input id="heat" type="range" min="5" max="30" value="10"><output id="oHeat"></output></label>
+    <label class="sl" for="spd" title="Simulation speed">Speed<input id="spd" type="range" min="1" max="10" value="10"><output id="oSpd"></output></label>
+    <div class="sep"></div>
+    <div class="grp"><div class="seg" id="views" role="group" aria-label="View"></div></div>
+  </div>
+
+  <div class="help" id="designs"><div class="card">
+    <h2>Designs</h2>
+    <div class="row" style="flex-wrap:nowrap"><input id="dName" type="text" maxlength="40" placeholder="Name this design" style="flex:1;height:32px;background:#141b31;border:1px solid var(--edge);border-radius:5px;color:var(--txt);font:600 13px var(--body);padding:0 8px">
+      <button class="b go" id="dSave">Save</button></div>
+    <div id="dList" style="margin:10px 0;max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:5px"></div>
+    <div class="row"><button class="b" id="dDown">Download as file</button><label class="b" style="display:inline-flex;align-items:center;cursor:pointer">Open a file…<input id="dFile" type="file" accept=".json,application/json" style="display:none"></label>
+      <span class="tip" style="margin-left:auto">Saved in this browser. Files work on any computer.</span></div>
+    <p class="tip" style="margin:10px 0 0">A design is everything you built: walls, tanks, valves, igniters and their keys. Your work is also autosaved every few seconds. Esc to close.</p>
+  </div></div>
+  <div class="help" id="help"><div class="card">
+    <h2>Controls</h2>
+    <div class="cols">
+      <div>Select / edit things<kbd>S</kbd></div><div>Start / stop an engine<i><kbd>1</kbd>–<kbd>9</kbd></i></div>
+      <div>Gas brush<kbd>G</kbd></div><div>Rotate valve<i><kbd>Q</kbd> <kbd>E</kbd></i></div>
+      <div>Wall brush<kbd>W</kbd></div><div>Valve / brush size<i><kbd>Shift</kbd> + wheel</i></div>
+      <div>Erase<i><kbd>X</kbd> or right-click</i></div><div>Stretch selected valve<i><kbd>Shift</kbd> + drag</i></div>
+      <div>Tank (drag a box)<kbd>T</kbd></div><div>Delete selected<kbd>Del</kbd></div>
+      <div>Pipe (drag)<kbd>P</kbd></div><div>Injector plate<kbd>J</kbd></div>
+      <div>Check valve (one-way)<kbd>K</kbd></div><div>Flip its arrow<i>Select it</i></div>
+      <div>Straight line while painting<i><kbd>Shift</kbd> + drag</i></div><div>Injector type, holes<i>Select it</i></div>
+      <div>Valve<kbd>V</kbd></div><div>Deselect / close<kbd>Esc</kbd></div>
+      <div>Torch igniter<kbd>I</kbd></div><div>Zoom<i><kbd>wheel</kbd> <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></i></div>
+      <div>Spark (hold)<kbd>F</kbd></div><div>Pan<i><kbd>middle-drag</kbd> <kbd>Alt</kbd>+drag <kbd>arrows</kbd></i></div>
+      <div>Next view<kbd>`</kbd></div><div>Real ↔ Glow view<kbd>N</kbd></div>
+      <div>Outside: sea level / vacuum<kbd>A</kbd></div><div>Pause<kbd>Space</kbd></div>
+      <div>Clear loose gas<kbd>C</kbd></div><div>Reload scenario<kbd>R</kbd></div>
+      <div>Solid propellant brush<kbd>B</kbd></div><div>Burn rate<i>Propellant tool panel</i></div>
+      <div>Undo<i><kbd>Ctrl</kbd>+<kbd>Z</kbd></i></div><div>Redo<i><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></i></div>
+    </div>
+    <div class="cols" style="margin-top:10px"><div style="grid-column:1/-1;color:var(--acc);font-weight:700;border:0">🚀 Rocket editor &amp; flight</div>
+      <div>Editor: move part + what's under it<i>drag (<kbd>Alt</kbd>: just it)</i></div><div>Stretch a tank<i><kbd>Shift</kbd> + wheel</i></div>
+      <div>Editor: mirror pairs<kbd>M</kbd></div><div>Editor: remove part<i><kbd>Del</kbd> or drag to the parts list</i></div>
+      <div>Throttle up / down<i><kbd>Shift</kbd> <kbd>Ctrl</kbd> or <kbd>W</kbd> <kbd>S</kbd></i></div><div>Full / cut<i><kbd>Z</kbd> <kbd>X</kbd></i></div>
+      <div>Steer<i><kbd>A</kbd> <kbd>D</kbd></i></div><div>Next stage<kbd>Space</kbd></div>
+      <div>Landing legs<kbd>G</kbd></div><div>Fly another craft<i><kbd>[</kbd> <kbd>]</kbd></i></div>
+      <div>Map<kbd>M</kbd></div><div>Time warp<i><kbd>.</kbd> <kbd>,</kbd></i></div>
+      <div>Retry / editor<i><kbd>R</kbd> <kbd>B</kbd></i></div><div>Back to the test stand<kbd>Esc</kbd></div>
+    </div>
+    <p class="tip" style="margin:12px 0 0">Click a valve, igniter or tank with the <b>Select</b> tool to change its settings: which number key runs it, open/closed, start delay, length, direction, gas and pressure. Press <b>H</b> or <b>Esc</b> to close.</p>
+  </div></div>
+</div>
+<script>var THROAT_SIZE=(function(){try{var s=JSON.parse(localStorage.getItem("throat.size.v1"));if(s&&s.length===2)return s;}catch(e){}return [240,135];})();</script>
+<div class="vab" id="vab">
+  <canvas id="vcv" aria-label="Rocket editor"></canvas>
+  <div class="vhint">Drag parts in from the left: they snap together. Drag a part to move it and everything under it (Alt: just that one). Shift+wheel stretches a tank. Del removes. M mirror.</div>
+  <div class="vpanel vpal" id="vPal"><h3>Parts</h3><div id="vParts"></div></div>
+  <div class="vpanel vstat"><h3>Rocket</h3><input id="vName" class="vname" maxlength="40" aria-label="Rocket name"><div id="vStats"></div></div>
+  <div class="vpanel vinsp" id="vInsp" style="display:none"></div>
+  <div class="vpanel vbar">
+    <select id="vLoad" aria-label="Load a rocket"></select>
+    <button class="b" id="vSaveB" title="Save under this name">💾 Save</button><button class="b" id="vDelB" title="Delete the saved rocket with this name">🗑</button>
+    <button class="b on" id="vMirror" title="Place parts in mirrored pairs (M)">⇋ Mirror on</button><button class="b" id="vLegs" title="Show landing legs folded or deployed">🦿 Legs in</button>
+    <button class="b" id="vUndoB" title="Undo (Ctrl+Z)">↶</button><button class="b" id="vRedoB" title="Redo (Ctrl+Shift+Z)">↷</button><button class="b" id="vFit" title="Fit the view (F)">⤢</button><button class="b" id="vClear">Clear</button>
+    <button class="b go" id="vGo" style="font-size:14px" title="Launch (Enter)">🚀 Launch</button><button class="b" id="vBack">← Test stand</button>
+  </div>
+  <div class="fmsg" id="vMsg" style="display:none"></div>
+</div>
+<div class="flight" id="flight">
+  <canvas id="fcv" aria-label="Flight view"></canvas>
+  <div class="fpanel ftl"><div class="fves" id="fVes"></div><div class="read">
+    <span>Altitude</span><b id="fAlt">–</b><span>Speed</span><b id="fSpd">–</b>
+    <span>Vertical</span><b id="fVs">–</b><span>Sideways</span><b id="fHs">–</b>
+    <span>Apoapsis</span><b id="fAp">–</b><span>Periapsis</span><b id="fPe">–</b>
+    <span>Time</span><b id="fT">–</b><span>Warp</span><b id="fWarp">–</b>
+    <span id="fPadL">Launch pad</span><b id="fPad">–</b></div></div>
+  <div class="fpanel ftr"><div class="read">
+    <span>Throttle</span><b id="fThrO">–</b><span>Thrust/wt</span><b id="fTwr">–</b>
+    <span>Stage fuel</span><b id="fFuel">–</b><span>Stage Δv</span><b id="fDv">–</b>
+    <span>Next</span><b id="fNext">–</b><span>Total Δv</span><b id="fDvT">–</b></div>
+    <div style="height:6px;background:#1a2140;border-radius:3px;margin-top:6px;overflow:hidden"><div id="fFuelBar" style="height:100%;width:100%;background:linear-gradient(90deg,#ff8a3c,#ffcf7a)"></div></div></div>
+  <div class="fpanel fbt">
+    <button class="b" id="fL" title="Turn left (A)">⟲</button><button class="b" id="fR" title="Turn right (D)">⟳</button>
+    <label class="sl" style="grid-template-columns:auto 140px;gap:6px">Throttle<input id="fThr" type="range" min="0" max="100" value="0"></label>
+    <button class="b" id="fStage" title="Next stage (Space)">⏏ Stage</button><button class="b" id="fLegs" title="Landing legs (G)">🦿 Legs</button>
+    <button class="b" id="fMap" title="Map (M)">Map</button><button class="b" id="fWarp2" title="Time warp (. and ,)">⏩ Warp</button>
+    <button class="b on" id="fRetry" title="Try again (R)" style="display:none">↻ Retry</button>
+    <button class="b" id="fBuild" title="Back to the rocket editor (B)">🛠 Build</button><button class="b" id="fBack" title="Back to the test stand (Esc)">← Test stand</button>
+  </div>
+  <div class="fpanel fmapbar" id="fMapBar" style="display:none"><span class="tip">Focus</span><button class="b" data-f="ship">Ship</button><button class="b" data-f="earth">Earth</button><button class="b" data-f="moon">Moon</button></div>
+  <div class="fmsg" id="fMsg" style="display:none"></div>
+</div>
+<script id="coreScript">
+/*CORE*/
+</script>
+<script id="workerGlue" type="text/plain">
+/*GLUE*/
+</script>
+<script>
+/*UI*/
+</script>
+</body>
+</html>
