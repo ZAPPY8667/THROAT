@@ -65,7 +65,21 @@ made on the test stand.
   which counted as fuel). Still reads ~190 s at burnout vs ~210 s expected — backlog item.
 - The test stand does not record "Your engine" numbers while a booster burns.
 
+## v1.15: webcast look (phase 1 of PLAN.md)
+- White/grey on black with one red accent (`--red`; `--acc` is red, `--acc2` is white). Font stack starts with D-DIN / Rajdhani
+  (not embedded yet: downloading one needs Wyatt's OK), then Bahnschrift, which Windows already has.
+- Edge tabs (`foldUI` in ui.js, `throat.tabs.v1`): PROBE/TOOL on the stand, PARTS/ROCKET in the editor, ORBIT/SURFACE/VESSEL/
+  DATA/SAS in flight. Phones keep the stacked stand and editor; in flight a phone shows one panel at a time.
+- Motion: `roll()` eases every readout to its new value, `kick()` shakes and flashes the screen on ignition, `enter()` replays a
+  screen's entrance. All off with prefers-reduced-motion (`REDUCED`).
+- Flight HUD: speed/altitude dials, T+ clock, timeline built from the rocket's stages (`buildEvents`/`mark`), centred callouts
+  (`callout`; `fmsg` is now only for hints), LIVE tag, camera drift + shake from thrust, q and ignition.
+- SAS holds (`v.sas`, `sasTarget` in flight.js, keys 1–9): they only choose the heading for the existing heading hold, so they
+  can't out-turn A/D. In thick air at speed the fins can beat the reaction wheel; the test (tests/flight/sas_holds.js) checks the
+  surface modes above the Moon for that reason.
+
 ## Things that went wrong (don't repeat)
+- The flight bundle is one closure: map.js already has `tfmt`/`kmf`, so a second `const` with those names breaks the whole page.
 - Wyatt shared a schlieren reference image with no text; Claude assumed what he wanted and changed things. He said
   "no" — ask what a reference image is for before acting on it.
 - A "draft email" card can't carry an attachment. When Wyatt wants the playtest email, make a real Gmail draft with

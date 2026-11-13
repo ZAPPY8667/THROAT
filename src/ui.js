@@ -307,9 +307,9 @@ function render(){
   if(seq){const f=Math.max(0,Math.min(1,1-(seq.openAt-simTime)/seq.delay)),bw=280*SS,bh=10*SS,bx=CW/2-bw/2,by=SMALL?CH-40*SS:CH*0.76;
     const lbl="IGNITER LIT · MAIN VALVES OPENING",w=ctx.measureText(lbl).width;
     card(Math.min(bx,CW/2-w/2)-16*SS,by-30*SS,Math.max(bw,w)+32*SS,50*SS);
-    ctx.fillStyle="#ffc27a";ctx.fillText(lbl,CW/2-w/2,by-22*SS);ctx.fillStyle="#0a0e14";ctx.fillRect(bx,by,bw,bh);ctx.strokeStyle="#2c3746";ctx.lineWidth=1;ctx.strokeRect(bx,by,bw,bh);ctx.fillStyle="#ff9d2e";ctx.fillRect(bx,by,bw*f,bh);}
+    ctx.fillStyle="#ffffff";ctx.fillText(lbl,CW/2-w/2,by-22*SS);ctx.fillStyle="#0a0e14";ctx.fillRect(bx,by,bw,bh);ctx.strokeStyle="#2c3746";ctx.lineWidth=1;ctx.strokeRect(bx,by,bw,bh);ctx.fillStyle="#ff9d2e";ctx.fillRect(bx,by,bw*f,bh);}
   else if(hint){const w=ctx.measureText(hint).width,hy=SMALL?CH-34*SS:CH*0.76;card(CW/2-w/2-18*SS,hy-8*SS,w+34*SS,30*SS);ctx.fillStyle="#e7ecf3";ctx.fillText(hint,CW/2-w/2+2*SS,hy);}
-  if(cam.z>1){const l=`${cam.z}× zoom · 0 to reset`,w=ctx.measureText(l).width,zy=SMALL?8:66*SS;card(CW/2-w/2-16*SS,zy,w+30*SS,26*SS);ctx.fillStyle="#ffc27a";ctx.fillText(l,CW/2-w/2+2*SS,zy+6*SS);}
+  if(cam.z>1){const l=`${cam.z}× zoom · 0 to reset`,w=ctx.measureText(l).width,zy=SMALL?8:66*SS;card(CW/2-w/2-16*SS,zy,w+30*SS,26*SS);ctx.fillStyle="#ffffff";ctx.fillText(l,CW/2-w/2+2*SS,zy+6*SS);}
 }
 
 // ---------- physics thread ----------
@@ -641,6 +641,51 @@ $("wsize").onchange=()=>{const[a,b]=$("wsize").value.split("x").map(Number);try{
 const dlg=$("designs"),LS="throat.designs.v1",AS="throat.autosave.v1";
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}};
 let customDesign=null;
+// ---------- motion helpers (v1.15) ----------
+// Everyone who turned on "reduce motion" in their system settings gets no shake, no sliding and no rolling numbers.
+var REDUCED=matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Rolling numbers: a readout eases toward its new value instead of jumping, like a broadcast graphic. One helper for every
+// readout (probe, flight, editor). roll(key, element, number, format): the key keeps the motion going even when the element
+// is rebuilt; a value of null shows "–". Big jumps (more than 20× or a change of sign) snap, so nothing counts for ages.
+var ROLL=new Map(),rollT=0;
+function roll(key,el,v,f){if(!el)return;let r=ROLL.get(key);
+  if(v==null||!isFinite(v)){ROLL.delete(key);if(el.textContent!=="–")el.textContent="–";return;}
+  if(!r){r={c:v};ROLL.set(key,r);}
+  const big=Math.abs(v)>20*Math.abs(r.c)+1||Math.abs(r.c)>20*Math.abs(v)+1||(v>0)!==(r.c>0)&&Math.abs(v-r.c)>Math.max(Math.abs(v),1)*0.5;
+  r.t=v;r.f=f;r.el=el;if(REDUCED||big)r.c=v;r.seen=performance.now();rollPaint(r);
+  if(!rollT)rollT=requestAnimationFrame(rollTick);}
+function rollPaint(r){const s=r.f(r.c);if(r.el.textContent!==s)r.el.textContent=s;}
+function rollTick(now){rollT=0;let more=false;const dt=1/60;
+  for(const[k,r]of ROLL){if(now-r.seen>3000){ROLL.delete(k);continue;}if(r.c===r.t)continue;
+    r.c+=(r.t-r.c)*(1-Math.exp(-dt*11));if(Math.abs(r.t-r.c)<=Math.max(1e-9,Math.abs(r.t)*0.0005))r.c=r.t;rollPaint(r);if(r.c!==r.t)more=true;}
+  if(more)rollT=requestAnimationFrame(rollTick);}
+// A jolt for the whole screen: shake plus a white flash, for ignitions and launches (k = 0..1 strength)
+function kick(el,k){if(REDUCED||!el)return;el.style.setProperty("--kick",String(Math.max(0.2,Math.min(1,k||1))));el.classList.remove("kick");void el.offsetWidth;el.classList.add("kick");
+  const f=document.createElement("div");f.className="flash";f.style.opacity=String(0.25+0.4*(k||1));el.appendChild(f);setTimeout(()=>f.remove(),700);}
+// Play a screen's entrance again (fade plus a slight scale), e.g. when you come back to the test stand
+function enter(el){if(!el||REDUCED)return;el.classList.remove("enter");void el.offsetWidth;el.classList.add("enter");}
+// ---------- fold-away panels with edge tabs ----------
+// Only the key numbers stay on screen; each data panel hides behind a small labelled tab on the edge of the screen.
+// Click a tab to slide the panel out, again to put it away. Several can be open at once, and the game remembers which.
+// defs: [{el, label, side:"l"|"r", open:true/false (first visit)}]
+const TABS="throat.tabs.v1";
+function foldUI(host,name,defs){
+  const all=store.get(TABS,{}),mine=all[name]||Object.fromEntries(defs.map(d=>[d.label,!!d.open]));
+  const box={};for(const side of["l","r"]){if(!defs.some(d=>d.side===side))continue;const b=document.createElement("div");b.className="etabs "+side;b.dataset.for=name;host.appendChild(b);box[side]=b;}
+  const save=()=>{const a=store.get(TABS,{});a[name]=mine;store.set(TABS,a);};
+  const api={};
+  for(const d of defs){const t=document.createElement("button");t.className="etab";t.type="button";t.textContent=d.label;t.title=(d.title||d.label)+" (click to show or hide)";
+    box[d.side].appendChild(t);d.el.classList.add("fold",d.side==="l"?"fl":"fr");
+    const show=(on,anim)=>{mine[d.label]=on;t.classList.toggle("on",on);t.setAttribute("aria-expanded",on);
+      if(on){d.el.classList.remove("folded","closing");if(anim&&!REDUCED){d.el.classList.remove("opening");void d.el.offsetWidth;d.el.classList.add("opening");}}
+      else if(anim&&!REDUCED){d.el.classList.add("closing");setTimeout(()=>{if(!mine[d.label]){d.el.classList.add("folded");d.el.classList.remove("closing");}},180);}
+      else d.el.classList.add("folded");};
+    show(mine[d.label]!==false&&mine[d.label]!==undefined?true:false,false);
+    t.onclick=()=>{const on=!mine[d.label];
+      if(on&&matchMedia("(max-width:700px)").matches)for(const o of defs)if(o!==d&&mine[o.label])api[o.label](false);   // phones: one panel at a time
+      show(on,true);save();};api[d.label]=on=>{show(on,true);save();};}
+  if(matchMedia("(max-width:700px)").matches){let seen=false;for(const d of defs)if(mine[d.label]){if(seen)api[d.label](false);seen=true;}}
+  return api;}
 // ---------- movable panels ----------
 const PS="throat.panels.v1";
 function savePanel(el,id){const all=store.get(PS,{}),st=$("stage").getBoundingClientRect(),r=el.getBoundingClientRect();
@@ -662,6 +707,7 @@ function makePanel(el,id,handleSel){
     delete el.dataset.moved;el.style.left=el.style.top=el.style.right=el.style.bottom=el.style.transform="";const all=store.get(PS,{});delete all[id];store.set(PS,all);if(el===insp&&sel)inspUI(false);});
   const mn=el.querySelector(":scope > .ph .mn");if(mn)mn.onclick=()=>{el.classList.toggle("min");savePanel(el,id);};
 }
+if(!SMALL)foldUI($("stage"),"stand",[{el:$("probe"),label:"PROBE",side:"l",open:true,title:"Probe: the gas under the cursor, thrust and Isp"},{el:$("ctx"),label:"TOOL",side:"r",open:true,title:"Tool settings and engine keys"}]);
 makePanel($("probe"),"probe",".ph,.pbody");makePanel($("ctx"),"ctx",".ph");makePanel(insp,"insp",".hd");
 addEventListener("resize",()=>{const all=store.get(PS,{});for(const[id,el]of[["probe",$("probe")],["ctx",$("ctx")],["insp",insp]]){const p=all[id];if(p&&p.moved&&!SMALL)placePanel(el,p.fx,p.fy);}});
 function loadDesignUI(d,name){pushUndo();doAct("design",d);customDesign=d;S.scen="custom";$("scen").value="custom";$("scen").querySelector('[value=custom]').textContent=name||"My design";
@@ -733,11 +779,12 @@ function burnDone(b){const mp=srbMass-b.m0,dur=b.t1-b.t0;if(!(mp>0&&dur>0&&b.imp
   const mean=c.reduce((a,x)=>a+x,0)/N;
   recordBurn({F:Fa,isp:steadyIsp(b)||b.imp/(mp*9.80665),curve:c.map(x=>+(x/mean).toFixed(3)),atmo:b.air,dur});}
 const ARW=["→","↘","↓","↙","←","↖","↑","↗"];
+let lastF=0;
 function readouts(){
-  const set=(id,v)=>{const el=$(id);if(el.textContent!==v)el.textContent=v;};
+  const set=(id,v)=>{ROLL.delete(id);const el=$(id);if(el.textContent!==v)el.textContent=v;};
   if(mouse.in){const cx=mouse.x/CP|0,cy=mouse.y/CP|0,k=cy*NX+cx;
     if(wall[k]){set("rP",wall[k]===4?`propellant ${Math.round(prop[k]*100)}%${lit[k]?" · burning":""}`:["","wall","valve","igniter"][wall[k]]);["rT","rV","rM","rG","rX"].forEach(i=>set(i,"–"));}
-    else{const w=cellPrim(k),sp=Math.hypot(w.u,w.v),c=Math.sqrt(GAM*w.p/w.r);set("rP",(w.p/PSI_PA).toFixed(1)+" psi");set("rT",fmt(w.T)+" K");set("rV",fmt(sp)+" m/s");set("rM",(sp/c).toFixed(2));
+    else{const w=cellPrim(k),sp=Math.hypot(w.u,w.v),c=Math.sqrt(GAM*w.p/w.r);roll("rP",$("rP"),w.p/PSI_PA,x=>x.toFixed(1)+" psi");roll("rT",$("rT"),w.T,x=>fmt(x)+" K");roll("rV",$("rV"),sp,x=>fmt(x)+" m/s");set("rM",(sp/c).toFixed(2));
       const X=w.Y.map((y,s)=>y/MW[s]),ns=X.reduce((a,b)=>a+b,0),top=X.map((x,s)=>[x/ns,s]).sort((a,b)=>b[0]-a[0]).filter(q=>q[0]>0.08).slice(0,2);
       set("rG",top.map(([f,s])=>`${SPN[s]} ${Math.round(f*100)}%`).join(" · "));
       // mixture: the oxygen here compared with what the fuel here needs to burn completely (per molecule: H₂ ½, CH₄ 2, a kerosene CH₂ link 1½)
@@ -751,9 +798,10 @@ function readouts(){
     // sound follows the thrust; goals tick off when something real happens on the stand
     JUICE.stand.F=F;JUICE.stand.srb=!!srbBurning;JUICE.stand.air=atmo?1:0;
     if(F>800&&!srbBurning)JUICE.goal("light");if(F>800&&!atmo)JUICE.goal("vac");if(burn&&burn.done)JUICE.goal("srb");
-    set("rF",F<100?"–":(F>=1000?(F/1000).toFixed(2)+" kN ":Math.round(F)+" N ")+ARW[((Math.round(Math.atan2(thrY,thrX)/(Math.PI/4))%8)+8)%8]);
+    {const ar=ARW[((Math.round(Math.atan2(thrY,thrX)/(Math.PI/4))%8)+8)%8];roll("rF",$("rF"),F<100?null:F,x=>(x>=1000?(x/1000).toFixed(2)+" kN ":Math.round(x)+" N ")+ar);}
+    if(F>1200&&lastF<300&&!S.paused)kick($("stage"),Math.min(1,F/3500));lastF=F;   // something just lit: jolt the screen
     if(!srbBurning)recordTest(F,F>=100&&mdotS>1e-2?F/(mdotS*9.80665):0);
-    set("rI",F>=100&&mdotS>1e-2?Math.round(F/(mdotS*9.80665))+" s":"–");
+    roll("rI",$("rI"),F>=100&&mdotS>1e-2?F/(mdotS*9.80665):null,x=>Math.round(x)+" s");
     {const r=$("rowB");if(burn){r.style.display="";const mp=srbMass-burn.m0,t=(burn.done?burn.t1:simTime)-burn.t0;
       set("rBurn",`${burn.done?"burnt out":"burning"} · ${(t*1e3).toFixed(1)} ms · peak ${(burn.peak/1000).toFixed(2)} kN · ${burn.imp.toFixed(1)} N·s${steadyIsp(burn)>0?` · Isp ${Math.round(steadyIsp(burn))} s`:""}`);}else r.style.display="none";}
     const ac=atomCheck();set("rA",ac.ok?"conserved ✓":"drift");$("rA").className=ac.ok?"ok":"bad";

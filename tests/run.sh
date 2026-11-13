@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Headless checks (Node 18+). Takes about a minute.
-set -e
+set -e -o pipefail
 cd "$(dirname "$0")"
 echo "== core: atom bookkeeping on the liquid engine";   node core/atoms_balance.js
 echo "== core: solid booster burn (pressure, thrust)";   node core/booster_burn.js | tail -4
@@ -12,4 +12,5 @@ echo "== flight: autopilot to orbit (Sparrow, solid boosters)"; node flight/orbi
 echo "== flight: landing limits";                        node flight/landing_limits.js
 echo "== flight: Moon landing + take-off";               node flight/moon_landing.js
 echo "== flight: on-rails warp matches map prediction";  node flight/rails_vs_prediction.js
+echo "== flight: SAS hold modes settle"; node flight/sas_holds.js | tail -1
 echo "== core: speed (large world)";                     node core/speed.js

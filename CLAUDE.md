@@ -12,7 +12,7 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 - Tests: `bash tests/run.sh` (Node 18+, ~1 min, headless). Run before every push.
   - `tests/core/*` load `src/core.js` directly (atom bookkeeping, booster burn curve and Isp, speed).
   - `tests/flight/*` use `harness.js`, which runs `parts.js + orbit.js + flight.js` with DOM stubs (autopilot to orbit,
-    landing limits, Moon landing, on-rails warp vs map prediction, ready-made rocket stats).
+    landing limits, Moon landing, on-rails warp vs map prediction, ready-made rocket stats, SAS holds settle).
   - UI changes: check them in a real browser too (playwright + Chrome works well: screenshots of the test stand,
     editor, flight, map; phone viewport 390×844).
 
@@ -30,7 +30,7 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 | `lib.js` | Engine library (`throat.englib.v1`): 📚 Engines dialog on the test stand saves the current liquid engine and the last booster burn by name. Library items show in the editor palette as `lib:<id>`; a placed part copies the numbers into `p.n` so rockets survive deletes. |
 | `tut.js` | First-time tutorial (`throat.tut.v1`): coach cards + a ring on the thing to press; each step advances when the player does it (torch → valves → Rocket → Launch → fly). Auto-starts on a first visit; Skip; "Start the tutorial" in Controls. `window.__tut` for tests. |
 | `vab.js` | Rocket editor: palette, snapping, mirror pairs (move one onto the centre line → its twin is deleted), drag moves a part + everything under it (Alt: just it), resize tanks, inspector, saved rockets, stage list. |
-| `flight.js` | Real-time flight: several vessels at once, staging, fly-by-wire steering + heading hold, basic aero (shape/AoA drag, fins weathervane), legs and landing rules, pads, on-rails warp (≥50×), SOI hand-over, procedural plume, crash effects, HUD. |
+| `flight.js` | Real-time flight: several vessels at once, staging, fly-by-wire steering + heading hold, SAS hold modes (`sasTarget`, keys 1–9), webcast HUD (dials, timeline, callouts, ORBIT/SURFACE/VESSEL panels), basic aero (shape/AoA drag, fins weathervane), legs and landing rules, pads, on-rails warp (≥50×), SOI hand-over, procedural plume, crash effects, HUD. |
 | `map.js` | Map view: pan/zoom/focus, path ahead with labelled Ap/Pe (altitude + T−), Moon encounter / leave / impact, click a craft to fly it. |
 
 The flight files are concatenated inside one closure (see `build.py`); only `FLT`, `recordTest`/`_rt` and `recordBurn`/`_rb` are outside.
@@ -69,9 +69,11 @@ See `HISTORY.md` for the version history, why things are tuned the way they are,
 ## Style
 - Comments explain *why* in plain English (the game is judged by a non-programmer; code reads like a lab notebook).
 - Keep the single-file build working offline; no external libraries, fonts or network.
-- Look (v1.12, "mission control"): tokens in `:root` of shell.html (one amber accent; green/red only for status), system sans for words +
-  `--mono` for numbers, hairline panels, uppercase section labels with an amber tick. Buttons use the SVG set `ICP`/`ico()` in ui.js
-  (`data-ic="name"` on static buttons, `icoBtn()` for ones whose label changes): no emoji on buttons.
+- Look (v1.15, "launch webcast", see PLAN.md): tokens in `:root` of shell.html: white/grey on black, one red accent (live dot,
+  warnings, active state, key events); green only for on/ok. Thin wide display font for words, `--mono` for aligned numbers,
+  hairline panels, uppercase spaced labels with a red tick. Data panels hide behind edge tabs (`foldUI`); readouts roll (`roll()`);
+  `kick()` for ignition jolts; respect `REDUCED`. Buttons use the SVG set `ICP`/`ico()` in ui.js (`data-ic="name"` on static
+  buttons, `icoBtn()` for ones whose label changes): no emoji on buttons.
 - Test in a browser before shipping UI; keep the phone layout working.
 - Text shown to players: short, plain, no jargon without a hint.
 
