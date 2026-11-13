@@ -7,8 +7,9 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 ## Build, run, deploy
 - `python3 build.py` → writes `index.html` (the whole game in one self-contained file, ~225 KB). Always rebuild after editing `src/`.
 - Run it: open `index.html` in Chrome (works from `file://`; physics runs in a Web Worker made from a blob URL).
-- Live site: GitHub Pages serves `index.html` from the root of `main` → https://zappy8667.github.io/THROAT/
-  Deploy = rebuild, commit, push to `main`.
+- Deploy = rebuild, commit, push to `main`. GitHub Pages is NOT on yet: the repo is private and a free account needs it
+  public. If Wyatt makes it public and turns Pages on (Settings → Pages → main, root), the game will be at
+  https://zappy8667.github.io/THROAT/ (`.nojekyll` is already in place).
 - Tests: `bash tests/run.sh` (Node 18+, ~1 min, headless). Run before every push.
   - `tests/core/*` load `src/core.js` directly (atom bookkeeping, booster burn curve and Isp, speed).
   - `tests/flight/*` use `harness.js`, which runs `parts.js + orbit.js + flight.js` with DOM stubs (autopilot to orbit,
@@ -69,4 +70,5 @@ See `HISTORY.md` for the version history, why things are tuned the way they are,
 ## Working with Wyatt
 - Wants direct, brief updates; copy-paste-ready output; no padding.
 - Every few versions, draft a short playtest email (what's new + 3 things to try) for his playtester friend —
-  ask Wyatt for the address; now it can just link the live site instead of attaching the file.
+  ask Wyatt for the address. Make it a real Gmail draft with `index.html` attached (or link the live site once Pages
+  is on). Draft only; Wyatt sends it.
