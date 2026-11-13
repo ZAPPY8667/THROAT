@@ -48,6 +48,9 @@ The flight files are concatenated inside one closure (see `build.py`); only `FLT
   (`throat.card.v1` in localStorage). Not recorded while a booster burns.
 - Flight is real time and uses those numbers; the CFD is far too slow for real time (~70 steps/s × ~3 µs).
 
+## More context
+See `HISTORY.md` for the version history, why things are tuned the way they are, and lessons learned.
+
 ## Style
 - Comments explain *why* in plain English (the game is judged by a non-programmer; code reads like a lab notebook).
 - Keep the single-file build working offline; no external libraries or network.
