@@ -1,5 +1,26 @@
 // ================= UI / RENDER (browser only) =================
 if(typeof document!=="undefined")(()=>{
+// ---------- icons: one small line-icon set for every button (emoji look different on every computer and read as cheap) ----------
+// each icon is a list of strokes on a 24×24 grid: "M…" path data, or "o cx cy r" for a circle
+const ICP={
+  trophy:["M8 21h8","M12 17v4","M7 4h10v5a5 5 0 0 1-10 0z","M17 5h3v2a3 3 0 0 1-3 3","M7 5H4v2a3 3 0 0 0 3 3"],
+  sound:["M11 5 6 9H3v6h3l5 4z","M15.5 8.5a5 5 0 0 1 0 7","M18.5 5.5a9 9 0 0 1 0 13"],mute:["M11 5 6 9H3v6h3l5 4z","M22 9l-6 6","M16 9l6 6"],
+  help:["o 12 12 9","M9.6 9.2a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .8-1 1.6","M12 16.8v.2"],reload:["M20 12a8 8 0 1 1-2.4-5.7","M20 4v5h-5"],
+  pause:["M9 5v14","M15 5v14"],play:["M8 5l11 7-11 7z"],globe:["o 12 12 9","M3 12h18","M12 3c-3 3.5-3 14.5 0 18","M12 3c3 3.5 3 14.5 0 18"],
+  vacuum:["M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"],clear:["M3 8h10a3 3 0 1 0-3-3","M3 16h13a3 3 0 1 1-3 3","M3 12h17"],
+  undo:["M9 14 4 9l5-5","M4 9h10a6 6 0 0 1 0 12h-3"],redo:["M15 14l5-5-5-5","M20 9H10a6 6 0 0 0 0 12h3"],
+  folder:["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"],book:["M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z","M5 18a2 2 0 0 1 2-2h12","M9 8h6"],
+  rocket:["M12 2c3 2.2 5 6 5 10l-2 4H9l-2-4c0-4 2-7.8 5-10z","M12 9.5v.1","M9 16l-3 3.5","M15 16l3 3.5","M10.5 20h3"],
+  save:["M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z","M8 3v5h7V3","M8 21v-7h8v7"],trash:["M4 7h16","M10 11v6","M14 11v6","M6 7l1 13h10l1-13","M9 7V4h6v3"],
+  mirror:["M12 3v18","M8 7 3 12l5 5z","M16 7l5 5-5 5z"],legs:["M12 4v8","M12 12l-6 8","M12 12l6 8","M3.5 20h5","M15.5 20h5"],fit:["M4 9V4h5","M20 9V4h-5","M4 15v5h5","M20 15v5h-5"],
+  stage:["M12 4l7 8H5z","M5 17h14"],warp:["M3 6l8 6-8 6z","M12 6l8 6-8 6z"],map:["M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z","M9 4v14","M15 6v14"],
+  build:["M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"],back:["M19 12H5","M11 6l-6 6 6 6"],
+  rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
+function ico(n){return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${(ICP[n]||[]).map(d=>d[0]==="o"?(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}"/>`)(d.slice(2).split(" ")):`<path d="${d}"/>`).join("")}</svg>`;}
+const SANS='"Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
+const MONO='ui-monospace,"Cascadia Mono","SF Mono","JetBrains Mono",Menlo,Consolas,monospace';   // numbers drawn on canvases
+function icoBtn(el,n,label){el.innerHTML=ico(n)+(label?`<span>${label}</span>`:"");}
+document.querySelectorAll("[data-ic]").forEach(el=>el.insertAdjacentHTML("afterbegin",ico(el.dataset.ic)));
 const CP=4,W=NX*CP,H=NY*CP;                              // world "pixels", 4 per cell (640×360 in the normal-size world)
 const TXT=W/640;                                          // labels drawn in the world grow with it so they stay the same size on screen
 const SMALL=matchMedia("(max-width:900px),(max-height:520px)").matches;
@@ -141,14 +162,14 @@ function tracers(dtSum){
 
 // ---------- objects on the canvas (world units, 4 per cell) ----------
 function rr4(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
-function badge(x,y,text,fg,bg){const zz=cam.z/TXT;ctx.font=`700 ${7.5/zz}px "JetBrains Mono", monospace`;const w=ctx.measureText(text).width+5/zz,h=9.5/zz;
+function badge(x,y,text,fg,bg){const zz=cam.z/TXT;ctx.font=`700 ${7.5/zz}px ${MONO}`;const w=ctx.measureText(text).width+5/zz,h=9.5/zz;
   rr4(x-w/2,y-h/2,w,h,2/zz);ctx.fillStyle=bg;ctx.fill();ctx.lineWidth=0.6/zz;ctx.strokeStyle=fg;ctx.stroke();ctx.fillStyle=fg;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,x,y+0.3/zz);ctx.textAlign="left";}
 function drawTank(t){
   const col=gasCol(t.name),x=t.x0*CP,y=t.y0*CP,w=(t.x1-t.x0+1)*CP,h=(t.y1-t.y0+1)*CP,zz=cam.z;
   ctx.fillStyle=col+"14";ctx.fillRect(x,y,w,h);
   ctx.strokeStyle=col+"88";ctx.lineWidth=0.8/zz;ctx.strokeRect(x+0.6/zz,y+0.6/zz,w-1.2/zz,h-1.2/zz);
   for(let i=1;i<4;i++){ctx.strokeStyle=col+"22";ctx.beginPath();ctx.moveTo(x,y+h*i/4);ctx.lineTo(x+w,y+h*i/4);ctx.stroke();}   // level lines
-  const l1=t.name,l2=`${Math.round(t.P/PSI_PA)} psi${t.inf?" ∞":""}`,fs=Math.min(6.2*TXT/zz,5.6);ctx.font=`700 ${fs}px "JetBrains Mono", monospace`;
+  const l1=t.name,l2=`${Math.round(t.P/PSI_PA)} psi${t.inf?" ∞":""}`,fs=Math.min(6.2*TXT/zz,5.6);ctx.font=`700 ${fs}px ${MONO}`;
   const lw=Math.min(w-2,Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+3*fs/6);rr4(x+1,y+1,lw,fs*2.3,1.2);ctx.fillStyle="rgba(8,11,22,.85)";ctx.fill();
   ctx.save();ctx.beginPath();ctx.rect(x+1,y+1,w-2,fs*2.4);ctx.clip();ctx.fillStyle=col;ctx.textBaseline="top";ctx.fillText(l1,x+1+fs*0.3,y+1+fs*0.15);ctx.fillText(l2,x+1+fs*0.3,y+1+fs*1.15);ctx.restore();
 }
@@ -279,14 +300,16 @@ function render(){
     ctx.lineWidth=1/zz;ctx.strokeStyle="#ffaa28";ctx.strokeRect(x0*CP,y0*CP,(x1-x0+1)*CP,(y1-y0+1)*CP);ctx.fillStyle="rgba(255,170,40,.08)";ctx.fillRect(x0*CP,y0*CP,(x1-x0+1)*CP,(y1-y0+1)*CP);
     badge((x0+x1+1)*CP/2,y0*CP-5/zz,`${x1-x0-1}×${y1-y0-1}`,"#ffcf7a","rgba(8,11,22,.9)");}
   // screen-space banners
-  ctx.setTransform(1,0,0,1,0,0);ctx.font=`600 ${13*SS}px "JetBrains Mono", monospace`;ctx.textBaseline="top";
+  ctx.setTransform(1,0,0,1,0,0);ctx.font=`600 ${13*SS}px ${SANS}`;ctx.textBaseline="top";
+  // a banner card like the panels: dark, hairline edge, amber bar on the left
+  const card=(x,y,w,h)=>{ctx.fillStyle="rgba(10,13,19,.92)";rr4(x,y,w,h,5*SS);ctx.fill();ctx.strokeStyle="#2c3746";ctx.lineWidth=1;rr4(x+0.5,y+0.5,w-1,h-1,5*SS);ctx.stroke();ctx.fillStyle="#ff9d2e";ctx.fillRect(x,y+3*SS,3*SS,h-6*SS);};
   const seq=valves.find(v=>v.openAt>0);
   if(seq){const f=Math.max(0,Math.min(1,1-(seq.openAt-simTime)/seq.delay)),bw=280*SS,bh=10*SS,bx=CW/2-bw/2,by=SMALL?CH-40*SS:CH*0.76;
     const lbl="IGNITER LIT · MAIN VALVES OPENING",w=ctx.measureText(lbl).width;
-    ctx.fillStyle="rgba(8,11,22,.82)";rr4(Math.min(bx,CW/2-w/2)-12,by-28*SS,Math.max(bw,w)+24,48*SS,8);ctx.fill();
-    ctx.fillStyle="#ffaa28";ctx.fillText(lbl,CW/2-w/2,by-22*SS);ctx.strokeStyle="#ffaa28";ctx.lineWidth=1;ctx.strokeRect(bx,by,bw,bh);ctx.fillRect(bx,by,bw*f,bh);}
-  else if(hint){const w=ctx.measureText(hint).width,hy=SMALL?CH-34*SS:CH*0.76;ctx.fillStyle="rgba(8,11,22,.82)";rr4(CW/2-w/2-12,hy-6*SS,w+24,26*SS,8);ctx.fill();ctx.fillStyle="#ffcf7a";ctx.fillText(hint,CW/2-w/2,hy);}
-  if(cam.z>1){const l=`${cam.z}× zoom · 0 to reset`,w=ctx.measureText(l).width;ctx.fillStyle="rgba(8,11,22,.75)";rr4(CW/2-w/2-10,SMALL?8:66*SS,w+20,24*SS,6);ctx.fill();ctx.fillStyle="#ffaa28";ctx.fillText(l,CW/2-w/2,(SMALL?8:66*SS)+4*SS);}
+    card(Math.min(bx,CW/2-w/2)-16*SS,by-30*SS,Math.max(bw,w)+32*SS,50*SS);
+    ctx.fillStyle="#ffc27a";ctx.fillText(lbl,CW/2-w/2,by-22*SS);ctx.fillStyle="#0a0e14";ctx.fillRect(bx,by,bw,bh);ctx.strokeStyle="#2c3746";ctx.lineWidth=1;ctx.strokeRect(bx,by,bw,bh);ctx.fillStyle="#ff9d2e";ctx.fillRect(bx,by,bw*f,bh);}
+  else if(hint){const w=ctx.measureText(hint).width,hy=SMALL?CH-34*SS:CH*0.76;card(CW/2-w/2-18*SS,hy-8*SS,w+34*SS,30*SS);ctx.fillStyle="#e7ecf3";ctx.fillText(hint,CW/2-w/2+2*SS,hy);}
+  if(cam.z>1){const l=`${cam.z}× zoom · 0 to reset`,w=ctx.measureText(l).width,zy=SMALL?8:66*SS;card(CW/2-w/2-16*SS,zy,w+30*SS,26*SS);ctx.fillStyle="#ffc27a";ctx.fillText(l,CW/2-w/2+2*SS,zy+6*SS);}
 }
 
 // ---------- physics thread ----------
@@ -591,7 +614,7 @@ function keysUI(){const sig=valves.map(v=>v.key+(v.open?"o":"c")).join()+"|"+plu
     b.className="keyb"+(on?" open":"");b.innerHTML=`${k} · ${on?"ON":"OFF"}<small>${[nv?nv+" valve"+(nv>1?"s":""):"",np?np+" igniter"+(np>1?"s":""):""].filter(Boolean).join(", ")}</small>`;
     b.title=`Press ${k} to switch`;b.onclick=()=>{doAct("key",k);wallsDirty=true;keysUI();};el.appendChild(b);}}
 let atmoShown=-1;
-function atmoUI(){if(atmo===atmoShown)return;atmoShown=atmo;$("bAir").textContent=atmo?"🌍 Sea level":"🌌 Vacuum";$("bAir").classList.toggle("on",!atmo);}
+function atmoUI(){if(atmo===atmoShown)return;atmoShown=atmo;icoBtn($("bAir"),atmo?"globe":"vacuum",atmo?"Sea level":"Vacuum");$("bAir").classList.toggle("on",!atmo);}
 const VIEWS=[[6,"Real"],[0,"Glow"],[1,"Gases"],[2,"Pressure"],[3,"Temp"],[4,"Mach"],[5,"Shocks"]];
 function setView(v){S.view=v;document.querySelectorAll("#views button").forEach(b=>b.classList.toggle("on",+b.dataset.v===v));}
 function load(id){if(id==="custom"){if(customDesign){loadDesignUI(customDesign,$("scen").querySelector('[value=custom]').textContent);undoS.pop();}return;}
@@ -606,7 +629,7 @@ const bindB=(id,out,fn)=>{const el=$(id),g=()=>{$(out).textContent=fn(+el.value)
 bindB("heat","oHeat",v=>{doAct("fuel",v/10);return (v/10).toFixed(1)+"×";});
 bindB("spd","oSpd",v=>{S.spd=v;cfg();return v>=10?"max":String(v);});
 $("bAir").onclick=()=>{doAct("atmo",!atmo);atmoShown=-1;atmoUI();};
-$("bPause").onclick=()=>{S.paused=!S.paused;cfg();$("bPause").textContent=S.paused?"Resume":"Pause";$("bPause").classList.toggle("on",S.paused);};
+$("bPause").onclick=()=>{S.paused=!S.paused;cfg();icoBtn($("bPause"),S.paused?"play":"pause",S.paused?"Resume":"Pause");$("bPause").classList.toggle("on",S.paused);};
 $("bClear").onclick=()=>{doAct("clear");TN=0;};
 $("scen").onchange=()=>{pushUndo();load($("scen").value);};$("bReload").onclick=()=>{pushUndo();load(S.scen);};
 $("bUndo").onclick=undo;$("bRedo").onclick=redo;

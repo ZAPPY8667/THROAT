@@ -69,7 +69,7 @@ function renderMap(c){
   const ap=pfPos(AV);c.save();c.translate(ap.x,ap.y);c.rotate(-AV.phi);c.fillStyle="#fff";c.strokeStyle="#000";c.lineWidth=1.5*px*FDS;c.beginPath();
   c.moveTo(0,11*px*FDS);c.lineTo(-6.5*px*FDS,-7*px*FDS);c.lineTo(6.5*px*FDS,-7*px*FDS);c.closePath();c.fill();c.stroke();c.restore();
   // labels, in screen space
-  c.setTransform(1,0,0,1,0,0);const SX=x=>ox+x*s,SY=y=>oy-y*s,fs=12*FDS;c.font=`700 ${fs}px "JetBrains Mono",monospace`;c.textBaseline="middle";
+  c.setTransform(1,0,0,1,0,0);const SX=x=>ox+x*s,SY=y=>oy-y*s,fs=12*FDS;c.font=`700 ${fs}px ${MONO}`;c.textBaseline="middle";
   const placed=[];
   const tag=(x,y,col,l1,l2)=>{const X=SX(x),Y=SY(y);if(X<-50||X>FW+50||Y<-50||Y>FH+50)return;c.fillStyle=col;c.beginPath();c.arc(X,Y,4.5*FDS,0,6.2832);c.fill();
     const w=Math.max(c.measureText(l1).width,l2?c.measureText(l2).width:0)+12*FDS,h=(l2?2.2:1.3)*fs+4*FDS;let bx=X+9*FDS,by=Y-h-4*FDS;
@@ -84,7 +84,7 @@ function renderMap(c){
     else if(m.k==="enter")tag(m.x,m.y,"#5ae1f5","Moon encounter",T);
     else if(m.k==="leave")tag(m.x+sh.x,m.y+sh.y,"#c9a7ff","Leaving the Moon",T);
     else if(m.k==="impact")tag(m.x+(m.body===1?sh.x:0),m.y+(m.body===1?sh.y:0),"#ff6a4d",m.body===1?"Moon impact":"Impact",T);}
-  c.fillStyle="#9aa3c0";c.font=`600 ${11*FDS}px "JetBrains Mono",monospace`;
+  c.fillStyle="#9aa3c0";c.font=`600 ${11*FDS}px ${MONO}`;
   for(const[x,y,n,r]of[[0,0,"EARTH",er],[M.x,M.y,"MOON",mr]]){const X=SX(x),Y=SY(y)+r*s+12*FDS;c.textAlign="center";c.fillText(n,X,Math.min(FH-8,Y));}
   c.textAlign="left";c.textBaseline="alphabetic";
   c.fillStyle="#8a94b4";c.textAlign="center";c.fillText("drag to pan · wheel / pinch to zoom · F changes focus · click a craft to fly it · M to go back",FW/2,FH-(FW<760*FDS?150:66)*FDS);c.textAlign="left";}

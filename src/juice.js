@@ -92,8 +92,8 @@ const JUICE=(()=>{
     if(e.key==="Escape"&&gl.classList.contains("show")){gl.classList.remove("show");e.stopImmediatePropagation();}
     else if(e.key.toLowerCase()==="u")snd.toggle();},true);
   // buttons: 🔊 on the test stand and in flight, 🏆 on the test stand
-  function btns(){for(const id of["bSnd","fSnd"]){const b=$(id);if(b){b.textContent=on?"🔊":"🔇";b.title=on?"Sound on (U)":"Sound off (U)";}}
-    const g=$("bGoals");if(g)g.textContent=`🏆 ${count()}/${GOALS.length}`;}
+  function btns(){for(const id of["bSnd","fSnd"]){const b=$(id);if(b){b.innerHTML=ico(on?"sound":"mute");b.title=on?"Sound on (U)":"Sound off (U)";}}
+    const g=$("bGoals");if(g)g.innerHTML=ico("trophy")+`<b>${count()}/${GOALS.length}</b>`;}
   for(const id of["bSnd","fSnd"])$(id).onclick=()=>snd.toggle();$("bGoals").onclick=openGoals;btns();
   window.__juice={get audio(){return A&&A.state;},get roar(){return roarG?+roarG.gain.value.toFixed(3):null;},get cutoff(){return roarF?Math.round(roarF.frequency.value):null;},stand,fly,get done(){return done;}};   // for browser tests
   return{snd,goal,stand,fly,openGoals,toast,GOALS,get done(){return done;}};

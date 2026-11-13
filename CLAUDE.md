@@ -65,7 +65,10 @@ See `HISTORY.md` for the version history, why things are tuned the way they are,
 
 ## Style
 - Comments explain *why* in plain English (the game is judged by a non-programmer; code reads like a lab notebook).
-- Keep the single-file build working offline; no external libraries or network.
+- Keep the single-file build working offline; no external libraries, fonts or network.
+- Look (v1.12, "mission control"): tokens in `:root` of shell.html (one amber accent; green/red only for status), system sans for words +
+  `--mono` for numbers, hairline panels, uppercase section labels with an amber tick. Buttons use the SVG set `ICP`/`ico()` in ui.js
+  (`data-ic="name"` on static buttons, `icoBtn()` for ones whose label changes): no emoji on buttons.
 - Test in a browser before shipping UI; keep the phone layout working.
 - Text shown to players: short, plain, no jargon without a hint.
 

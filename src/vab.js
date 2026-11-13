@@ -130,7 +130,7 @@ function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.di
   h+=`<div class="row" style="margin-top:6px;gap:5px;flex-wrap:wrap">`;
   if(d.ws.length>1)for(const w of d.ws)h+=`<button class="b${p.w===w?" on":""}" data-w="${w}">${w===60?"Narrow":"Wide"}</button>`;
   if(hasProp(p))h+=`<button class="b" data-l="-15">− Shorter</button><button class="b" data-l="15">+ Longer</button>`;
-  h+=`<button class="b" data-del="1" style="margin-left:auto">🗑 Remove</button></div>`;el.innerHTML=h;
+  h+=`<button class="b" data-del="1" style="margin-left:auto">${ico("trash")}Remove</button></div>`;el.innerHTML=h;
   el.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{const w=+b.dataset.w;vResize(i,w,p.t==="nose"?w:p.h);});
   el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{vResize(i,p.w,Math.max(30,Math.min(450,p.h+ +b.dataset.l)));});
   el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const k=b.dataset.e;vResize(i,ENG[k].w,ENG[k].h,q=>{q.e=k;delete q.n;});});
@@ -149,7 +149,7 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
   if(st.length&&st[0].twr<=1)h+=`<div class="warn">⚠ Too heavy to lift off: add engines or use less fuel.</div>`;
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;}
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
-function vBarUI(){$("vLegs").classList.toggle("on",vLegsOut);$("vLegs").textContent=vLegsOut?"🦿 Legs out":"🦿 Legs in";$("vMirror").classList.toggle("on",vMirror);$("vMirror").textContent=vMirror?"⇋ Mirror on":"⇋ Mirror off";
+function vBarUI(){$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
   const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
   sel.innerHTML=h;$("vName").value=vName;}
