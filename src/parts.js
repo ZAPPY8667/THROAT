@@ -1,6 +1,9 @@
 // ================= PARTS & VEHICLES =================
 // Parts are rectangles in centimetres: x = centre, y = bottom. They join wherever two of them touch, so the editor
 // and the flight both read the rocket straight from its shape: no hidden attachment tree to get out of sync.
+// RCS: each block of jets pushes 45 N in any direction it's asked and carries its own 2.5 kg of monopropellant (Isp 180 s).
+// The fuel's weight stays in the part's mass the whole flight: 2.5 kg makes no difference worth the bookkeeping.
+const RCS_F=45,RCS_ISP=180,RCS_MONO=2.5;
 const G0=9.80665,RHO_P=360;   // bulk density of liquid hydrogen + liquid oxygen, kg/m³
 const tankCap=(w,h)=>RHO_P*Math.PI*(w/200)**2*(h/100);
 // solid boosters carry their own propellant, packed denser than the liquids (a game number: heavy, but not a brick);
@@ -20,6 +23,7 @@ const PT={
   dec:    {name:"Decoupler",      ws:[60,120], h:()=>15, m:w=>w>60?5:2, desc:"Space drops everything below it. Engines sitting on one stay off until it fires."},
   sdec:   {name:"Side decoupler", ws:[15],     h:()=>60, m:()=>1.5, radial:1, desc:"Hang boosters on the side. Space drops them (it goes with the booster)."},
   fin:    {name:"Fin",            ws:[45],     h:()=>75, m:()=>1.2, radial:1, desc:"Keeps the rocket pointing where it's going while in the air."},
+  rcs:    {name:"RCS thrusters", ws:[15],     h:()=>30, m:()=>0.8+RCS_MONO, radial:1, desc:"Little gas jets. T turns RCS on: they help the rocket turn (in space too), and I J K L nudge it forward, back and sideways. Own fuel."},
   leg:    {name:"Landing leg",    ws:[30],     h:()=>90, m:()=>2.5, radial:1, desc:"G deploys. Lets you land at up to 9 m/s instead of about 3."},
 };
 // engines: your own (numbers from the test stand) and four ready-made ones
@@ -44,7 +48,7 @@ function curveAt(c,u){if(!c||c.length<2)return 1;const x=Math.max(0,Math.min(1,u
 const ENG_ORDER=["stand","wren","mule","bison","vac"];
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
 function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k];}
-const PT_ORDER=["probe","nose","tank","adapter","engine:stand","engine:wren","engine:mule","engine:bison","engine:vac","srb:stand","srb:thumper","dec","sdec","fin","leg"];
+const PT_ORDER=["probe","nose","tank","adapter","engine:stand","engine:wren","engine:mule","engine:bison","engine:vac","srb:stand","srb:thumper","dec","sdec","fin","rcs","leg"];
 let partId=1;
 // t can carry a model: "engine:mule", "srb:thumper"; n = a saved library entry's numbers to copy onto the part
 function mkPart(t,w,h,e,n){let b;if(t.startsWith("engine:")){e=t.slice(7);t="engine";}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}const d=PT[t];
@@ -163,6 +167,10 @@ function drawPart(c,p,o={}){
     case"sdec":hazard(c,L,y,w,h,true);break;
     case"fin":{const ix=f>0?L:R,ox=f>0?R:L;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.18);c.lineTo(ox,y);c.lineTo(ix,y);c.closePath();
       c.fillStyle="#c4402f";c.fill();c.strokeStyle="#7e2219";c.lineWidth=2;c.stroke();break;}
+    case"rcs":{const ix=f>0?L:R,ox=f>0?R:L,cx=(L+R)/2;c.fillStyle="#2b303c";c.fillRect(L,y+6,w,h-12);c.fillStyle="#d6dbe6";c.fillRect(ix,y+9,f*4,h-18);
+      c.fillStyle="#1b1e26";for(const[ax,ay,bx,by]of[[cx,y+6,cx,y],[cx,T-6,cx,T],[ox-f*2,y+h/2,ox+f*4,y+h/2]]){const nx=by===ay?0:3,ny=by===ay?3:0;c.beginPath();c.moveTo(ax-nx*0.6,ay-ny*0.6);c.lineTo(bx-nx,by-ny);c.lineTo(bx+nx,by+ny);c.lineTo(ax+nx*0.6,ay+ny*0.6);c.closePath();c.fill();}
+      if(o.puff)for(const[px,py,dx,dy]of o.puff){c.fillStyle="rgba(240,244,255,.75)";c.beginPath();c.moveTo(px,py);c.lineTo(px+dx*16-dy*5,py+dy*16-dx*5);c.lineTo(px+dx*16+dy*5,py+dy*16+dx*5);c.closePath();c.fill();}
+      break;}
     case"leg":{const ix=f>0?L:R,dep=o.legs,hx=ix,hy=y+5;
       const quad=(ax,ay,bx,by,wa,wb,col)=>{const dx=bx-ax,dy=by-ay,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;c.beginPath();c.moveTo(ax+nx*wa/2,ay+ny*wa/2);c.lineTo(bx+nx*wb/2,by+ny*wb/2);c.lineTo(bx-nx*wb/2,by-ny*wb/2);c.lineTo(ax-nx*wa/2,ay-ny*wa/2);c.closePath();c.fillStyle=col;c.fill();};
       if(!dep){   // folded flat against the tank, foot at the top (like a Falcon 9 leg)

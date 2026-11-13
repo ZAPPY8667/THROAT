@@ -51,11 +51,13 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
     if(!isRad(p)&&(!top||p.y+p.h>top.y+top.h))top=p;const pm=partMass(p)+(p.fuel||0),dx=(p.x-npx)/100,dy=(p.y+p.h/2-npy)/100;I+=pm*(dx*dx+dy*dy+(p.w*p.w+p.h*p.h)/12e4);}
   v.H=(y1-y0)/100;v.W=Math.max(0.15,W/100);v.Wall=(x1-x0)/100;v.I=Math.max(I,1);v.nose=!!top&&top.t==="nose";
   v.fins=ps.filter(p=>p.t==="fin").length;v.finA=v.fins*0.17;v.Af=Math.PI*(v.W/2)**2;v.As=v.H*v.W;v.Lr=Math.max(0.3,v.H*0.45);
-  v.wheel=ps.filter(p=>p.t==="probe").length*45;v.hasLegs=ps.some(p=>p.t==="leg");
+  v.wheel=ps.filter(p=>p.t==="probe").length*45;
+  v.rcs=ps.filter(p=>p.t==="rcs");for(const p of v.rcs)if(p.mono==null)p.mono=RCS_MONO;
+  v.rcsArm=v.rcs.reduce((a,p)=>a+Math.max(0.2,Math.abs(p.y+p.h/2-npy)/100),0);   // turning: side jets far from the centre of mass turn hardestv.hasLegs=ps.some(p=>p.t==="leg");
   v.cpts=contactPts(ps,false);v.cptsL=contactPts(ps,true);
   v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)/100,(q[1]-npy)/100)),v.H);
   v.boomS=Math.max(1.5,v.H*0.6);}
-function mkVessel(ps,name,body){const v={id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
+function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
 function startFlight(ps,name){
@@ -131,11 +133,17 @@ function stepV(v,dt,u){
   else{v.q=0;v.D=0;v.rho=rho;}
   // steering: reaction wheels plus engine gimbal; with no input it holds its attitude (SAS)
   // steering is fly-by-wire: A/D ask for a turn rate; let go and SAS holds the heading (it also cancels air torque, up to what it can push)
-  if(v.ctrl){const mx=v.wheel+F*0.105*v.Lr;let want;
+  // RCS: when on and there's monopropellant left, the jets add turning power, and I J K L push the rocket along its own axes
+  const mono=v.rcs.reduce((a,p)=>a+p.mono,0),rcsOk=v.rcsOn&&v.ctrl&&mono>1e-6,rT=rcsOk?RCS_F*v.rcsArm:0;let rcsUse=0;v.puff=null;
+  if(rcsOk&&v.tin&&(v.tin[0]||v.tin[1])){const Fr=RCS_F*v.rcs.length*0.5,fx=v.tin[0]*Fr,fy=v.tin[1]*Fr;   // half the jets face each way
+    ax+=(fx*c+fy*s)/m;ay+=(-fx*s+fy*c)/m;rcsUse+=Math.hypot(fx,fy);v.puff=v.tin;}
+  if(v.ctrl){const mx=v.wheel+F*0.105*v.Lr+rT;let want;
     if(u){want=(u*0.55-v.om)*v.I*12;v.hold=null;if(v.sas&&v.sas!=="stab")v.sas="stab";}   // any steering drops a hold back to plain Stability
     else{if(v.sas&&v.sas!=="stab"){const tg=sasTarget(v);if(tg!=null)v.hold=tg;}
       if(v.hold==null&&Math.abs(v.om)<0.05)v.hold=v.phi;want=v.hold==null?-v.om*v.I*12:v.I*(-8*wrapA(v.phi-v.hold)-6*v.om);want-=tq;}
-    tq+=Math.max(-mx,Math.min(mx,want));}
+    const ap=Math.max(-mx,Math.min(mx,want));tq+=ap;
+    if(rT>0){const base=mx-rT,extra=Math.max(0,Math.abs(ap)-base);if(extra>1e-3){rcsUse+=extra/v.rcsArm;v.puffR=Math.sign(ap);}else v.puffR=0;}else v.puffR=0;}
+  if(rcsUse>0){let need=rcsUse/(RCS_ISP*G0)*dt;for(const p of v.rcs){const d=Math.min(p.mono,need*p.mono/mono);p.mono-=d;}}
   if(v.landed){if(ax*ux+ay*uy<=0){v.vx=v.vy=0;v.om=0;const tilt=wrapA(v.phi-Math.atan2(v.x,v.y));if(Math.abs(tilt)<0.6)v.phi-=tilt*Math.min(1,dt*2);ground(v,true);v.t+=dt;return;}v.landed=false;}
   v.om=Math.max(-2,Math.min(2,v.om+tq/v.I*dt));v.phi+=v.om*dt;
   v.vx+=ax*dt;v.vy+=ay*dt;v.x+=v.vx*dt;v.y+=v.vy*dt;
@@ -192,6 +200,7 @@ addEventListener("keydown",e=>{if(!FLT.on)return;const k=e.key.toLowerCase();key
   else if(k==="g"){if(AV.hasLegs){AV.legs=!AV.legs;msg=AV.legs?"Legs down":"Legs up";msgT=1.5;}else{msg="No landing legs on this craft.";msgT=2;}}
   else if(k==="["||k==="]")switchV(k==="]"?1:-1);
   else if(k>="1"&&k<="9"&&!e.repeat)setSas(SAS_MODES[+k-1]);
+  else if(k==="t"&&!e.repeat)toggleRcs();
   else if(k==="m"){mapView=!mapView;if(mapView)mapOpen();}
   else if(k==="f"&&mapView)mapFocus();
   else if(k==="r"){startFlight(launchPs,launchName);}
@@ -205,7 +214,7 @@ fcv.addEventListener("wheel",e=>{e.preventDefault();if(mapView){mapWheel(e);retu
 $("fThr").oninput=()=>{if(AV)AV.thr=+$("fThr").value/100;};
 for(const[id,d]of[["fL",-1],["fR",1]]){const b=$(id);b.onpointerdown=()=>{rotBtn=d;};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>{rotBtn=0;};}
 $("fMap").onclick=()=>{mapView=!mapView;if(mapView)mapOpen();};$("fWarp2").onclick=()=>{warp=WARPS[(WARPS.indexOf(warp)+1)%WARPS.length];};
-$("fStage").onclick=doStage;$("fLegs").onclick=()=>{if(AV&&AV.hasLegs)AV.legs=!AV.legs;};
+$("fStage").onclick=doStage;$("fRcs").onclick=toggleRcs;$("fLegs").onclick=()=>{if(AV&&AV.hasLegs)AV.legs=!AV.legs;};
 $("fBack").onclick=endFlight;$("fRetry").onclick=()=>startFlight(launchPs,launchName);$("fBuild").onclick=()=>{endFlight();openVab();};
 // ---------- the loop ----------
 function flightFrame(now){
@@ -214,6 +223,7 @@ function flightFrame(now){
   if(AV){
     if(!AV.crashed){if(keys.has("shift")||keys.has("w"))AV.thr=Math.min(1,AV.thr+0.9*dtR);
       if(keys.has("control")||keys.has("s"))AV.thr=Math.max(0,AV.thr-0.9*dtR);}
+    AV.tin=[(keys.has("l")?1:0)-(keys.has("j")?1:0),(keys.has("i")?1:0)-(keys.has("k")?1:0)];
     const u=Math.max(-1,Math.min(1,(keys.has("a")||keys.has("arrowleft")?-1:0)+(keys.has("d")||keys.has("arrowright")?1:0)+rotBtn));
     if(document.activeElement!==$("fThr"))$("fThr").value=Math.round(AV.thr*100);
     const B=BOD[AV.body],hA=Math.hypot(AV.x,AV.y)-B.R,burning=VS.some(v=>v.F>0||v.thr>0&&!v.landed);
@@ -275,9 +285,16 @@ function drawVessel(c,v,bright){
   if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))/100);boom(c,v);c.restore();return;}
   c.scale(0.01,0.01);c.translate(-v.px,-v.py);
   v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.72:0.95),v.thr,v.a,bright,k==="vac");}});
-  for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs});
+  const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
+  for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
   c.restore();}
+// which jets on this block are firing: opposite to the push asked for, and sideways ones for turning (in part cm, y up)
+function rcsPuffs(v,p){const out=[],cx=p.x,f=p.f>0?1:-1,ox=p.x+f*p.w/2,above=p.y+p.h/2>v.py,t=v.puff||[0,0];
+  if(t[1]>0)out.push([cx,p.y,0,-1]);if(t[1]<0)out.push([cx,p.y+p.h,0,1]);
+  if(t[0]*f<0)out.push([ox,p.y+p.h/2,f,0]);
+  if(v.puffR&&((v.puffR>0)===(above===(f<0))))out.push([ox,p.y+p.h/2,f,0]);   // turning clockwise: jets above push left, below push right
+  return out;}
 function boom(c,v){   // fireball, flying debris and a smoke column, in local up-is-up metres
   const t=v.boomT,S=v.boomS;
   for(const d of v.debris){d.t=d.t||0;const dt=t-d.t;d.t=t;if(d.y>0||d.vy>0){d.vy-=9.81*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.rot+=d.vr*dt;if(d.y<0){d.y=0;d.vy=0;d.vx*=0.3;d.vr=0;}}
@@ -352,6 +369,8 @@ const SAS_INFO=[["stab","STB","Stability","hold the heading you're on"],["pro","
   ["radout","R+","Radial out","square to your path, away from the planet"],["radin","R−","Radial in","square to your path, toward the planet"],
   ["sfpro","S+","Surface prograde","along your path over the ground"],["sfretro","S−","Surface retro","against your path over the ground: for landings"],
   ["hzE","E","Horizon east","flat along the ground, heading east"],["hzW","W","Horizon west","flat along the ground, heading west"]];
+function toggleRcs(){if(!AV||AV.crashed)return;if(!AV.rcs.length){msg="No RCS thrusters on this craft. Add them in the editor.";msgT=2.5;return;}
+  AV.rcsOn=!AV.rcsOn;msg=AV.rcsOn?"RCS on: helps turning. I / K forward / back, J / L sideways.":"RCS off";msgT=2.5;}
 function setSas(m){if(!AV||AV.crashed||!m)return;AV.sas=m;AV.hold=m==="stab"?AV.phi:null;const i=SAS_INFO.find(q=>q[0]===m);msg="SAS: "+i[2]+" ("+i[3]+")";msgT=2.2;}
 let rowsBuilt=false,stgSig="",sasSig="";
 function buildRows(){
@@ -362,7 +381,7 @@ function buildRows(){
     ["-","Air"],["sQ","Dynamic pressure","q: how hard the air pushes on the rocket. Rockets throttle down around the peak, Max-Q"],["sMq","Max-Q"],["sDrag","Drag"],["sRho","Air density"],
     ["-","Ground"],["sPad","To launch pad"],["sLz","To landing zone"]]);
   mk("fVesP",[["vM","Mass (wet)","With the fuel that's left"],["vDry","Mass (dry)","Empty tanks"],["vTwr","TWR now","Thrust ÷ weight right now. Above 1 = climbing"],["vTwrM","TWR max","At full throttle"],
-    ["vLit","Engines lit"],["vSrb","Booster burn left"],["vDvT","Total Δv","Speed change left in all stages"]]);
+    ["vLit","Engines lit"],["vRcs","RCS fuel","Monopropellant for the RCS jets (T turns them on)"],["vSrb","Booster burn left"],["vDvT","Total Δv","Speed change left in all stages"]]);
   mk("fData",[["dAp","Ap"],["dPe","Pe"],["dTwr","TWR"],["dDv","Δv"],["dFuel","Fuel"],["dNext","Next"]]);
   $("fSasB").innerHTML=SAS_INFO.map(([m,t,n],i)=>`<button type="button" data-sas="${m}" title="${n} (${i+1})">${t}</button>`).join("");
   $("fSasL").innerHTML=SAS_INFO.map(([m,t,n,d],i)=>`<button type="button" data-sas="${m}"><kbd>${i+1}</kbd>${n}<small>${d}</small></button>`).join("");
@@ -419,11 +438,12 @@ function hudFlight(dt){
     set("sPad",ang==null?"–":km(Math.abs(ang))+arw(ang));set("sLz",ang==null?"–":km(Math.abs(ang-PAD2))+arw(ang-PAD2));}
   if(open("fpVes")){rv("vM",r.m||0,x=>fmt(x)+" kg");rv("vDry",r.dry,x=>fmt(x)+" kg");rv("vTwr",twr,x=>x.toFixed(2));rv("vTwrM",twrMax,x=>x.toFixed(2));
     set("vLit",`${r.lit.filter(Boolean).length} of ${r.eng.length}`);
+    set("vRcs",r.rcs.length?`${r.rcs.reduce((a,p)=>a+p.mono,0).toFixed(2)} kg${r.rcsOn?" · on":""}`:"none");
     let bl=0;r.eng.forEach((i,n)=>{const P=r.ps[i];if(P.t!=="srb"||!r.lit[n])return;let av=0;for(const j of r.feeds[n])av+=r.ps[j].fuel;const E=r.est[n];bl=Math.max(bl,av*E.vac.isp*G0/E.vac.F);});
     set("vSrb",bl>0?tfm(bl):"–");rv("vDvT",anAV.total,ms);
     const hs=anAV.stages.map((q,k)=>`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b>${fmt(q.dv)}</b></span><span>${Math.round(q.burn)} s</span><i>TWR ${q.twr.toFixed(2)} · ${q.eng} engine${q.eng===1?"":"s"}</i></div>`).join("");
     if(hs!==stgSig){stgSig=hs;$("fStg").innerHTML=hs;}}
-  $("fStage").disabled=!st.dropKind;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);
+  $("fStage").disabled=!st.dropKind;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
   msgT-=dt;const mb=$("fMsg");mb.style.display=msgT>0?"":"none";if(msgT>0)set("fMsg",msg);
   $("fRetry").style.display=r.crashed?"":"none";$("fMapBar").style.display=mapView?"":"none";}
 // fold-away panels in flight: INFO panels on the left, the small numbers and SAS on the right

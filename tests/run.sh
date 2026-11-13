@@ -13,4 +13,5 @@ echo "== flight: landing limits";                        node flight/landing_lim
 echo "== flight: Moon landing + take-off";               node flight/moon_landing.js
 echo "== flight: on-rails warp matches map prediction";  node flight/rails_vs_prediction.js
 echo "== flight: SAS hold modes settle"; node flight/sas_holds.js | tail -1
+echo "== flight: RCS"; node flight/rcs.js | tail -1
 echo "== core: speed (large world)";                     node core/speed.js
