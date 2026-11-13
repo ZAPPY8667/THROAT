@@ -51,8 +51,10 @@ The flight files are concatenated inside one closure (see `build.py`); only `FLT
   800 K; regression r = a·Pⁿ (n 0.35, `SRB_A` 2.5e-4, ~10× real because a 2D slice has little burning surface per
   throat). Time-lapse `SRB_K = 120`: each cell holds 1/K the propellant and burns back K× faster, same gas flow per
   area. Exhaust `SRB_Y` (H₂ 2%, N₂ 13%, H₂O 30%, CO₂ 25%, smoke 30%) at 3,000 K. Booster scenario ≈ 880 psi peak,
-  4–5 kN, ~7.5 ms burn. Known issue: Isp reads ~190 s at burnout (should be ~210 s) — the void left by burnt grain
-  refills "for free" in the time-lapse; not fixed yet.
+  4–5 kN, ~7.5 ms burn. Isp (fixed v1.13): the time-lapse inflates the chamber's growth 120×, so gas filling the burnt-out
+  grain (`openBurntCell`, tallied in `srbFree`, not `srbMass`) and the start-up fill / blow-down are ~120× too big. The honest number
+  is the steady one, thrust ÷ propellant burn rate above half the peak thrust (`steadyIsp` in ui.js, tests/core/booster_isp.js):
+  ≈222 s at sea level, matching ideal-nozzle theory for 3,000 K, γ 1.3. Whole-burn averages read 185–260 s depending on bookkeeping.
 - The test stand records the liquid engine's steady thrust/Isp (sea level and vacuum) for "Your engine" in flight
   (`throat.card.v1` in localStorage). Not recorded while a booster burns.
 - Booster burns: when a burn finishes, `burnDone()` (ui.js) reports average thrust, Isp and a 12-point thrust curve (sampled against
@@ -77,7 +79,7 @@ See `HISTORY.md` for the version history, why things are tuned the way they are,
 2. ✅ (v1.10) Engine library: save test-stand engines and boosters by name with their measured numbers; use them in the editor,
    including strap-on solid boosters.
 3. ✅ (v1.11) Methane and kerosene on the test stand (blue-violet methane flame, sooty orange kerosene).
-4. Fix booster Isp (see above).
+4. ✅ (v1.13) Fix booster Isp (see above).
 5. Short first-time tutorial (light the engine → build a rocket → launch).
 6. Later: centre of mass / centre of lift / centre of thrust in flight.
 

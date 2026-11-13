@@ -432,7 +432,16 @@ function srb(dt){
       for(let s=0;s<NS;s++){const a=SRB_Y[s]*dr;if(a){rs[s][j]+=a;added[s]+=a*CELLV;}}rho[j]+=dr;En[j]+=dr*eT;srbMass+=mFace;}
     prop[k]-=take;if(prop[k]<=1e-6)gone.push(k);}
   if(burning)NSA=Math.max(NSA,AL+1);srbBurning=burning;
-  for(const k of gone)makeGasFromNeighbours(k);}
+  for(const k of gone)openBurntCell(k);}
+// When the last of a cell's propellant burns, the hole it leaves fills with chamber gas.
+// In a real motor the chamber grows so slowly that the gas filling it is under 0.5% of the propellant: it never robs the nozzle.
+// The time-lapse grows the chamber 120× faster, so if the hole had to be filled from the exhaust, a quarter of the gas would
+// sit in the chamber and dribble out at low pressure after burnout. So the hole is filled straight at chamber conditions
+// (like a real motor, the nozzle flow isn't robbed) and that gas is tallied apart (srbFree). The same inflation makes the
+// start-up fill and the blow-down after burnout ~120× too big, so the honest Isp is the steady one: thrust ÷ propellant
+// burn rate while the motor pushes properly (the test stand measures it over the part of the burn above half the peak thrust).
+let srbFree=0;
+function openBurntCell(k){makeGasFromNeighbours(k);if(!wall[k])srbFree+=rho[k]*CELLV;}
 // ---------------- stepping ----------------
 let START_DELAY=0,PLUG_X=18,H2P=350;   // valves open instantly; light the igniter (key 2) first for the slow-flame start
 let H2HOLES=[37,40,43],O2HOLES=[47,50,53,56],O2P=350;   // 3 H2 : 4 O2 holes, both tanks at 350 psi → mixture ratio ≈ 5, steady
@@ -452,7 +461,7 @@ function atomCheck(){const d=atoms(domainMass()),o=atoms(edgeOut),r=atoms(remove
 // ---------------- scenarios ----------------
 function solidRect(x0,y0,x1,y1,v){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const k=y*NX+x;if(v)makeSolid(k,v);else if(wall[k]){wall[k]=0;wallVer++;}}}
 function resetWorld(on){
-  wall.fill(0);prop.fill(0);lit.fill(0);srbMass=0;srbBurning=0;wallVer++;resv.fill(0);rr.fill(0);tanks=[];valves=[];plugs=[];injs=[];checks=[];pipeIn.fill(0);sparks=[];keyState.fill(0);hint="";simTime=0;nextId=1;
+  wall.fill(0);prop.fill(0);lit.fill(0);srbMass=0;srbFree=0;srbBurning=0;wallVer++;resv.fill(0);rr.fill(0);tanks=[];valves=[];plugs=[];injs=[];checks=[];pipeIn.fill(0);sparks=[];keyState.fill(0);hint="";simTime=0;nextId=1;
   for(let s=0;s<NSA;s++)rs[s].fill(0);rho.fill(0);mx.fill(0);my.fill(0);En.fill(0);resetTallies();
   atmo=on?1:0;pAmb=on?101325:40;for(let k=0;k<NC;k++)setGas(k,AIRY,pAmb,TAmb);
 }
