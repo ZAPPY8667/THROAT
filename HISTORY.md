@@ -77,7 +77,7 @@ made on the test stand.
 ## Hosting so far
 - claude.ai artifact (private to Wyatt; frozen at v1.8 now).
 - Netlify: zip of `index.html` dropped by hand (zips were put in his Google Drive each version).
-- GitHub: ZAPPY8667/THROAT (private). GitHub Pages needs the repo public on a free account — not decided yet.
+- GitHub: ZAPPY8667/THROAT, made public with GitHub Pages on → https://zappy8667.github.io/THROAT/ (from v1.8).
 
 ## Not in the repo
 Browser test scripts (playwright + Chrome) used during development: they drove the editor (drag parts, resize,
