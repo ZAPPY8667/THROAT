@@ -151,6 +151,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   .ph,.insp .hd{cursor:default}
   .top{order:-1;flex-direction:column;align-items:stretch;padding:6px;gap:6px}.tools{flex-wrap:wrap;justify-content:space-between;gap:3px}.tool{height:42px;flex:1 1 0;justify-content:center;padding:0 4px;min-width:38px}
   #bHelp,.sep{display:none}
+  .panel.top{position:relative}.top .topb{position:absolute;right:6px;top:6px}.topb button.b{height:26px;padding:0 8px}
   .insp{position:static;width:auto;order:1;transform:none!important}.probe{order:2}.ctx{order:3}.bot{order:4}
   .bot .grp{flex-wrap:wrap}
   button.b,select,.chip,.keyb{min-height:38px}
@@ -160,6 +161,15 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 @media (max-width:1300px){.tool kbd{display:none}}
 @media (max-width:1120px){.tool span{display:none}}
 @media (max-width:600px){.tool span{display:none}}
+/* goal toasts and the goals card: fixed to the window so they show over flight and the editor too */
+.toast{position:fixed;left:50%;top:12px;transform:translate(-50%,-140%);z-index:60;background:var(--glass2);border:1px solid var(--acc);border-radius:9px;padding:9px 18px;
+  color:var(--acc2);font:700 15px var(--body);box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .35s cubic-bezier(.2,1.4,.4,1);pointer-events:none;text-align:center;max-width:92vw}
+.toast.in{transform:translate(-50%,0)}.toast small{display:block;font:400 10px var(--display);color:var(--dim);letter-spacing:1px;margin-bottom:2px}
+.topb{display:flex;gap:6px}
+.help.goals{position:fixed;z-index:55}.help.goals .card{max-width:560px}
+.glist{display:flex;flex-direction:column;gap:2px;max-height:60vh;overflow:auto}
+.gi{display:grid;grid-template-columns:22px 1fr;gap:0 6px;padding:5px 2px;border-bottom:1px solid #1d2540;font-size:13px}
+.gi b{color:var(--faint);grid-row:span 2}.gi.done b{color:var(--good)}.gi.done span{color:var(--dim)}.gi small{color:var(--dim);font-size:11.5px;grid-column:2}
 </style>
 </head>
 <body>
@@ -169,6 +179,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   <div class="panel top">
     <div class="logo">THROAT<small>ROCKET ENGINE SANDBOX</small></div>
     <div class="tools" id="tools"></div>
+    <div class="topb"><button class="b" id="bGoals" title="Goals: things to try">🏆</button><button class="b" id="bSnd" title="Sound (U)">🔊</button></div>
     <button class="b" id="bHelp" title="Controls (H)">? Controls</button>
   </div>
 
@@ -292,7 +303,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <button class="b" id="fL" title="Turn left (A)">⟲</button><button class="b" id="fR" title="Turn right (D)">⟳</button>
     <label class="sl" style="grid-template-columns:auto 140px;gap:6px">Throttle<input id="fThr" type="range" min="0" max="100" value="0"></label>
     <button class="b" id="fStage" title="Next stage (Space)">⏏ Stage</button><button class="b" id="fLegs" title="Landing legs (G)">🦿 Legs</button>
-    <button class="b" id="fMap" title="Map (M)">Map</button><button class="b" id="fWarp2" title="Time warp (. and ,)">⏩ Warp</button>
+    <button class="b" id="fSnd" title="Sound (U)">🔊</button><button class="b" id="fMap" title="Map (M)">Map</button><button class="b" id="fWarp2" title="Time warp (. and ,)">⏩ Warp</button>
     <button class="b on" id="fRetry" title="Try again (R)" style="display:none">↻ Retry</button>
     <button class="b" id="fBuild" title="Back to the rocket editor (B)">🛠 Build</button><button class="b" id="fBack" title="Back to the test stand (Esc)">← Test stand</button>
   </div>

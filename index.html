@@ -151,6 +151,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   .ph,.insp .hd{cursor:default}
   .top{order:-1;flex-direction:column;align-items:stretch;padding:6px;gap:6px}.tools{flex-wrap:wrap;justify-content:space-between;gap:3px}.tool{height:42px;flex:1 1 0;justify-content:center;padding:0 4px;min-width:38px}
   #bHelp,.sep{display:none}
+  .panel.top{position:relative}.top .topb{position:absolute;right:6px;top:6px}.topb button.b{height:26px;padding:0 8px}
   .insp{position:static;width:auto;order:1;transform:none!important}.probe{order:2}.ctx{order:3}.bot{order:4}
   .bot .grp{flex-wrap:wrap}
   button.b,select,.chip,.keyb{min-height:38px}
@@ -160,6 +161,15 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 @media (max-width:1300px){.tool kbd{display:none}}
 @media (max-width:1120px){.tool span{display:none}}
 @media (max-width:600px){.tool span{display:none}}
+/* goal toasts and the goals card: fixed to the window so they show over flight and the editor too */
+.toast{position:fixed;left:50%;top:12px;transform:translate(-50%,-140%);z-index:60;background:var(--glass2);border:1px solid var(--acc);border-radius:9px;padding:9px 18px;
+  color:var(--acc2);font:700 15px var(--body);box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .35s cubic-bezier(.2,1.4,.4,1);pointer-events:none;text-align:center;max-width:92vw}
+.toast.in{transform:translate(-50%,0)}.toast small{display:block;font:400 10px var(--display);color:var(--dim);letter-spacing:1px;margin-bottom:2px}
+.topb{display:flex;gap:6px}
+.help.goals{position:fixed;z-index:55}.help.goals .card{max-width:560px}
+.glist{display:flex;flex-direction:column;gap:2px;max-height:60vh;overflow:auto}
+.gi{display:grid;grid-template-columns:22px 1fr;gap:0 6px;padding:5px 2px;border-bottom:1px solid #1d2540;font-size:13px}
+.gi b{color:var(--faint);grid-row:span 2}.gi.done b{color:var(--good)}.gi.done span{color:var(--dim)}.gi small{color:var(--dim);font-size:11.5px;grid-column:2}
 </style>
 </head>
 <body>
@@ -169,6 +179,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   <div class="panel top">
     <div class="logo">THROAT<small>ROCKET ENGINE SANDBOX</small></div>
     <div class="tools" id="tools"></div>
+    <div class="topb"><button class="b" id="bGoals" title="Goals: things to try">🏆</button><button class="b" id="bSnd" title="Sound (U)">🔊</button></div>
     <button class="b" id="bHelp" title="Controls (H)">? Controls</button>
   </div>
 
@@ -292,7 +303,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <button class="b" id="fL" title="Turn left (A)">⟲</button><button class="b" id="fR" title="Turn right (D)">⟳</button>
     <label class="sl" style="grid-template-columns:auto 140px;gap:6px">Throttle<input id="fThr" type="range" min="0" max="100" value="0"></label>
     <button class="b" id="fStage" title="Next stage (Space)">⏏ Stage</button><button class="b" id="fLegs" title="Landing legs (G)">🦿 Legs</button>
-    <button class="b" id="fMap" title="Map (M)">Map</button><button class="b" id="fWarp2" title="Time warp (. and ,)">⏩ Warp</button>
+    <button class="b" id="fSnd" title="Sound (U)">🔊</button><button class="b" id="fMap" title="Map (M)">Map</button><button class="b" id="fWarp2" title="Time warp (. and ,)">⏩ Warp</button>
     <button class="b on" id="fRetry" title="Try again (R)" style="display:none">↻ Retry</button>
     <button class="b" id="fBuild" title="Back to the rocket editor (B)">🛠 Build</button><button class="b" id="fBack" title="Back to the test stand (Esc)">← Test stand</button>
   </div>
@@ -1637,6 +1648,9 @@ function readouts(){
     if(simTime>lastSim){const r=(waterMade-lastWater)/(simTime-lastSim)*MW[H2O]*1000;rateShown=rateShown*0.6+r*0.4;lastWater=waterMade;lastSim=simTime;}
     set("rW",rateShown>0.05?rateShown.toFixed(1)+" g/s":"–");
     measureThrust();const F=Math.hypot(thrX,thrY);
+    // sound follows the thrust; goals tick off when something real happens on the stand
+    JUICE.stand.F=F;JUICE.stand.srb=!!srbBurning;JUICE.stand.air=atmo?1:0;
+    if(F>800&&!srbBurning)JUICE.goal("light");if(F>800&&!atmo)JUICE.goal("vac");if(burn&&burn.done)JUICE.goal("srb");
     set("rF",F<100?"–":(F>=1000?(F/1000).toFixed(2)+" kN ":Math.round(F)+" N ")+ARW[((Math.round(Math.atan2(thrY,thrX)/(Math.PI/4))%8)+8)%8]);
     if(!srbBurning)recordTest(F,F>=100&&mdotS>1e-2?F/(mdotS*9.80665):0);
     set("rI",F>=100&&mdotS>1e-2?Math.round(F/(mdotS*9.80665))+" s":"–");
@@ -1663,6 +1677,107 @@ function frame(now){
   readouts();requestAnimationFrame(frame);}
 setTool("select");setView(6);load("engine");startWorker();
 requestAnimationFrame(frame);
+// ================= SOUND + GOALS =================
+// Everything you hear is made on the spot with WebAudio (no sound files, so the game still works offline in one file):
+// the roar is filtered noise that gets louder and brighter with thrust, a bang is a burst of noise plus a falling
+// low "thump", and a solid booster's crackle is hundreds of tiny clicks a second at random moments.
+// The test stand and flight just say how hard things are burning (JUICE.stand / JUICE.fly); this file's own loop
+// turns that into sound, so whichever screen is open is what you hear.
+const JUICE=(()=>{
+  const SK="throat.sound.v1";let on=store.get(SK,true),A=null,master=null,white=null,roarG,roarF,hissG,crackOut,lastT=0,lvl=0,lvlT=0,lastBang=-9;
+  const stand={F:0,srb:false,air:1},fly={lvl:0,air:1,srb:0,lit:false};
+  function init(){
+    if(A)return A;const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
+    try{A=new C();}catch(e){return null;}
+    master=A.createGain();master.gain.value=on?0.55:0;
+    const comp=A.createDynamicsCompressor();master.connect(comp);comp.connect(A.destination);   // a crash on top of a roar shouldn't clip
+    const n=A.sampleRate*2;white=A.createBuffer(1,n,A.sampleRate);const brown=A.createBuffer(1,n,A.sampleRate),w=white.getChannelData(0),b=brown.getChannelData(0);
+    let br=0;for(let i=0;i<n;i++){w[i]=Math.random()*2-1;br=(br+0.02*w[i])/1.02;b[i]=br*3.5;}   // brown noise = deep rumble
+    // the roar: rumble through a low-pass that opens up with thrust, plus a hiss layer for the hard edge at full power
+    const rs=A.createBufferSource();rs.buffer=brown;rs.loop=true;roarF=A.createBiquadFilter();roarF.type="lowpass";roarF.frequency.value=200;roarG=A.createGain();roarG.gain.value=0;
+    rs.connect(roarF);roarF.connect(roarG);roarG.connect(master);rs.start();
+    const hs=A.createBufferSource();hs.buffer=white;hs.loop=true;const hf=A.createBiquadFilter();hf.type="bandpass";hf.frequency.value=1100;hf.Q.value=0.6;hissG=A.createGain();hissG.gain.value=0;
+    hs.connect(hf);hf.connect(hissG);hissG.connect(master);hs.start(0.37);
+    crackOut=A.createBiquadFilter();crackOut.type="highpass";crackOut.frequency.value=1400;crackOut.connect(master);
+    return A;}
+  // browsers only allow sound after the player touches the page
+  const wake=()=>{if(init()&&A.state==="suspended")A.resume();};
+  addEventListener("pointerdown",wake,true);addEventListener("keydown",wake,true);
+  const now=()=>A.currentTime;
+  function noise(t,dur,gain,f0,f1,type){   // a burst of noise whose filter sweeps f0 → f1 and whose volume dies away
+    const s=A.createBufferSource();s.buffer=white;const f=A.createBiquadFilter();f.type=type||"lowpass";f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    const g=A.createGain();g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);s.connect(f);f.connect(g);g.connect(master);s.start(t,Math.random()*1.5);s.stop(t+dur+0.05);}
+  function thump(t,dur,gain,f0,f1,wave){   // a tone that falls in pitch: the chest-thump under a bang
+    const o=A.createOscillator();o.type=wave||"sine";o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    const g=A.createGain();g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+0.05);}
+  function grains(t0,span,count,gain){   // crackle: lots of tiny clicks at random times
+    for(let i=0;i<count;i++){const t=t0+Math.random()*span,d=0.003+Math.random()*0.01,s=A.createBufferSource();s.buffer=white;
+      const g=A.createGain();g.gain.setValueAtTime(gain*(0.3+Math.random()*0.7),t);g.gain.exponentialRampToValueAtTime(0.001,t+d);s.connect(g);g.connect(crackOut);s.start(t,Math.random()*1.9);s.stop(t+d+0.01);}}
+  const ok=()=>A&&A.state==="running"&&on;
+  const snd={
+    bang(size){if(!ok())return;const t=now();if(t-lastBang<0.8)return;lastBang=t;size=size||1;noise(t,0.55,0.9*size,3500,250);thump(t,0.4,0.9*size,120,38);},
+    crash(size){if(!ok())return;const t=now();size=Math.max(0.2,Math.min(1,size||1));noise(t,2.6,1.3*size,2200,90);thump(t,1.3,1.1*size,75,24);noise(t+0.08,0.6,0.5*size,6000,800,"highpass");grains(t+0.1,1.6,60,0.45*size);},
+    clunk(){if(!ok())return;const t=now();noise(t,0.12,0.6,900,250,"bandpass");thump(t,0.14,0.5,190,80,"triangle");},
+    chime(){if(!ok())return;const t=now();thump(t,0.25,0.16,660,655,"triangle");thump(t+0.11,0.45,0.16,990,985,"triangle");},
+    get on(){return on;},
+    toggle(){on=!on;store.set(SK,on);if(init()){if(A.state==="suspended")A.resume();master.gain.setTargetAtTime(on?0.55:0,now(),0.05);}btns();}};
+  // ---------- the loop: what is burning right now → roar, hiss and crackle ----------
+  function loop(){
+    requestAnimationFrame(loop);
+    if(!A||A.state!=="running")return;const t=now(),dt=Math.min(0.1,t-(lastT||t));lastT=t;
+    let L=0,air=1,crack=0;
+    if(FLT.on){L=fly.lvl;air=fly.air;crack=fly.srb;}
+    else if(!FLT.vab&&!S.paused){L=Math.min(1,stand.F/2600);air=stand.air;crack=stand.srb?Math.max(0.35,L):0;}
+    if(document.hidden)L=crack=0;
+    // a sudden jump in thrust = something just lit: bang (the test stand's thrust readout updates a few times a second)
+    if(L>0.3&&lvl<0.1&&t-lvlT<0.6)snd.bang(0.5+0.5*L);if(L<0.1){lvl=L;lvlT=t;}else lvl=L;
+    const mu=0.35+0.65*air,wob=1+(Math.random()-0.5)*0.12;   // in vacuum you'd hear nothing; keep a muffled rumble so it still feels alive
+    roarG.gain.setTargetAtTime(Math.pow(L,0.8)*0.9*mu*wob,t,0.06);roarF.frequency.setTargetAtTime((160+1100*L*(0.35+0.65*air))*wob,t,0.08);
+    hissG.gain.setTargetAtTime(L*L*0.22*air,t,0.08);
+    if(crack>0&&dt>0)grains(t+0.02,dt,Math.round((60+200*crack)*dt+Math.random()),0.35*crack*mu);}
+  requestAnimationFrame(loop);
+  // ---------- goals ----------
+  const GK="throat.goals.v1";let done=store.get(GK,{});
+  const GOALS=[
+    ["light","Light the engine","Test stand: press 2 for the torch, then 1 to open the main valves."],
+    ["vac","Fire it in vacuum","Switch the outside air to Vacuum (A) and run the engine. Watch the plume balloon."],
+    ["srb","Burn a solid booster","Pick “Solid booster” from the scenario list and press 1."],
+    ["launch","Launch a rocket","🚀 Rocket → pick or build one → Launch, then Z for full throttle."],
+    ["km10","Climb to 10 km","Fly straight up first, then lean over gently."],
+    ["stage","Drop a stage","Space throws away the empty stage."],
+    ["space","Reach space","Get above 40 km, where the air ends."],
+    ["orbit","Get into orbit","Lean east as you climb, then burn sideways at the top until the periapsis is above 40 km."],
+    ["pad","Land on the landing zone","It's 2 km east of the launch pad. Legs down (G), touch down slower than 9 m/s."],
+    ["moonsoi","Reach the Moon","From orbit, burn prograde until the map shows a Moon encounter."],
+    ["moonland","Land on the Moon","Kill your sideways speed, legs down, come in gently."]];
+  let toasts=[],toastEl=null;
+  function toast(html){toasts.push(html);if(!toastEl)nextToast();}
+  function nextToast(){const h=toasts.shift();if(!h){toastEl=null;return;}
+    toastEl=document.createElement("div");toastEl.className="toast";toastEl.innerHTML=h;document.body.appendChild(toastEl);
+    requestAnimationFrame(()=>toastEl.classList.add("in"));const el=toastEl;
+    setTimeout(()=>{el.classList.remove("in");setTimeout(()=>{el.remove();nextToast();},350);},3800);}
+  const count=()=>GOALS.filter(g=>done[g[0]]).length;
+  function goal(id){if(done[id])return;const g=GOALS.find(x=>x[0]===id);if(!g)return;done[id]=Date.now();store.set(GK,done);
+    const n=count();toast(`<small>Goal ${n===GOALS.length?"— ALL DONE! 🎉":`${n} of ${GOALS.length}`}</small>🏆 ${g[1]}`);snd.chime();btns();if(gl&&gl.classList.contains("show"))list();}
+  // the goals card: what's done, and a hint for each thing still to do
+  const gl=document.createElement("div");gl.className="help goals";gl.innerHTML='<div class="card"><h2>Goals</h2><div class="glist"></div><div class="row" style="margin-top:10px"><span class="tip">Hints show for goals you haven\'t done yet. Esc to close.</span><button class="b" style="margin-left:auto">Reset goals</button></div></div>';
+  document.body.appendChild(gl);gl.onclick=e=>{if(e.target===gl)gl.classList.remove("show");};
+  gl.querySelector("button").onclick=()=>{if(confirm("Start the goals over?")){done={};store.set(GK,done);list();btns();}};
+  function list(){const el=gl.querySelector(".glist");el.innerHTML="";
+    for(const[id,name,hint]of GOALS){const r=document.createElement("div");r.className="gi"+(done[id]?" done":"");r.innerHTML=`<b>${done[id]?"✓":"○"}</b><span></span><small></small>`;
+      r.querySelector("span").textContent=name;r.querySelector("small").textContent=done[id]?"":hint;el.appendChild(r);}}
+  function openGoals(){list();gl.classList.add("show");}
+  addEventListener("keydown",e=>{const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT"||e.ctrlKey||e.metaKey)return;
+    if(e.key==="Escape"&&gl.classList.contains("show")){gl.classList.remove("show");e.stopImmediatePropagation();}
+    else if(e.key.toLowerCase()==="u")snd.toggle();},true);
+  // buttons: 🔊 on the test stand and in flight, 🏆 on the test stand
+  function btns(){for(const id of["bSnd","fSnd"]){const b=$(id);if(b){b.textContent=on?"🔊":"🔇";b.title=on?"Sound on (U)":"Sound off (U)";}}
+    const g=$("bGoals");if(g)g.textContent=`🏆 ${count()}/${GOALS.length}`;}
+  for(const id of["bSnd","fSnd"])$(id).onclick=()=>snd.toggle();$("bGoals").onclick=openGoals;btns();
+  window.__juice={get audio(){return A&&A.state;},get roar(){return roarG?+roarG.gain.value.toFixed(3):null;},get cutoff(){return roarF?Math.round(roarF.frequency.value):null;},stand,fly,get done(){return done;}};   // for browser tests
+  return{snd,goal,stand,fly,openGoals,toast,GOALS,get done(){return done;}};
+})();
+
 var FLT={on:false,vab:false},_rt=null;function recordTest(F,i){if(_rt)_rt(F,i);}
 (()=>{
 // ================= PARTS & VEHICLES =================
@@ -2090,6 +2205,8 @@ window.__vab={get vps(){return vps;},get sel(){return vsel;},w2c:(x,y)=>{const r
 // The test stand runs real gas physics (far too slow for real time). Flight takes the thrust and Isp your engine
 // actually made on the stand and flies the rocket you built in the editor: gravity, air drag that depends on the shape
 // and the angle you fly at, fins that keep it pointing into the wind, staging, landing legs.
+// sound + goals live in juice.js; the headless tests run flight without a page, so they may be missing
+const JX=typeof JUICE!=="undefined"?JUICE:null;
 // ---------- test-stand records ----------
 const CARD_KEY="throat.card.v1";
 let card=store.get(CARD_KEY,{sl:null,vac:null}),hist=[];
@@ -2158,11 +2275,14 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
     n.phi=v.phi;n.om=om;n.x=X0+rx;n.y=Y0+ry;
     let ux=n.x-v.x,uy=n.y-v.y;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
     n.vx=V0x+om*ry+ux*1.4;n.vy=V0y-om*rx+uy*1.4;n.thr=0;n.landed=false;VS.push(n);}
-  msg=pieces.some(P=>P.some(p=>p.t==="sdec"))?"Boosters away!":"Stage separation!";msgT=2.5;anAV=null;}
+  msg=pieces.some(P=>P.some(p=>p.t==="sdec"))?"Boosters away!":"Stage separation!";msgT=2.5;anAV=null;
+  if(JX){JX.snd.clunk();JX.goal("stage");}}
 function switchV(d){const c=VS.filter(v=>v.ctrl&&!v.crashed);if(c.length<2){msg="Nothing else to fly. Boosters need their own probe core.";msgT=3;return;}
   let i=c.indexOf(AV);i=(i+d+c.length)%c.length;AV=c[i];anAV=null;msg="Now flying: "+AV.name;msgT=2.5;$("fThr").value=Math.round(AV.thr*100);}
 // ---------- physics ----------
-function crash(v,sp){v.crashed=true;v.boomT=0;v.thr=0;v.debris=[];const bits=Math.min(40,8+v.ps.length*2);
+function crash(v,sp){
+  if(JX&&AV&&v.body===AV.body){const d=v===AV?0:Math.hypot(v.x-AV.x,v.y-AV.y);if(d<3000)JX.snd.crash(1-d/3000);}   // you hear crashes near you
+  v.crashed=true;v.boomT=0;v.thr=0;v.debris=[];const bits=Math.min(40,8+v.ps.length*2);
   for(let i=0;i<bits;i++){const an=Math.random()*Math.PI,s=(6+Math.random()*16)*Math.min(2,0.4+sp/40);
     v.debris.push({x:(Math.random()-0.5)*v.Wall,y:Math.random()*v.H,vx:Math.cos(an)*s,vy:Math.sin(an)*s,rot:Math.random()*6,vr:(Math.random()-0.5)*12,l:0.15+Math.random()*v.W*0.7,c:Math.random()<0.3?"#c4402f":(Math.random()<0.5?"#d6dbe6":"#3a3f4c")});}
   if(v===AV){msg=`💥 Crashed at ${Math.round(sp)} m/s. Highest point ${v.maxAlt>=1000?(v.maxAlt/1000).toFixed(1)+" km":Math.round(v.maxAlt)+" m"}. R to try again`+(VS.some(o=>o!==v&&o.ctrl&&!o.crashed)?", [ ] to fly another craft":"")+".";msgT=1e9;}}
@@ -2198,7 +2318,7 @@ function stepV(v,dt,u){
   soiCheck(v);
   v.t+=dt;if(v.body===0)v.maxAlt=Math.max(v.maxAlt,h);}
 function soiCheck(v){   // hand a craft over between Earth and the Moon
-  if(v.body===0){const M=moonAt(FT),dx=v.x-M.x,dy=v.y-M.y;if(dx*dx+dy*dy<SOI*SOI){v.body=1;v.x=dx;v.y=dy;v.vx-=M.vx;v.vy-=M.vy;v.hold=null;if(v===AV){msg="🌙 Entering the Moon's sphere of influence";msgT=4;predC=null;if(warp>50)warp=50;}}}
+  if(v.body===0){const M=moonAt(FT),dx=v.x-M.x,dy=v.y-M.y;if(dx*dx+dy*dy<SOI*SOI){v.body=1;v.x=dx;v.y=dy;v.vx-=M.vx;v.vy-=M.vy;v.hold=null;if(v===AV){if(JX)JX.goal("moonsoi");msg="🌙 Entering the Moon's sphere of influence";msgT=4;predC=null;if(warp>50)warp=50;}}}
   else if(v.x*v.x+v.y*v.y>SOI*SOI){const M=moonAt(FT);v.body=0;v.x+=M.x;v.y+=M.y;v.vx+=M.vx;v.vy+=M.vy;v.hold=null;if(v===AV){msg="Leaving the Moon's sphere of influence";msgT=4;predC=null;if(warp>50)warp=50;}}}
 // on rails: ride the orbit exactly, in pieces small enough to notice the Moon, the air and the ground coming
 function railStep(v,T){let left=T,guard=0;
@@ -2217,7 +2337,7 @@ function ground(v,held){
   if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
     if(!ok){crash(v,sp);return;}
     v.landed=true;v.vx=v.vy=0;v.om=0;
-    if(v===AV&&v.t>3){const pd=padDist(v);msg=v.body===1?`🌙 Landed on the Moon at ${sp.toFixed(1)} m/s!`:Math.abs(pd.d)<10?`🎯 Landed on the ${pd.name} at ${sp.toFixed(1)} m/s!`:`✅ Landed at ${sp.toFixed(1)} m/s, ${fmt(Math.abs(pd.d))} m from the ${pd.name}.`;msgT=6;}}
+    if(v===AV&&v.t>3){const pd=padDist(v);if(JX){if(v.body===1)JX.goal("moonland");else if(Math.abs(pd.d)<10&&pd.at)JX.goal("pad");}msg=v.body===1?`🌙 Landed on the Moon at ${sp.toFixed(1)} m/s!`:Math.abs(pd.d)<10?`🎯 Landed on the ${pd.name} at ${sp.toFixed(1)} m/s!`:`✅ Landed at ${sp.toFixed(1)} m/s, ${fmt(Math.abs(pd.d))} m from the ${pd.name}.`;msgT=6;}}
   v.x+=v.x/rr*push;v.y+=v.y/rr*push;}
 function orbitOf(r){const B=BOD[r.body],mu=B.mu,rr=Math.hypot(r.x,r.y),v2=r.vx*r.vx+r.vy*r.vy,E=v2/2-mu/rr,hz=r.x*r.vy-r.y*r.vx;
   const ex=r.vy*hz/mu-r.x/rr,ey=-r.vx*hz/mu-r.y/rr,e=Math.hypot(ex,ey);
@@ -2268,6 +2388,9 @@ function flightFrame(now){
       const total=dtR*wv,hs=fine?0.004:0.04,n=Math.min(3000,Math.ceil(total/hs)),h=total/n;
       for(let i=0;i<n;i++){for(const v of VS)stepV(v,h,v===AV&&!AV.crashed?u:0);FT+=h;}}
     AV.wv=wv;
+    // sound: your own engines, plus anything else burning close by (boosters you just dropped)
+    if(JX){let L=AV.F>0?AV.thr:0;for(const v of VS)if(v!==AV&&v.F>0&&v.body===AV.body){const d=Math.hypot(v.x-AV.x,v.y-AV.y);if(d<2500)L+=0.5*v.thr*(1-d/2500);}
+      JX.fly.lvl=Math.min(1,L);JX.fly.air=AV.a;JX.fly.srb=0;}
     for(const v of VS)if(v.crashed)v.boomT+=dtR;
     VS=VS.filter(v=>!(v.crashed&&v!==AV&&v.boomT>8));
   }
@@ -2373,9 +2496,10 @@ function hudFlight(dt){
   const nd=st.dropKind;set("fNext",nd?(nd==="boosters"?"drop boosters":"drop stage"):"–");
   $("fStage").disabled=!nd;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);
   const nCtl=VS.filter(v=>v.ctrl&&!v.crashed).length;set("fVes",(nCtl>1?`${r.name}  ·  [ ] switch (${nCtl})`:r.name)+(r.body?"  ·  🌙 Moon":""));
-  if(r.body===0){if(!said.orbit&&!o.esc&&o.pe>ATM_TOP){said.orbit=1;msg=`🛰 ORBIT! ${km(o.pe)} × ${km(o.ap)}. Nice flying.`;msgT=7;}
+  if(JX){if(r.maxAlt>20)JX.goal("launch");if(r.body===0&&h>10000)JX.goal("km10");}
+  if(r.body===0){if(!said.orbit&&!o.esc&&o.pe>ATM_TOP){said.orbit=1;if(JX)JX.goal("orbit");msg=`🛰 ORBIT! ${km(o.pe)} × ${km(o.ap)}. Nice flying.`;msgT=7;}
     if(o.esc&&!said.esc){said.esc=1;msg="🚀 Escape velocity! You're leaving Earth for good.";msgT=7;}
-    if(!said.space&&h>ATM_TOP){said.space=1;msg="🌌 You're in space (above 40 km).";msgT=4;}}
+    if(!said.space&&h>ATM_TOP){said.space=1;if(JX)JX.goal("space");msg="🌌 You're in space (above 40 km).";msgT=4;}}
   else if(!said.morb&&!o.esc&&o.pe>2000){said.morb=1;msg=`🌙 In orbit around the Moon: ${km(o.pe)} × ${km(o.ap)}`;msgT=7;}
   msgT-=dt;const mb=$("fMsg");mb.style.display=msgT>0?"":"none";if(msgT>0)set("fMsg",msg);
   $("fRetry").style.display=r.crashed?"":"none";$("fMapBar").style.display=mapView?"":"none";}

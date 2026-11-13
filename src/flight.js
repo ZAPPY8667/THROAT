@@ -2,6 +2,8 @@
 // The test stand runs real gas physics (far too slow for real time). Flight takes the thrust and Isp your engine
 // actually made on the stand and flies the rocket you built in the editor: gravity, air drag that depends on the shape
 // and the angle you fly at, fins that keep it pointing into the wind, staging, landing legs.
+// sound + goals live in juice.js; the headless tests run flight without a page, so they may be missing
+const JX=typeof JUICE!=="undefined"?JUICE:null;
 // ---------- test-stand records ----------
 const CARD_KEY="throat.card.v1";
 let card=store.get(CARD_KEY,{sl:null,vac:null}),hist=[];
@@ -70,11 +72,14 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
     n.phi=v.phi;n.om=om;n.x=X0+rx;n.y=Y0+ry;
     let ux=n.x-v.x,uy=n.y-v.y;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
     n.vx=V0x+om*ry+ux*1.4;n.vy=V0y-om*rx+uy*1.4;n.thr=0;n.landed=false;VS.push(n);}
-  msg=pieces.some(P=>P.some(p=>p.t==="sdec"))?"Boosters away!":"Stage separation!";msgT=2.5;anAV=null;}
+  msg=pieces.some(P=>P.some(p=>p.t==="sdec"))?"Boosters away!":"Stage separation!";msgT=2.5;anAV=null;
+  if(JX){JX.snd.clunk();JX.goal("stage");}}
 function switchV(d){const c=VS.filter(v=>v.ctrl&&!v.crashed);if(c.length<2){msg="Nothing else to fly. Boosters need their own probe core.";msgT=3;return;}
   let i=c.indexOf(AV);i=(i+d+c.length)%c.length;AV=c[i];anAV=null;msg="Now flying: "+AV.name;msgT=2.5;$("fThr").value=Math.round(AV.thr*100);}
 // ---------- physics ----------
-function crash(v,sp){v.crashed=true;v.boomT=0;v.thr=0;v.debris=[];const bits=Math.min(40,8+v.ps.length*2);
+function crash(v,sp){
+  if(JX&&AV&&v.body===AV.body){const d=v===AV?0:Math.hypot(v.x-AV.x,v.y-AV.y);if(d<3000)JX.snd.crash(1-d/3000);}   // you hear crashes near you
+  v.crashed=true;v.boomT=0;v.thr=0;v.debris=[];const bits=Math.min(40,8+v.ps.length*2);
   for(let i=0;i<bits;i++){const an=Math.random()*Math.PI,s=(6+Math.random()*16)*Math.min(2,0.4+sp/40);
     v.debris.push({x:(Math.random()-0.5)*v.Wall,y:Math.random()*v.H,vx:Math.cos(an)*s,vy:Math.sin(an)*s,rot:Math.random()*6,vr:(Math.random()-0.5)*12,l:0.15+Math.random()*v.W*0.7,c:Math.random()<0.3?"#c4402f":(Math.random()<0.5?"#d6dbe6":"#3a3f4c")});}
   if(v===AV){msg=`💥 Crashed at ${Math.round(sp)} m/s. Highest point ${v.maxAlt>=1000?(v.maxAlt/1000).toFixed(1)+" km":Math.round(v.maxAlt)+" m"}. R to try again`+(VS.some(o=>o!==v&&o.ctrl&&!o.crashed)?", [ ] to fly another craft":"")+".";msgT=1e9;}}
@@ -110,7 +115,7 @@ function stepV(v,dt,u){
   soiCheck(v);
   v.t+=dt;if(v.body===0)v.maxAlt=Math.max(v.maxAlt,h);}
 function soiCheck(v){   // hand a craft over between Earth and the Moon
-  if(v.body===0){const M=moonAt(FT),dx=v.x-M.x,dy=v.y-M.y;if(dx*dx+dy*dy<SOI*SOI){v.body=1;v.x=dx;v.y=dy;v.vx-=M.vx;v.vy-=M.vy;v.hold=null;if(v===AV){msg="🌙 Entering the Moon's sphere of influence";msgT=4;predC=null;if(warp>50)warp=50;}}}
+  if(v.body===0){const M=moonAt(FT),dx=v.x-M.x,dy=v.y-M.y;if(dx*dx+dy*dy<SOI*SOI){v.body=1;v.x=dx;v.y=dy;v.vx-=M.vx;v.vy-=M.vy;v.hold=null;if(v===AV){if(JX)JX.goal("moonsoi");msg="🌙 Entering the Moon's sphere of influence";msgT=4;predC=null;if(warp>50)warp=50;}}}
   else if(v.x*v.x+v.y*v.y>SOI*SOI){const M=moonAt(FT);v.body=0;v.x+=M.x;v.y+=M.y;v.vx+=M.vx;v.vy+=M.vy;v.hold=null;if(v===AV){msg="Leaving the Moon's sphere of influence";msgT=4;predC=null;if(warp>50)warp=50;}}}
 // on rails: ride the orbit exactly, in pieces small enough to notice the Moon, the air and the ground coming
 function railStep(v,T){let left=T,guard=0;
@@ -129,7 +134,7 @@ function ground(v,held){
   if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
     if(!ok){crash(v,sp);return;}
     v.landed=true;v.vx=v.vy=0;v.om=0;
-    if(v===AV&&v.t>3){const pd=padDist(v);msg=v.body===1?`🌙 Landed on the Moon at ${sp.toFixed(1)} m/s!`:Math.abs(pd.d)<10?`🎯 Landed on the ${pd.name} at ${sp.toFixed(1)} m/s!`:`✅ Landed at ${sp.toFixed(1)} m/s, ${fmt(Math.abs(pd.d))} m from the ${pd.name}.`;msgT=6;}}
+    if(v===AV&&v.t>3){const pd=padDist(v);if(JX){if(v.body===1)JX.goal("moonland");else if(Math.abs(pd.d)<10&&pd.at)JX.goal("pad");}msg=v.body===1?`🌙 Landed on the Moon at ${sp.toFixed(1)} m/s!`:Math.abs(pd.d)<10?`🎯 Landed on the ${pd.name} at ${sp.toFixed(1)} m/s!`:`✅ Landed at ${sp.toFixed(1)} m/s, ${fmt(Math.abs(pd.d))} m from the ${pd.name}.`;msgT=6;}}
   v.x+=v.x/rr*push;v.y+=v.y/rr*push;}
 function orbitOf(r){const B=BOD[r.body],mu=B.mu,rr=Math.hypot(r.x,r.y),v2=r.vx*r.vx+r.vy*r.vy,E=v2/2-mu/rr,hz=r.x*r.vy-r.y*r.vx;
   const ex=r.vy*hz/mu-r.x/rr,ey=-r.vx*hz/mu-r.y/rr,e=Math.hypot(ex,ey);
@@ -180,6 +185,9 @@ function flightFrame(now){
       const total=dtR*wv,hs=fine?0.004:0.04,n=Math.min(3000,Math.ceil(total/hs)),h=total/n;
       for(let i=0;i<n;i++){for(const v of VS)stepV(v,h,v===AV&&!AV.crashed?u:0);FT+=h;}}
     AV.wv=wv;
+    // sound: your own engines, plus anything else burning close by (boosters you just dropped)
+    if(JX){let L=AV.F>0?AV.thr:0;for(const v of VS)if(v!==AV&&v.F>0&&v.body===AV.body){const d=Math.hypot(v.x-AV.x,v.y-AV.y);if(d<2500)L+=0.5*v.thr*(1-d/2500);}
+      JX.fly.lvl=Math.min(1,L);JX.fly.air=AV.a;JX.fly.srb=0;}
     for(const v of VS)if(v.crashed)v.boomT+=dtR;
     VS=VS.filter(v=>!(v.crashed&&v!==AV&&v.boomT>8));
   }
@@ -285,9 +293,10 @@ function hudFlight(dt){
   const nd=st.dropKind;set("fNext",nd?(nd==="boosters"?"drop boosters":"drop stage"):"–");
   $("fStage").disabled=!nd;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);
   const nCtl=VS.filter(v=>v.ctrl&&!v.crashed).length;set("fVes",(nCtl>1?`${r.name}  ·  [ ] switch (${nCtl})`:r.name)+(r.body?"  ·  🌙 Moon":""));
-  if(r.body===0){if(!said.orbit&&!o.esc&&o.pe>ATM_TOP){said.orbit=1;msg=`🛰 ORBIT! ${km(o.pe)} × ${km(o.ap)}. Nice flying.`;msgT=7;}
+  if(JX){if(r.maxAlt>20)JX.goal("launch");if(r.body===0&&h>10000)JX.goal("km10");}
+  if(r.body===0){if(!said.orbit&&!o.esc&&o.pe>ATM_TOP){said.orbit=1;if(JX)JX.goal("orbit");msg=`🛰 ORBIT! ${km(o.pe)} × ${km(o.ap)}. Nice flying.`;msgT=7;}
     if(o.esc&&!said.esc){said.esc=1;msg="🚀 Escape velocity! You're leaving Earth for good.";msgT=7;}
-    if(!said.space&&h>ATM_TOP){said.space=1;msg="🌌 You're in space (above 40 km).";msgT=4;}}
+    if(!said.space&&h>ATM_TOP){said.space=1;if(JX)JX.goal("space");msg="🌌 You're in space (above 40 km).";msgT=4;}}
   else if(!said.morb&&!o.esc&&o.pe>2000){said.morb=1;msg=`🌙 In orbit around the Moon: ${km(o.pe)} × ${km(o.ap)}`;msgT=7;}
   msgT-=dt;const mb=$("fMsg");mb.style.display=msgT>0?"":"none";if(msgT>0)set("fMsg",msg);
   $("fRetry").style.display=r.crashed?"":"none";$("fMapBar").style.display=mapView?"":"none";}

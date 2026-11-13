@@ -23,6 +23,7 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 | `glue.js` | Web Worker loop: steps in 8 ms chunks, posts snapshots when the page asks. |
 | `ui.js` | Page: rendering (Real/Glow/Gases/Pressure/Temp/Mach/Shocks views), tools, inspector, panels, readouts, undo, designs, world size. `/*FLIGHT*/` gets the flight bundle at build time. |
 | `shell.html` | Page markup + CSS; placeholders `/*CORE*/ /*GLUE*/ /*GASES_VIEWS*/ /*UI*/`. |
+| `juice.js` | Sound + goals (`JUICE`). Synthesized WebAudio: roar/hiss follow thrust (muffled in vacuum), ignition bang on a thrust jump, booster crackle, stage clunk, crash, goal chime; U / 🔊 mutes (`throat.sound.v1`). Goals checklist with toasts (`throat.goals.v1`), 🏆 card. The test stand sets `JUICE.stand`, flight sets `JUICE.fly`; its own rAF loop plays whichever screen is open. Built into the UI closure just before the flight bundle; flight reaches it through `JX` (null in the headless tests). `window.__juice` for browser tests. |
 | `gv.js` | Tiny legacy gas-list snippet (kept so the build placeholders stay the same). |
 | `parts.js` | Rocket parts catalog (probe, nose, tank, adapter, engines, decoupler, side decoupler, fin, leg), engine models (`ENG`: your engine + Wren, Mule, Bison, Lumen Vac), joining by touching edges, staging analysis (Δv/TWR per stage), part drawing, shrouds, ready-made rockets. Parts are in cm (x = centre, y = bottom). |
 | `orbit.js` | Earth (R 300 km, g 9.81, air to 40 km) and Moon (R 90 km, 1.62 g, 2,500 km away, SOI ≈464 km). Universal-variable Kepler propagation, orbit elements, `predict()` for the map (legs across SOIs, Ap/Pe/encounter/impact marks). |
@@ -58,7 +59,7 @@ See `HISTORY.md` for the version history, why things are tuned the way they are,
 - Text shown to players: short, plain, no jargon without a hint.
 
 ## Backlog (agreed with Wyatt)
-1. Sound (WebAudio, synthesized: roar with thrust, ignition bang, booster crackle, crash) + a goals checklist with toasts.
+1. ✅ (v1.9) Sound (WebAudio, synthesized: roar with thrust, ignition bang, booster crackle, crash) + a goals checklist with toasts.
 2. Engine library: save test-stand engines and boosters by name with their measured numbers; use them in the editor,
    including strap-on solid boosters.
 3. Methane and kerosene on the test stand (blue-violet methane flame, sooty orange kerosene).

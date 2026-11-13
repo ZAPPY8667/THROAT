@@ -15,7 +15,8 @@ def rd(name):
 flight = ('var FLT={on:false,vab:false},_rt=null;function recordTest(F,i){if(_rt)_rt(F,i);}\n(()=>{\n'
           + ''.join(rd(n) + '\n' for n in ['parts.js', 'orbit.js', 'vab.js', 'flight.js', 'map.js'])
           + '})();\n')
-ui = rd('ui.js').replace('/*FLIGHT*/', flight)
+# sound + goals sit in the UI closure (so the test stand can use them) just before the flight bundle (so flight can too)
+ui = rd('ui.js').replace('/*FLIGHT*/', rd('juice.js') + '\n' + flight)
 html = (rd('shell.html').replace('/*CORE*/', rd('core.js')).replace('/*GLUE*/', rd('glue.js'))
         .replace('/*GASES_VIEWS*/', rd('gv.js')).replace('/*UI*/', ui))
 with open(os.path.join(ROOT, 'index.html'), 'w', encoding='utf-8') as f:

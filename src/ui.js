@@ -702,6 +702,9 @@ function readouts(){
     if(simTime>lastSim){const r=(waterMade-lastWater)/(simTime-lastSim)*MW[H2O]*1000;rateShown=rateShown*0.6+r*0.4;lastWater=waterMade;lastSim=simTime;}
     set("rW",rateShown>0.05?rateShown.toFixed(1)+" g/s":"–");
     measureThrust();const F=Math.hypot(thrX,thrY);
+    // sound follows the thrust; goals tick off when something real happens on the stand
+    JUICE.stand.F=F;JUICE.stand.srb=!!srbBurning;JUICE.stand.air=atmo?1:0;
+    if(F>800&&!srbBurning)JUICE.goal("light");if(F>800&&!atmo)JUICE.goal("vac");if(burn&&burn.done)JUICE.goal("srb");
     set("rF",F<100?"–":(F>=1000?(F/1000).toFixed(2)+" kN ":Math.round(F)+" N ")+ARW[((Math.round(Math.atan2(thrY,thrX)/(Math.PI/4))%8)+8)%8]);
     if(!srbBurning)recordTest(F,F>=100&&mdotS>1e-2?F/(mdotS*9.80665):0);
     set("rI",F>=100&&mdotS>1e-2?Math.round(F/(mdotS*9.80665))+" s":"–");
