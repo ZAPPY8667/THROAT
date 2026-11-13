@@ -194,7 +194,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       <span>Pressure</span><b id="rP">–</b><span>Temp</span><b id="rT">–</b>
       <span>Flow</span><b id="rV">–</b><span>Mach</span><b id="rM" style="color:var(--violet)">–</b>
       <span>Gas</span><b id="rG" class="w">–</b>
-      <span>H₂:O₂</span><b id="rX" class="w">–</b>
+      <span title="Oxygen here compared with what the fuel here needs to burn completely">Mix</span><b id="rX" class="w">–</b>
       <hr>
       <span>Thrust</span><b id="rF" style="color:var(--acc2)" title="Net push of the gas on everything solid, per 1 cm slice of this 2D engine">–</b><span>Isp</span><b id="rI" title="Specific impulse: seconds of thrust per weight of propellant. Higher = more efficient">–</b>
       <span>H₂O</span><b id="rW">–</b><span>Atoms</span><b id="rA" class="ok">–</b>
@@ -217,7 +217,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 
   <div class="panel bot">
     <div class="grp">
-      <select id="scen" aria-label="Scenario"><option value="custom" hidden>My design</option><option value="engine">First engine</option><option value="srb">Solid booster</option><option value="spark">Spark a mix</option><option value="two">Two chambers</option><option value="empty">Empty</option></select>
+      <select id="scen" aria-label="Scenario"><option value="custom" hidden>My design</option><option value="engine">First engine (H₂)</option><option value="methane">Methane engine</option><option value="kerosene">Kerosene engine</option><option value="srb">Solid booster</option><option value="spark">Spark a mix</option><option value="two">Two chambers</option><option value="empty">Empty</option></select>
       <button class="b" id="bReload" title="Reload scenario (R)">Reload</button>
       <button class="b" id="bPause" title="Pause (Space)">Pause</button>
       <button class="b" id="bAir" title="Outside air (A)">Sea level</button>

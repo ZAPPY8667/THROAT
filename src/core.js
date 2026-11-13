@@ -4,15 +4,18 @@
 // splitting) move mass, momentum and energy between boxes; each box tracks the mass of H2, O2, N2 and H2O.
 const _SZ=(typeof THROAT_SIZE!=="undefined"&&THROAT_SIZE)||[160,90];   // world size in cells (chosen before the page loads)
 const NX=_SZ[0],NY=_SZ[1],NC=NX*NY,DX=0.01,CELLV=DX*DX*DX;      // cells are 1 cm cubes
-const NS=6,H2=0,O2=1,N2=2,H2O=3,CO2=4,AL=5;              // AL = aluminium oxide smoke from solid propellant (a heavy "gas" here)
-const MW=[0.002016,0.032,0.028014,0.018015,0.04401,0.10196];   // kg/mol
-const ATOMS=[[2,0,0,0,0],[0,2,0,0,0],[0,0,2,0,0],[2,1,0,0,0],[0,2,0,1,0],[0,3,0,0,2]];   // H,O,N,C,Al atoms per molecule
+// AL = aluminium oxide smoke from solid propellant (a heavy "gas" here). KER = kerosene: really a liquid sprayed in as droplets.
+// Kerosene is long chains of –CH₂– links, so here it's a gas of single CH₂ links: same carbon-to-hydrogen, same heat per kg.
+// (As one big C₁₂H₂₄ molecule it would be a very heavy gas, and heavy gas pushes far too much mass through an injector hole.)
+const NS=8,H2=0,O2=1,N2=2,H2O=3,CO2=4,AL=5,CH4=6,KER=7;
+const MW=[0.002016,0.032,0.028014,0.018015,0.04401,0.10196,0.016043,0.014027];   // kg/mol
+const ATOMS=[[2,0,0,0,0],[0,2,0,0,0],[0,0,2,0,0],[2,1,0,0,0],[0,2,0,1,0],[0,3,0,0,2],[4,0,0,1,0],[2,0,0,1,0]];   // H,O,N,C,Al atoms per molecule
 const NE=5;
 let NSA=4;   // gases actually present anywhere: the rare ones (CO₂, smoke) cost nothing until something makes them
 function updNSA(){let n=1;for(let s=NS-1;s>0;s--){const a=rs[s];let any=false;for(let k=0;k<NC;k++)if(a[k]>0){any=true;break;}if(any){n=s+1;break;}}NSA=Math.max(4,n);}
 const RU=8.314,PSI_PA=6894.76;
-const AIRY=[0,0.233,0.767,0,0,0];                             // air by mass
-const MIXY=[2*MW[0]/(2*MW[0]+MW[1]),MW[1]/(2*MW[0]+MW[1]),0,0,0,0]; // 2 H2 : 1 O2 by molecules
+const AIRY=[0,0.233,0.767,0,0,0,0,0];                         // air by mass
+const MIXY=[2*MW[0]/(2*MW[0]+MW[1]),MW[1]/(2*MW[0]+MW[1]),0,0,0,0,0,0]; // 2 H2 : 1 O2 by molecules
 let GAM=1.3;
 const rho=new Float64Array(NC),mx=new Float64Array(NC),my=new Float64Array(NC),En=new Float64Array(NC);
 const rs=Array.from({length:NS},()=>new Float64Array(NC));        // species partial densities
@@ -21,8 +24,11 @@ const prop=new Float32Array(NC),lit=new Uint8Array(NC);   // solid propellant le
 const resv=new Uint8Array(NC);                            // inside an infinite tank
 const rr=new Float32Array(NC);                            // reaction rate (for the flame glow)
 let pAmb=101325,TAmb=300,atmo=1,simTime=0;
-// ---- combustion: 2 H2 + O2 -> 2 H2O ----
-const DH=483.6e3;          // J per mol O2 burned (real)
+// ---- combustion: three fuels, each burning with oxygen ----
+//   2 H₂ + O₂ → 2 H₂O            CH₄ + 2 O₂ → CO₂ + 2 H₂O            CH₂ + 1½ O₂ → CO₂ + H₂O  (kerosene, per link)
+// FUELS: species, O₂ needed per molecule, heat per mol of O₂ used (real values), H₂O and CO₂ made per molecule, lighting temperature
+const FUELS=[[H2,0.5,483.6e3,1,0,750],[CH4,2,401.2e3,2,1,850],[KER,1.5,404e3,1,1,800]];   // kerosene: 43 MJ/kg
+const DH=483.6e3;          // J per mol O2 burned (hydrogen, real)
 const HEAT_SCALE=0.45;     // simplified: real H2O soaks up some heat in vibration/dissociation; this puts the engine chamber near 2,300 K
 let heatMult=1,T_IGN=750,KR=2e5,combustion=true;
 // ---- bookkeeping (kg) ----
@@ -145,16 +151,24 @@ function maxDt(cfl){
   return cfl*DX/smax;
 }
 // ---------------- chemistry ----------------
+// Each fuel burns at the same kind of rate once the gas is hot enough to light it. They share the oxygen in a cell,
+// hydrogen first (it's the quickest to burn in real life too).
 function react(dt){
-  const Q=DH*HEAT_SCALE*heatMult;
+  const sc=HEAT_SCALE*heatMult;
   rr.fill(0);if(!combustion)return;
+  const nf=NSA>KER?3:NSA>CH4?2:1;   // methane and kerosene cost nothing until one of them is somewhere in the world
   for(let k=0;k<NC;k++){
-    if(wall[k]||resv[k])continue;const h=rs[H2][k],o=rs[O2][k];if(h<1e-7||o<1e-7)continue;
-    const r=rho[k],T=pres(k)/(r*Rcell(k));if(T<T_IGN)continue;
-    const lim=Math.min(h/MW[H2]/2,o/MW[O2]),xi=lim*(1-Math.exp(-KR*Math.min(1,(T-T_IGN)/300)*dt));
-    if(xi<=0)continue;
-    rs[H2][k]-=2*xi*MW[H2];rs[O2][k]-=xi*MW[O2];rs[H2O][k]+=2*xi*MW[H2O];
-    rho[k]-=2*xi*MW[H2]+xi*MW[O2]-2*xi*MW[H2O];En[k]+=xi*Q;rr[k]=xi/dt;waterMade+=2*xi*CELLV;
+    if(wall[k]||resv[k])continue;if(rs[O2][k]<1e-7)continue;
+    let T=-1,burnt=0;
+    for(let f=0;f<nf;f++){const[sp,nu,dh,nw,nc,tig]=FUELS[f],fm=rs[sp][k];if(fm<1e-7)continue;
+      if(T<0)T=pres(k)/(rho[k]*Rcell(k));if(T<tig)continue;
+      const o=rs[O2][k];if(o<1e-9)break;
+      const lim=Math.min(fm/MW[sp],o/MW[O2]/nu),xi=lim*(1-Math.exp(-KR*Math.min(1,(T-tig)/300)*dt));   // xi = mol of fuel burned
+      if(xi<=0)continue;
+      const dF=xi*MW[sp],dO=xi*nu*MW[O2],dW=xi*nw*MW[H2O],dC=xi*nc*MW[CO2];
+      rs[sp][k]-=dF;rs[O2][k]-=dO;rs[H2O][k]+=dW;if(dC)rs[CO2][k]+=dC;
+      rho[k]-=dF+dO-dW-dC;En[k]+=xi*nu*dh*sc;burnt+=xi*nu;waterMade+=xi*nw*CELLV;}
+    if(burnt>0)rr[k]=burnt/dt;
   }
 }
 // ---------------- heat loss ----------------
@@ -336,7 +350,7 @@ function runPlugs(){frameNo++;}
 // Its unburned hydrogen keeps burning wherever it finds oxygen, so before the main valves open you get a lazy flame
 // licking out of the nozzle, and the moment propellant arrives it lights off in the hot gas.
 let TORCH_P=5e5,TORCH_T=2100,TORCH_V=250,TORCH_TAU=2.5e-4,TORCH_WANDER=63;
-const TORCH_Y=[0.5,0,0,0.5,0,0];       // fuel-rich: the extra hydrogen burns where it meets air
+const TORCH_Y=[0.5,0,0,0.5,0,0,0,0];       // fuel-rich: the extra hydrogen burns where it meets air
 const gauss=()=>Math.sqrt(-2*Math.log(Math.random()+1e-12))*Math.cos(6.2832*Math.random());
 function torches(dt){
   if(!plugs.length)return;
@@ -397,7 +411,7 @@ function setAtmo(on){atmo=on?1:0;pAmb=on?101325:40;floodOutside();for(let k=0;k<
 // sets how much surface is burning, and with it the pressure and thrust curve, and it changes as the grain burns away.
 // Time-lapse: each cell holds SRB_K× less propellant than real and burns back SRB_K× faster, so a booster burns out in a few
 // milliseconds of simulated time while putting out the same gas flow per area of burning surface as the real thing.
-const SRB_Y=[0.02,0,0.13,0.30,0.25,0.30];   // exhaust by mass: a little unburnt H₂, N₂, steam, CO₂ (standing in for CO/CO₂/HCl), Al₂O₃ smoke
+const SRB_Y=[0.02,0,0.13,0.30,0.25,0.30,0,0];   // exhaust by mass: a little unburnt H₂, N₂, steam, CO₂ (standing in for CO/CO₂/HCl), Al₂O₃ smoke
 const RHO_P=1750,SRB_K=120,SRB_N=0.35,SRB_TF=3000,SRB_TIGN=800;
 let srbMass=0,SRB_A=2.5e-4,srbRate=1,srbBurning=0,srbList=new Int32Array(0),srbVer=-1;   // SRB_A is game-tuned: a 2D slice has far less burning surface per throat than a real 3D grain
 const R_SRB=RofY(SRB_Y);
@@ -417,7 +431,7 @@ function srb(dt){
       if(j<0||wall[j]||resv[j])continue;const dr=mFace/CELLV;
       for(let s=0;s<NS;s++){const a=SRB_Y[s]*dr;if(a){rs[s][j]+=a;added[s]+=a*CELLV;}}rho[j]+=dr;En[j]+=dr*eT;srbMass+=mFace;}
     prop[k]-=take;if(prop[k]<=1e-6)gone.push(k);}
-  if(burning)NSA=NS;srbBurning=burning;
+  if(burning)NSA=Math.max(NSA,AL+1);srbBurning=burning;
   for(const k of gone)makeGasFromNeighbours(k);}
 // ---------------- stepping ----------------
 let START_DELAY=0,PLUG_X=18,H2P=350;   // valves open instantly; light the igniter (key 2) first for the slow-flame start
@@ -443,7 +457,15 @@ function resetWorld(on){
   atmo=on?1:0;pAmb=on?101325:40;for(let k=0;k<NC;k++)setGas(k,AIRY,pAmb,TAmb);
 }
 function finishScenario(){rebuildResv();holdTanks();floodOutside();for(let k=0;k<NC;k++)if(!wall[k]&&rho[k]<=0)outsideState(k);}
-function scEngine(){
+// The same engine for three fuels. Each fuel needs a different amount of oxygen, and pushes a different amount through a hole,
+// so the number of fuel holes and the tank pressures change (found by running the engine and measuring what it burns):
+//   hydrogen 3 holes at 350 psi, O₂ 350 · methane 1 hole at 600 psi, O₂ 550 · kerosene 1 hole at 550 psi, O₂ 450  (O₂: 4 holes)
+// Each runs fuel-rich, like real engines (it keeps the chamber cooler; for kerosene it makes the soot). The fuel tank sits
+// well above the chamber pressure on purpose: closer than about 1.5× and the fuel flow collapses whenever the chamber
+// pressure rises, so the mixture jumps between far too rich and far too lean.
+const ENG_FUEL={h2:{sp:H2,name:"H₂",gap:3,P:350,oP:350},ch4:{sp:CH4,name:"CH₄",gap:9,P:600,oP:550},ker:{sp:KER,name:"Kerosene",gap:9,P:550,oP:450}};
+function scEngine(fuel){
+  const F=ENG_FUEL[fuel]||ENG_FUEL.h2,std=F.sp===H2;
   resetWorld(true);
   // pressure-fed H2/O2 engine. Through a hole, O2 carries ~4x the mass of H2 at the same pressure, so 3 H2 : 4 O2 holes
   // runs at a mixture ratio of about 5 (a bit fuel-rich, like real hydrogen engines). equal tank pressures and a big injector pressure drop keep the injectors
@@ -451,13 +473,14 @@ function scEngine(){
   solidRect(3,28,72,62,1);
   solidRect(6,33,16,44,0);solidRect(6,46,16,57,0);                   // tanks + valve columns
   // injector plates in the face (holes every 3 cells: H2 at 37,40,43 · O2 at 47,50,53,56) — click one to change its type
-  if(H2HOLES.join()==="37,40,43"&&O2HOLES.join()==="47,50,53,56"){newInj(17,36,9,0,"straight",3);newInj(17,46,11,0,"straight",3);}
+  if(!std||H2HOLES.join()==="37,40,43"&&O2HOLES.join()==="47,50,53,56"){newInj(17,36,9,0,"straight",F.gap);newInj(17,46,11,0,"straight",3);}
   else{for(const y of H2HOLES)solidRect(17,y,17,y,0);for(const y of O2HOLES)solidRect(17,y,17,y,0);}
   solidRect(18,34,42,56,0);                                            // combustion chamber
   for(let x=43;x<=72;x++){const h=x<=50?Math.round(11-(x-43)*8/7):x<=53?3:Math.round(3+8*(1-(1-(x-53)/19)**2));solidRect(x,45-h,x,45+h,0);} // throat 7 cells, exit ~3.3x
   for(let k=0;k<NC;k++)if(!wall[k])setGas(k,AIRY,pAmb,TAmb);
-  tanks.push({id:nextId++,x0:6,y0:33,x1:15,y1:44,Y:[1,0,0,0],P:H2P*PSI_PA,T:300,inf:true,name:"H₂"});
-  tanks.push({id:nextId++,x0:6,y0:46,x1:15,y1:57,Y:[0,1,0,0],P:O2P*PSI_PA,T:300,inf:true,name:"O₂"});
+  const fY=new Array(NS).fill(0);fY[F.sp]=1;if(F.sp>=NSA)NSA=F.sp+1;
+  tanks.push({id:nextId++,x0:6,y0:33,x1:15,y1:44,Y:fY,P:(std?H2P:F.P)*PSI_PA,T:300,inf:true,name:F.name});
+  tanks.push({id:nextId++,x0:6,y0:46,x1:15,y1:57,Y:[0,1,0,0],P:(std?O2P:F.oP)*PSI_PA,T:300,inf:true,name:"O₂"});
   // start sequence on key 1: the torch igniter lights first and its flame works its way out of the nozzle,
   // then the main valves open into the hot chamber and the engine lights off
   addValve(16,33,16,44,1,false,0);addValve(16,46,16,57,1,false,0);          // main valves on key 1: open instantly
@@ -499,7 +522,7 @@ function shiftWorld(dx,dy){
   for(const p of plugs){p.x+=dx;p.y+=dy;}
   wallVer++;rebuildResv();floodOutside();resetTallies();const m=domainMass();for(let i=0;i<NS;i++)added[i]=m[i];}   // fresh atom bookkeeping
 const place=(fx,fy)=>shiftWorld(Math.round((NX-160)*fx),Math.round((NY-90)*fy));
-const SCENS={srb:()=>{scSRB();place(0.08,0.5);},engine:()=>{scEngine();place(0.08,0.5);},spark:()=>{scSpark();place(0.5,0.5);},two:()=>{scTwo();place(0.5,0.5);},empty:()=>scEmpty()};
+const SCENS={srb:()=>{scSRB();place(0.08,0.5);},engine:()=>{scEngine("h2");place(0.08,0.5);},methane:()=>{scEngine("ch4");place(0.08,0.5);},kerosene:()=>{scEngine("ker");place(0.08,0.5);},spark:()=>{scSpark();place(0.5,0.5);},two:()=>{scTwo();place(0.5,0.5);},empty:()=>scEmpty()};
 const byId=(arr,id)=>arr.find(o=>o.id===id);
 const ACTS={
   brush(x0,y0,x1,y1,mode,Y,P,T){            // mode 0 gas, 1 wall, 2 erase

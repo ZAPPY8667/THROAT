@@ -35,9 +35,16 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 The flight files are concatenated inside one closure (see `build.py`); only `FLT`, `recordTest`/`_rt` and `recordBurn`/`_rb` are outside.
 
 ## Physics notes worth knowing
-- Gases: `NS=6` — H₂, O₂, N₂, H₂O, CO₂, Al₂O₃ smoke (`AL`). `NSA` = how many are present anywhere; the solver only
+- Gases: `NS=8` — H₂, O₂, N₂, H₂O, CO₂, Al₂O₃ smoke (`AL`), CH₄, kerosene (`KER`, modelled as single CH₂ links: a heavy
+  C₁₂H₂₄ gas pushed ~3.5× too much mass through injector holes). `FUELS` in core.js: each fuel's O₂ need, real heat per mol O₂,
+  products and lighting temperature; `react()` burns them in one pass. `NSA` = how many are present anywhere; the solver only
   loops over those, so rare gases cost nothing until something makes them. Atom bookkeeping (H,O,N,C,Al) via
   `added/removed/edgeOut` must stay balanced (`atomCheck().ok`).
+- Engine scenarios: First engine (H₂), Methane engine, Kerosene engine — `scEngine(fuel)` + `ENG_FUEL` (holes, tank pressures,
+  tuned by measuring the feed: keep the fuel tank ≳1.5× chamber pressure or the mixture flips between far-rich and far-lean).
+  Measured (tests/core/fuels.js): H₂ 2.30 kN / 371 s / 2,300 K · CH₄ 3.51 kN / 296 s / 2,940 K · kerosene 2.91 kN / 293 s / 3,040 K.
+  Real view: CO₂ share in hot exhaust tints methane blue-violet; unburnt kerosene in hot gas glows orange (soot), cool → grey smoke.
+  Flight tanks still use the hydrolox bulk density for every fuel.
 - Liquid engine (`scEngine`): 3 H₂ : 4 O₂ injector holes, both tanks 350 psi, `HEAT_SCALE 0.45`, ≈2.25 kN / ≈355 s
   at sea level. Torch igniter on key 2, main valves key 1.
 - Solid propellant: wall type 4, `prop[]` fraction left, `lit[]` burning. Burns where it touches gas hotter than
@@ -66,7 +73,7 @@ See `HISTORY.md` for the version history, why things are tuned the way they are,
 1. ✅ (v1.9) Sound (WebAudio, synthesized: roar with thrust, ignition bang, booster crackle, crash) + a goals checklist with toasts.
 2. ✅ (v1.10) Engine library: save test-stand engines and boosters by name with their measured numbers; use them in the editor,
    including strap-on solid boosters.
-3. Methane and kerosene on the test stand (blue-violet methane flame, sooty orange kerosene).
+3. ✅ (v1.11) Methane and kerosene on the test stand (blue-violet methane flame, sooty orange kerosene).
 4. Fix booster Isp (see above).
 5. Short first-time tutorial (light the engine → build a rocket → launch).
 6. Later: centre of mass / centre of lift / centre of thrust in flight.

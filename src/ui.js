@@ -29,11 +29,11 @@ const MACH=ramp([[0,[16,20,48]],[.33,[40,90,190]],[.34,[240,240,240]],[.36,[250,
 // "Real" view, like a photo of a hydrogen engine: pink-magenta jet, white where shocks squeeze it (Mach diamonds),
 // blue where it's stretched cold and fast just past the nozzle, orange→red where it cools at the edges. Cold gas is invisible.
 const REAL=ramp([[0,[0,0,0]],[.115,[45,9,2]],[.231,[170,60,20]],[.346,[230,90,90]],[.442,[240,95,165]],[.519,[235,100,210]],[.615,[215,110,240]],[.769,[235,175,250]],[1,[255,235,255]]]);
-const SPC=[[90,225,245],[95,135,255],[150,156,175],[225,232,240],[140,205,150],[245,240,225]];
-const SPN=["H₂","O₂","N₂","H₂O","CO₂","Al₂O₃ smoke"];
+const SPC=[[90,225,245],[95,135,255],[150,156,175],[225,232,240],[140,205,150],[245,240,225],[250,205,90],[205,125,60]];
+const SPN=["H₂","O₂","N₂","H₂O","CO₂","Al₂O₃ smoke","CH₄","Kerosene"];
 const GASES=[{name:"H₂",Y:[1,0,0,0],sw:"#5ae1f5"},{name:"O₂",Y:[0,1,0,0],sw:"#6f93ff"},{name:"N₂",Y:[0,0,1,0],sw:"#969caf"},
-  {name:"H₂O",Y:[0,0,0,1],sw:"#e1e8f0"},{name:"CO₂",Y:[0,0,0,0,1,0],sw:"#8ccd96"},{name:"H₂+O₂ 2:1",Y:MIXY,sw:"linear-gradient(90deg,#5ae1f5 50%,#6f93ff 50%)"},{name:"Air",Y:AIRY,sw:"#7d8aa8"}];
-const gasCol=name=>({"H₂":"#5ae1f5","O₂":"#6f93ff","N₂":"#a3a9bd","H₂O":"#e1e8f0","Air":"#8b98b8"}[name]||"#9fb8ff");
+  {name:"H₂O",Y:[0,0,0,1],sw:"#e1e8f0"},{name:"CO₂",Y:[0,0,0,0,1,0],sw:"#8ccd96"},{name:"CH₄",Y:[0,0,0,0,0,0,1,0],sw:"#facd5a"},{name:"Kerosene",Y:[0,0,0,0,0,0,0,1],sw:"#cd7d3c"},{name:"H₂+O₂ 2:1",Y:MIXY,sw:"linear-gradient(90deg,#5ae1f5 50%,#6f93ff 50%)"},{name:"Air",Y:AIRY,sw:"#7d8aa8"}];
+const gasCol=name=>({"H₂":"#5ae1f5","O₂":"#6f93ff","N₂":"#a3a9bd","H₂O":"#e1e8f0","Air":"#8b98b8","CH₄":"#facd5a","Kerosene":"#cd7d3c"}[name]||"#9fb8ff");
 const S={tool:"select",gas:4,brush:6,P:30*PSI_PA,T:300,view:6,paused:false,spd:10,inf:true,vlen:6,vdir:0,pw:2,ilen:9,idir:0,itype:"straight",scen:"engine"};
 const cam={z:1,x:0,y:0};
 let wallsDirty=true,mouse={x:-1,y:-1,in:false,down:false,btn:0,lx:-1,ly:-1,touch:false},drag=null,pan=null,grab=null,sel=null;
@@ -43,13 +43,13 @@ const lineKind=k=>k==="valve"||k==="inj"||k==="check";
 
 // ---------- colours per cell ----------
 const CR=new Float32Array(NC),CG=new Float32Array(NC),CB=new Float32Array(NC);
-const r0=rs[0],r1=rs[1],r2=rs[2],r3=rs[3],r4=rs[4],r5=rs[5];
+const r0=rs[0],r1=rs[1],r2=rs[2],r3=rs[3],r4=rs[4],r5=rs[5],r6=rs[6],r7=rs[7];
 function cellColors(){
   const view=S.view;
   for(let k=0;k<NC;k++){
     if(wall[k])continue;
     const r=rho[k],u=mx[k]/r,v=my[k]/r,q2=u*u+v*v;let p=(GAM-1)*(En[k]-0.5*r*q2);if(p<1)p=1;
-    let x0=r0[k]/MW[0],x1=r1[k]/MW[1],x2=r2[k]/MW[2],x3=r3[k]/MW[3],x4=r4[k]/MW[4],x5=r5[k]/MW[5];const ns=x0+x1+x2+x3+x4+x5;x0/=ns;x1/=ns;x2/=ns;x3/=ns;x4/=ns;x5/=ns;   // mole fractions
+    let x0=r0[k]/MW[0],x1=r1[k]/MW[1],x2=r2[k]/MW[2],x3=r3[k]/MW[3],x4=r4[k]/MW[4],x5=r5[k]/MW[5],x6=r6[k]/MW[6],x7=r7[k]/MW[7];const ns=x0+x1+x2+x3+x4+x5+x6+x7;x0/=ns;x1/=ns;x2/=ns;x3/=ns;x4/=ns;x5/=ns;x6/=ns;x7/=ns;   // mole fractions
     const sm=r5[k];
     const T=p/(RU*ns);let c0=10,c1=13,c2=24;
     if(view===6){
@@ -59,6 +59,16 @@ function cellColors(){
         const bl=Te>1500?0.75*Math.min(1,Math.max(0,(0.6-tr)/0.18))*Math.min(1,(Te-1500)/600):0;               // stretched fast gas turns blue
         const w=hot*L;c0+=(c[0]*(1-bl)+90*bl)*w;c1+=(c[1]*(1-bl)+120*bl)*w;c2+=(c[2]*(1-bl)+255*bl)*w;}
       const f=rr[k];if(f>1e4){const fr=Math.min(1,(Math.log10(f)-4)/3);c0+=230*fr;c1+=130*fr;c2+=40*fr;}   // actively burning: warm flicker
+      // carbon fuels. Share of CO₂ in the exhaust: 0 for hydrogen, 1/3 for methane, 1/2 for kerosene.
+      // Methane burns clean: its hot exhaust glows blue-violet. Kerosene runs rich and makes soot: unburnt fuel in hot gas
+      // glows bright orange-yellow (like a candle flame), and turns to dark grey smoke once it cools.
+      const xc=x4/(x3+x4+1e-9),yk=r7[k]/r;
+      if(sm<=2e-5&&xc>0.15&&yk<0.004){const t=Math.min(1,(xc-0.15)/0.15)*(xc>0.42?0:1),L=Math.max(c0,c1,c2);
+        if(t>0){c0=c0*(1-0.8*t)+L*0.55*0.8*t;c1=c1*(1-0.8*t)+L*0.42*0.8*t;c2=c2*(1-0.8*t)+L*1.05*0.8*t;}
+        else if(xc>0.42){c0=c0*0.35+L*0.65;c1=c1*0.35+L*0.45;c2=c2*0.35+L*0.18;}}   // burnt-out kerosene exhaust: warm orange
+      if(yk>3e-4){const T0=T+q2*r*(GAM-1)/(2*GAM*RU*ns),Te=0.2*T+0.8*T0,soot=Math.min(1,yk*18);
+        if(Te>1000){const g=soot*Math.min(1,(Te-1000)/900)*1.25;c0+=255*g;c1+=150*g;c2+=45*g;}
+        else{const so=Math.min(0.7,soot*0.9)*Math.min(1,(1000-Te)/300);c0=c0*(1-so)+48*so;c1=c1*(1-so)+44*so;c2=c2*(1-so)+42*so;}}
     }
     if((view===6||view===0)&&sm>2e-5){   // solid-motor exhaust: hot aluminium-oxide particles glow orange → yellow → white, then hang as grey-white smoke
       const ys=sm/r,ws=Math.min(1,ys*3.4),T0=T+q2*r*(GAM-1)/(2*GAM*RU*ns),Tp=0.25*T+0.75*T0,den=1-Math.exp(-sm*14);
@@ -69,7 +79,7 @@ function cellColors(){
     if(view===6||view===0){}
     else if(view<=1){
       const den=Math.min(1,Math.max(0,0.12+0.32*(Math.log10(p*300/T)-5.0058)));
-      const tr=SPC[0][0]*x0+SPC[1][0]*x1+SPC[2][0]*x2+SPC[3][0]*x3+SPC[4][0]*x4+SPC[5][0]*x5,tg=SPC[0][1]*x0+SPC[1][1]*x1+SPC[2][1]*x2+SPC[3][1]*x3+SPC[4][1]*x4+SPC[5][1]*x5,tb=SPC[0][2]*x0+SPC[1][2]*x1+SPC[2][2]*x2+SPC[3][2]*x3+SPC[4][2]*x4+SPC[5][2]*x5;
+      const tr=SPC[0][0]*x0+SPC[1][0]*x1+SPC[2][0]*x2+SPC[3][0]*x3+SPC[4][0]*x4+SPC[5][0]*x5+SPC[6][0]*x6+SPC[7][0]*x7,tg=SPC[0][1]*x0+SPC[1][1]*x1+SPC[2][1]*x2+SPC[3][1]*x3+SPC[4][1]*x4+SPC[5][1]*x5+SPC[6][1]*x6+SPC[7][1]*x7,tb=SPC[0][2]*x0+SPC[1][2]*x1+SPC[2][2]*x2+SPC[3][2]*x3+SPC[4][2]*x4+SPC[5][2]*x5+SPC[6][2]*x6+SPC[7][2]*x7;
       const f=view===1?Math.max(0.25,den):(x2>0.6?den*0.45:den);c0=10+tr*f;c1=13+tg*f;c2=24+tb*f;
       if(view===0){
         const T0=T+q2*r*(GAM-1)/(2*GAM*RU*ns),tq=Math.min(1.3,T/2300),t0=Math.min(1.2,T0/2300),em=(0.3+0.7*x3)*(0.2*t0*t0*t0*t0+1.2*tq*tq*tq);
@@ -703,7 +713,9 @@ function readouts(){
     else{const w=cellPrim(k),sp=Math.hypot(w.u,w.v),c=Math.sqrt(GAM*w.p/w.r);set("rP",(w.p/PSI_PA).toFixed(1)+" psi");set("rT",fmt(w.T)+" K");set("rV",fmt(sp)+" m/s");set("rM",(sp/c).toFixed(2));
       const X=w.Y.map((y,s)=>y/MW[s]),ns=X.reduce((a,b)=>a+b,0),top=X.map((x,s)=>[x/ns,s]).sort((a,b)=>b[0]-a[0]).filter(q=>q[0]>0.08).slice(0,2);
       set("rG",top.map(([f,s])=>`${SPN[s]} ${Math.round(f*100)}%`).join(" · "));
-      const nh=X[H2],no=X[O2];set("rX",nh/ns<0.02||no/ns<0.02?"–":`${(nh/no).toFixed(1)}:1 ${nh/no>2.3?"rich":nh/no<1.7?"O₂-rich":"perfect"}`);}}
+      // mixture: the oxygen here compared with what the fuel here needs to burn completely (per molecule: H₂ ½, CH₄ 2, a kerosene CH₂ link 1½)
+      const need=X[H2]*0.5+X[CH4]*2+X[KER]*1.5,no=X[O2],phi=no/need;
+      set("rX",need/ns<0.01||no/ns<0.02?"–":`${phi<0.85?"fuel-rich":phi>1.15?"O₂-rich":"perfect"} · ${phi.toFixed(2)}× O₂`);}}
   else ["rP","rT","rV","rM","rG","rX"].forEach(i=>set(i,"–"));
   if(++ui%10===0){
     if(simTime>lastSim){const r=(waterMade-lastWater)/(simTime-lastSim)*MW[H2O]*1000;rateShown=rateShown*0.6+r*0.4;lastWater=waterMade;lastSim=simTime;}
