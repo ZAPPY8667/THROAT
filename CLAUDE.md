@@ -9,10 +9,10 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 - Run it: open `index.html` in Chrome (works from `file://`; physics runs in a Web Worker made from a blob URL).
 - Live: https://zappy8667.github.io/THROAT/ (GitHub Pages, public repo, serves `index.html` from the root of `main`).
   Deploy = rebuild, commit, push to `main`; the site updates about a minute later.
-- Tests: `bash tests/run.sh` (Node 18+, ~1 min, headless). Run before every push.
+- Tests: `bash tests/run.sh` (Node 18+, ~3–4 min, headless). Run before every push.
   - `tests/core/*` load `src/core.js` directly (atom bookkeeping, booster burn curve and Isp, speed).
   - `tests/flight/*` use `harness.js`, which runs `parts.js + orbit.js + flight.js` with DOM stubs (autopilot to orbit,
-    landing limits, Moon landing, on-rails warp vs map prediction, ready-made rocket stats, SAS holds settle, RCS, hold-down clamps, capsule abort/chutes/re-entry, the world: terrain/sea/splashdown/clock).
+    landing limits, Moon landing, on-rails warp vs map prediction, ready-made rocket stats, SAS holds settle, RCS, hold-down clamps, capsule abort/chutes/re-entry, autopilots: ascent for every template, Moon transfer, landing zone + Moon landings, the world: terrain/sea/splashdown/clock).
   - UI changes: check them in a real browser too (playwright + Chrome works well: screenshots of the test stand,
     editor, flight, map; phone viewport 390×844).
 
@@ -32,6 +32,7 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 | `tut.js` | First-time tutorial (`throat.tut.v1`): coach cards + a ring on the thing to press; each step advances when the player does it (torch → valves → Rocket → Launch → fly). Auto-starts on a first visit; Skip; "Start the tutorial" in Controls. `window.__tut` for tests. |
 | `vab.js` | Rocket editor: palette, snapping, mirror pairs (move one onto the centre line → its twin is deleted), drag moves a part + everything under it (Alt: just it), resize tanks, inspector, saved rockets, stage list. |
 | `flight.js` | Real-time flight: several vessels at once, staging, fly-by-wire steering + heading hold, SAS hold modes (`sasTarget`, keys 1–9), RCS (T toggles; adds turning torque, I J K L translate), webcast HUD (dials, timeline, callouts, ORBIT/SURFACE/VESSEL panels), basic aero (shape/AoA drag, fins weathervane), legs and landing rules, pads, on-rails warp (≥50×), warp-to (sunrise/sunset/Ap/Pe/Moon, TIME tab), tracking camera that pulls back as you climb, SOI hand-over, countdown (v1.19: `CD` wait → count → go, `startCount`/`release`, clamps `v.clamped`, `padFx` for arms/clamps/deluge/venting, spoken callouts `JX.snd.say`, beeps), frost on bare tanks up to the fuel level, ABORT (`abort`, Backspace; `splitOff`, escape motor `v.lesT`, tower auto-jettison `jettisonLes`), parachutes (`chutes`, P), re-entry heating `v.hf` = ρv³ (limit 8e7, 1.2e9 heat-shield-first via `v.capBottom`), plasma glow, boil-off venting, steam clouds `steam`, flame glow, procedural plume, crash effects, HUD. |
+| `autopilot.js` | Flight computer (v1.22): `AP` state, `apStep(dt)` once per physics step for the flown craft. ASCENT (`apAscent`: gravity turn by height or speed, Max-Q throttling, auto-staging `apStage`, coast, circularise), NODE (`planNode`: circularise at Ap/Pe, set Ap/Pe, to the Moon (Hohmann + timing search), home from the Moon; `apNode` warps, points, burns, then trims prograde+radial), LAND (`apLand`: kill sideways speed toward the landing zone or here, suicide burn, legs). Steers only through the heading hold (`v.sas="ap"`); any player steering/throttle hands control back. Panels ASCENT/NODE/LAND (left tabs); planned burn dashed red on the map. |
 | `map.js` | Map view: pan/zoom/focus, path ahead with labelled Ap/Pe (altitude + T−), Moon encounter / leave / impact, click a craft to fly it. |
 
 The flight files are concatenated inside one closure (see `build.py`); only `FLT`, `recordTest`/`_rt` and `recordBurn`/`_rb` are outside.

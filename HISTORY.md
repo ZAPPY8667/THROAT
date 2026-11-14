@@ -118,7 +118,17 @@ made on the test stand.
 - Heating = ρ·v³: ascent peaks ~5e7, LEO re-entry nose-first goes past 1e8 (burns up), heat-shield-first is allowed 15× more.
 - The old test autopilot can't fly the SLS (its fixed gravity turn and "coast when Ap > 70 km" don't suit a heavy rocket).
 
+## v1.22: autopilots (phase 5)
+- Ascent: tip-over by height OR speed (a light, punchy rocket would otherwise go straight up and run out of time to turn);
+  "keep time-to-apoapsis ≥ 30–80 s" stops a heavy one from flattening too early; coast at 98% of the target apoapsis.
+- Node: the planned Moon burn alone lands ±100 km off the target pass because the burn takes time; a trim right after (search
+  over small prograde + radial burns, radial moves the pass height most) gets it to ~100 km.
+- Land: brake sideways while holding height, then a true suicide burn (start when stopping needs 80% of the thrust), final
+  metres at 1.5–2 m/s; sideways speed steered onto the target the whole way. A craft's v.m isn't set before its first step.
+
 ## Things that went wrong (don't repeat)
+- Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
+  dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.
 - A new palette id with an extra field ("engine:stand:4") broke the editor palette (ENG lookup by the whole suffix): check
   every place that parses part ids.
 - The flight bundle is one closure: map.js already has `tfmt`/`kmf`, so a second `const` with those names breaks the whole page.

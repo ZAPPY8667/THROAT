@@ -352,6 +352,9 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .cdbtn{position:absolute;left:50%;bottom:140px;transform:translateX(-50%);height:44px!important;padding:0 26px!important;font:600 14px var(--sans)!important;letter-spacing:.24em;text-transform:uppercase;border-color:var(--red)!important;background:rgba(255,59,47,.14)!important;color:#fff!important;animation:livePulse 2.2s ease-in-out infinite}
 .cdbtn:hover{background:rgba(255,59,47,.28)!important}
 @media (max-width:700px){.cdbtn{bottom:auto;top:38%;height:40px!important;padding:0 16px!important;font-size:12px!important;letter-spacing:.16em}}
+.apf{display:grid;gap:5px;margin-bottom:8px}.apf label{display:grid;grid-template-columns:1fr 70px 28px;align-items:center;gap:6px;font-size:11.5px;color:var(--dim)}.apf input[type=number]{height:24px;background:var(--well);border:1px solid var(--line2);border-radius:2px;color:#fff;font:600 12px var(--mono);padding:0 5px;width:100%}.apf i{font-style:normal;font:600 10px var(--mono);color:var(--faint)}
+.fdrawer{overflow-x:hidden}.fp .wto button.b{white-space:normal;line-height:1.1;height:auto;min-height:28px;padding:3px 4px}
+.apb{gap:5px;margin:6px 0}.apb button.b{height:28px;flex:1}.apst{font-size:11.5px;color:var(--dim);line-height:1.45;min-height:32px}.apst.on{color:#fff}
 .wto{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:8px 0 4px}.wto button.b{height:26px;font-size:11px;padding:0 6px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 /* scrollbars */
@@ -498,6 +501,21 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
     <div class="fpanel fp" id="fpOrbit"><h3>Orbit</h3><div class="read r2" id="fOrbit"></div></div>
     <div class="fpanel fp" id="fpSurf"><h3>Surface</h3><div class="read r2" id="fSurf"></div></div>
     <div class="fpanel fp" id="fpVes"><h3>Vessel</h3><div class="read r2" id="fVesP"></div><div class="vst" id="fStg"></div></div>
+    <div class="fpanel fp" id="fpAsc"><h3>Ascent autopilot</h3>
+      <div class="apf"><label>Target orbit<input type="number" id="aAlt" value="70" min="45" max="2000" step="5"><i>km</i></label>
+        <label>Turn flat by<input type="number" id="aTurn" value="45" min="10" max="120" step="5"><i>km</i></label>
+        <label>Turn shape<input type="range" id="aShape" min="30" max="100" value="55"><i id="aShapeO">0.55</i></label>
+        <label>Max-Q limit<input type="number" id="aQ" value="30" min="5" max="100" step="5"><i>kPa</i></label></div>
+      <div class="row apb"><button class="b go" id="aGo" data-ic="play">Engage</button><button class="b danger" id="aOff">Stop</button></div><div class="apst" id="aSt">Flies a gravity turn to orbit, throttles down around Max-Q, stages by itself, then circularises at apoapsis.</div></div>
+    <div class="fpanel fp" id="fpNode"><h3>Maneuver planner</h3>
+      <div class="wto"><button class="b" data-nd="circAp">Circularise at Ap</button><button class="b" data-nd="circPe">Circularise at Pe</button><button class="b" data-nd="moon">To the Moon</button>
+        <button class="b" data-nd="setAp">Set Ap to</button><button class="b" data-nd="setPe">Set Pe to</button><button class="b" data-nd="home">Home from Moon</button></div>
+      <div class="apf"><label>New Ap / Pe<input type="number" id="nAlt" value="150" min="20" max="8000" step="10"><i>km</i></label></div>
+      <div class="read r2" id="fNode"></div>
+      <div class="row apb"><button class="b go" id="nGo" data-ic="play">Execute</button><button class="b" id="nDel">Delete</button><button class="b danger" id="nOff">Stop</button></div><div class="apst" id="nSt">Pick a burn: it shows on the map (M) as a dashed red path. Execute warps to it, points the right way and burns.</div></div>
+    <div class="fpanel fp" id="fpLand"><h3>Landing autopilot</h3>
+      <div class="seg" style="margin-bottom:8px"><button id="lLz" class="on">Landing zone</button><button id="lHere">Right here</button></div>
+      <div class="row apb"><button class="b go" id="lGo" data-ic="play">Engage</button><button class="b danger" id="lOff">Stop</button></div><div class="apst" id="lSt">Stops the sideways speed over the target, falls, then a suicide burn with the legs down: under 3 m/s at touchdown. Works on Earth (landing zone) and the Moon.</div></div>
   </div>
   <div class="fdrawer r" id="fDrR">
     <div class="fpanel fp fdata" id="fpData"><div class="read r2" id="fData"></div><div class="fbar"><div id="fFuelBar"></div></div></div>

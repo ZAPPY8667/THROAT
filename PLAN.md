@@ -134,7 +134,7 @@ bigger Moon from phase 1.5 came with it. See HISTORY.md.
   (from roughly 20 km). Keep it consistent with the existing `renderFlight` sky gradient and star field (`flight.js`).
 - Random but stable per launch (seeded), so a retry looks the same.
 
-## Phase 5: flight computer, the MechJeb-style autopilots (v1.21)
+## Phase 5: flight computer, the MechJeb-style autopilots (v1.22) — done (autopilot.js; tests ap_ascent.js, ap_node_land.js)
 Each is a pull-out edge-tab panel with clear Engage/Abort buttons, status text ("Gravity turn… 34%"), and the autopilot's
 plan drawn on the map. The player can take over at any moment (any steering or throttle input disengages it, with a callout).
 - **ASCENT:** set the target orbit altitude (default 60 km). It flies a gravity turn (start speed, turn shape, end angle, all

@@ -67,6 +67,10 @@ function renderMap(c){
     c.strokeStyle=cols[Math.min(i,2)];c.lineWidth=2*px*FDS;c.globalAlpha=i?0.85:1;c.beginPath();
     const p0=L.pts[0];c.moveTo(p0[0]+sh.x,p0[1]+sh.y);for(let k=1;k<L.pts.length;k++)c.lineTo(L.pts[k][0]+sh.x,L.pts[k][1]+sh.y);c.stroke();c.globalAlpha=1;
     L.sh=sh;});
+  // a planned burn (NODE): where it happens, and the path after it, dashed in red
+  if(AP.node&&AP.node.pred){const N=AP.node;c.setLineDash([8*px*FDS,6*px*FDS]);c.strokeStyle="rgba(255,59,47,.9)";c.lineWidth=1.8*px*FDS;
+    for(const L of N.pred.legs){if(!L.pts.length)continue;c.beginPath();c.moveTo(L.pts[0][0],L.pts[0][1]);for(let k=1;k<L.pts.length;k++)c.lineTo(L.pts[k][0],L.pts[k][1]);c.stroke();}c.setLineDash([]);
+    const q=stateAt(AV,N.t),an=AV.body===1?moonAt(FT):{x:0,y:0};c.fillStyle="#ff3b2f";c.beginPath();c.arc(q.x+an.x,q.y+an.y,5*px*FDS,0,6.2832);c.fill();}
   // other craft, then yours
   for(const v of VS){if(v===AV||v.crashed)continue;const p=pfPos(v);c.fillStyle=v.ctrl?"#5ae1f5":"#6d7590";c.beginPath();c.arc(p.x,p.y,(v.ctrl?3.5:2.5)*px*FDS,0,6.2832);c.fill();}
   const ap=pfPos(AV);c.save();c.translate(ap.x,ap.y);c.rotate(-AV.phi);c.fillStyle="#fff";c.strokeStyle="#000";c.lineWidth=1.5*px*FDS;c.beginPath();

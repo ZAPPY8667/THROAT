@@ -17,4 +17,6 @@ echo "== flight: RCS"; node flight/rcs.js | tail -1
 echo "== flight: the world (terrain, sea, clock)"; node flight/world.js | tail -1
 echo "== flight: hold-down clamps"; node flight/clamps.js | tail -1
 echo "== flight: capsule (abort, chutes, re-entry)"; node flight/capsule.js | tail -1
+echo "== flight: ASCENT autopilot, every ready-made rocket"; node flight/ap_ascent.js | tail -6
+echo "== flight: NODE (Moon transfer) + LAND (landing zone, Moon) autopilots"; node flight/ap_node_land.js | tail -5
 echo "== core: speed (large world)";                     node core/speed.js
