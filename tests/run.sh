@@ -15,4 +15,5 @@ echo "== flight: on-rails warp matches map prediction";  node flight/rails_vs_pr
 echo "== flight: SAS hold modes settle"; node flight/sas_holds.js | tail -1
 echo "== flight: RCS"; node flight/rcs.js | tail -1
 echo "== flight: the world (terrain, sea, clock)"; node flight/world.js | tail -1
+echo "== flight: hold-down clamps"; node flight/clamps.js | tail -1
 echo "== core: speed (large world)";                     node core/speed.js

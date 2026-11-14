@@ -188,6 +188,12 @@ function drawEngine(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[1
   bell(c,x,yt,y,w*0.065,w*0.4,[64,66,72],cu,0.8);
   pipe([[x+sd*w*0.2,y+h*0.72],[x+sd*w*0.24,y+h*0.5],[x+sd*w*0.34,y+h*0.1]],2.4,"#2c2e33");   // gas-generator exhaust
   pipe([[x+sd*w*0.13,y+h*0.78],[x+sd*w*0.08,y+h*0.75]],1.6,"#8a8e98");}
+// frost on a cryogenic tank: the super-cold propellant freezes the air's moisture onto the skin, so it shows exactly up to
+// the fuel level. k (0..1) fades it as it flakes off on the way up. Patchy streaks from a fixed hash, so it doesn't flicker.
+function frost(c,L,w,y,h,fuel,k){const fh=h*Math.max(0,Math.min(1,fuel==null?1:fuel));if(fh<2)return;c.save();c.beginPath();c.rect(L,y,w,fh);c.clip();
+  c.fillStyle=`rgba(236,242,248,${0.55*k})`;c.fillRect(L,y,w,fh);
+  for(let i=0,n=w*fh/14;i<n;i++){const xx=L+(i*37.7)%w,yy=y+(i*53.3)%fh,a=(0.15+((i*7)%5)*0.06)*k;c.fillStyle=i%3?`rgba(255,255,255,${a})`:`rgba(170,185,200,${a*0.8})`;c.fillRect(xx,yy,0.6+(i%3)*0.5,2+(i%4)*2.5);}
+  c.fillStyle=`rgba(255,255,255,${0.5*k})`;c.fillRect(L,y+fh-0.8,w,0.8);c.restore();}
 function drawPart(c,p,o={}){
   const{x,y,w,h,f}=p,L=x-w/2,R=x+w/2,T=y+h;
   c.lineJoin="round";
@@ -199,7 +205,7 @@ function drawPart(c,p,o={}){
         for(let i=0;i<w*1.4;i++){const xx=L+(i*37.31)%w;c.fillStyle=i%3?"rgba(255,255,255,.05)":"rgba(0,0,0,.05)";c.fillRect(xx,y,0.5,h);}
         let n=0;for(let yy=y+22;yy<T-8;yy+=22,n++){c.fillStyle=n%2?"rgba(190,140,90,.05)":"rgba(120,140,170,.05)";c.fillRect(L,yy-22,w,22);
           c.fillStyle="rgba(0,0,0,.22)";c.fillRect(L,yy,w,0.7);c.fillStyle="rgba(255,255,255,.18)";c.fillRect(L,yy+0.7,w,0.5);}
-        c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,y+2,w,1);c.fillRect(L,T-3,w,1);break;}
+        c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,y+2,w,1);c.fillRect(L,T-3,w,1);if(o.frost>0)frost(c,L,w,y,h,o.fuel,o.frost);break;}
       const foam=sk==="foam";
       // white: painted Falcon-style skin; foam: SLS-style orange spray-on insulation (mottled)
       c.fillStyle=cyl(c,L,R,foam?[196,96,36]:[236,238,241]);c.fillRect(L,y,w,h);
@@ -212,6 +218,7 @@ function drawPart(c,p,o={}){
       c.fillStyle="rgba(0,0,0,.06)";for(let yy=y+40;yy<T-15;yy+=40)c.fillRect(L,yy,w,0.8);           // barrel-section welds
       if(h>=45){const rx=L+w*0.74;c.fillStyle=cyl(c,rx,rx+4,foam?[170,88,36]:[205,208,214]);c.fillRect(rx,y+5,4,h-10);   // cable raceway running down the side
         c.fillStyle="rgba(0,0,0,.18)";c.fillRect(rx+4,y+5,0.8,h-10);}
+      if(o.frost>0)frost(c,L,w,y,h,o.fuel,o.frost);
       break;}
     case"probe":{   // avionics ring in black carbon composite, an access hatch and two vents
       c.fillStyle=cyl(c,L,R,[44,46,52]);c.fillRect(L,y,w,h);

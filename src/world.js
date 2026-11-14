@@ -156,7 +156,8 @@ function drawEarthShadow(c,psi,h,px){if(h<15000)return;const sg=sunAng(FT),k=Mat
 // a platform every 8 m, an elevator shaft and stairs inside, a lightning mast on top, and swing arms out to the rocket:
 // umbilical arms with sagging hoses (fuel, power, data) and a crew access arm near the top. The arms swing up and away when the
 // rocket lifts off (retract 0 → 1). Sizes in metres; x = 0 is the rocket's centre line, y = 0 the pad deck.
-function drawTower(c,rw,rh,retract){const H=Math.max(30,rh*1.12+8),W=Math.max(13,Math.min(24,rh*0.17)),gap=Math.max(7,rw*0.3),xR=-(rw/2+gap),xL=xR-W;
+function drawTower(c,rw,rh,up,lo){   // up: how far the upper arms have swung away (T−5 → T−2); lo: the base umbilicals (drop at T−0)
+  const H=Math.max(30,rh*1.12+8),W=Math.max(13,Math.min(24,rh*0.17)),gap=Math.max(7,rw*0.3),xR=-(rw/2+gap),xL=xR-W;
   const steel="#5d636c",dark="#3a3f46",lite="#8a919b";
   // the pad deck: a concrete slab with the flame trench opening under the rocket and hold-down posts
   c.fillStyle="#8b8f95";c.fillRect(xL-12,-4,(rw/2+gap+W+12)*2,4);c.fillStyle="#6e7278";c.fillRect(xL-12,-0.6,(rw/2+gap+W+12)*2,0.6);
@@ -178,7 +179,7 @@ function drawTower(c,rw,rh,retract){const H=Math.max(30,rh*1.12+8),W=Math.max(13
   c.fillStyle=steel;c.fillRect(xL-W*0.6,H+1.6,W*2.1,1.1);c.fillRect(xL+W*0.4,H+1.6,1,3);c.strokeStyle=lite;c.lineWidth=0.12;c.beginPath();c.moveTo(xL+W*1.3,H+1.6);c.lineTo(xL+W*1.3,H-6);c.stroke();
   // swing arms: three umbilical arms with hoses, and the crew access arm with its white room near the top
   const arms=[[0.28,0],[0.55,0],[0.8,0],[0.93,1]];
-  for(const[f,crew]of arms){const y=Math.min(H-3,rh*f),L=gap+0.2,a=retract*(crew?1.3:1.1);   // swing up and back toward the tower
+  for(const[f,crew]of arms){const retract=f>=0.8?up:lo,y=Math.min(H-3,rh*f),L=gap+0.2,a=retract*(crew?1.3:1.1);   // swing up and back toward the tower
     c.save();c.translate(xR,y);c.rotate(a);
     c.fillStyle=crew?"#c9ccd1":steel;c.fillRect(0,-0.9,L,crew?3:1.8);c.fillStyle=dark;c.fillRect(0,-0.9,L,0.4);c.strokeStyle=lite;c.lineWidth=0.15;c.beginPath();
     for(let x=0;x<L;x+=1.2){c.moveTo(x,-0.5);c.lineTo(x+0.6,crew?1.9:0.6);}c.stroke();
@@ -222,3 +223,19 @@ function makeGlobe(){const N=640,cv=document.createElement("canvas"),cc=document
 function drawGlobe(c,R,clouds){if(!globeTex){if(typeof document==="undefined")return;makeGlobe();}
   const g=c.createRadialGradient(0,0,R,0,0,R*1.035);g.addColorStop(0,"rgba(110,170,255,.55)");g.addColorStop(1,"rgba(110,170,255,0)");c.fillStyle=g;c.beginPath();c.arc(0,0,R*1.035,0,6.2832);c.fill();
   c.save();c.scale(1,-1);c.drawImage(globeTex,-R,-R,2*R,2*R);if(clouds)c.drawImage(cloudTex,-R,-R,2*R,2*R);c.restore();}
+
+// hold-down clamps: four heavy jaws on the pad that grip the bottom of the rocket while the engines spool up. open: 0 shut → 1 open
+function drawClamps(c,rw,open){for(const sd of[-1,1]){const x=sd*(rw/2+1.2);c.save();c.translate(x,0);c.fillStyle="#4a4f57";c.fillRect(-1.4,0,2.8,2.6);
+    c.rotate(sd*open*0.9);c.fillStyle="#6b7179";c.beginPath();c.moveTo(-0.6*sd,2.2);c.lineTo(-2.6*sd,3.4);c.lineTo(-2.6*sd,2.6);c.lineTo(-0.6*sd,1.6);c.closePath();c.fill();
+    c.fillStyle="#c23b2e";c.fillRect(-0.5,2.4,1,0.5);c.restore();}}
+// water deluge: nozzles around the pad deck spray arcs of water onto it (soaks up the sound and heat at ignition). k: 0..1
+function drawDeluge(c,rw,k,now){if(k<=0.01)return;c.save();c.strokeStyle=`rgba(225,238,250,${0.55*k})`;c.lineWidth=0.35;c.beginPath();
+  for(const sd of[-1,1])for(let i=0;i<46;i++){const ph=(now*1.6+i/46)%1,x0=sd*(rw/2+6+(i%5)*1.5),vx=-sd*(6+(i%7)*1.3),vy=9+(i%4)*2,t=ph*1.6,x=x0+vx*t,y=vy*t-4.9*t*t;if(y<0)continue;
+    const t2=t+0.05;c.moveTo(x,y);c.lineTo(x0+vx*t2,vy*t2-4.9*t2*t2);}c.stroke();
+  c.fillStyle=`rgba(230,240,250,${0.25*k})`;for(const sd of[-1,1])c.fillRect(sd>0?rw/2+2:-rw/2-14,0,12,0.6+Math.sin(now*9)*0.2);c.restore();}
+// the flame lights up the ground, the tower and the steam orange; it fades as the rocket climbs. Drawn additively, in world coords
+function drawFlameGlow(c,x,y,k){if(k<=0.01)return;const R=60+140*k;c.save();c.globalCompositeOperation="lighter";const g=c.createRadialGradient(x,y,0,x,y,R);
+  g.addColorStop(0,`rgba(255,190,110,${0.55*k})`);g.addColorStop(0.4,`rgba(255,130,50,${0.22*k})`);g.addColorStop(1,"rgba(255,110,40,0)");c.fillStyle=g;c.fillRect(x-R,y-R,2*R,2*R);c.restore();}
+// heat shimmer over the flame trench: faint wavy bands of warm air
+function drawShimmer(c,rw,k,now){if(k<=0.01)return;c.save();c.strokeStyle=`rgba(255,240,220,${0.07*k})`;c.lineWidth=0.6;for(let j=0;j<6;j++){c.beginPath();const y0=2+j*3;
+  for(let x=-rw*1.2;x<=rw*1.2;x+=1){const y=y0+Math.sin(x*0.6+now*7+j)*0.6;x===-rw*1.2?c.moveTo(x,y):c.lineTo(x,y);}c.stroke();}c.restore();}

@@ -37,6 +37,8 @@ let launchH=3,flyers=[],mapCam=null,predC=null,VS=[],AV=null,EN=null,launchPs=nu
 const WARPS=[1,2,4,10,50,100,500,1000,5000,20000];let FT=0,warpWhy="";
 // webcast extras: the mission timeline (events tick off as they happen), the lift-off clock, Max-Q tracking, and the camera's
 // ignition jolt / flash (kickF, flashF), which fade out over a second or so
+// countdown (v1.19): "wait" on the pad → "count" from T−10 → "go". tRel = game time the clamps let go. Headless tests skip it.
+let CD={s:"go",t:0},tRel=0,steam=[];
 let warpTo=null,warpWhat="",EV=[],T0=null,qMax=0,qT=0,kickF=0,flashF=0,camT=0,wasLit=false,nSt0=1,evSig="";
 function derive(v,keepWorld){   // recompute everything that follows from the parts list; keep the rocket where it is in the world
   const ps=v.ps,adj=adjOf(ps);v.adj=adj;v.root=rootIdx(ps);v.ctrl=v.root>=0;
@@ -66,14 +68,38 @@ function startFlight(ps,name,keepWx){
   const a=analyze(launchPs,engineNums()),keep=a.root>=0?bfs(adjOf(launchPs),a.root,()=>true):new Set();
   const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;}EN=engineNums();   // full tanks again on a retry
   const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)*UM);v.x=0;v.y=PR+terrH(0)-lo+0.005;v.landed=true;launchW=v.Wall;launchH=v.H;
+  v.frost=1;if(JX){CD={s:"wait",t:10};v.clamped=true;}else CD={s:"go",t:0};tRel=0;steam=[];
   VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
-  msg="Throttle: Shift / W (Z = full).  Steer: A / D.  Space = next stage.  1–9 = SAS holds.  M = map.  , . = time warp";msgT=10;
+  msg=JX?"On the pad. Press Space (or Start countdown) to count down from 10.":"";msgT=JX?8:0;
   // weather for this launch: a new one each time you launch from the editor, the same one when you retry (R)
   if(!keepWx){launchSeed=(launchSeed*16807+12345)%2147483647||7;}pickWeather(launchSeed%9973);
   clouds=[];const nC=Math.round(60*wx.cl);for(let i=0;i<nC;i++){const q=k=>hash1(launchSeed*0.01+i*13.7+k),a=(q(1)-0.5)*0.05,h=900+q(2)*3500;clouds.push({a,h,w:300+q(3)*900,o:0.3+q(4)*0.4});}
   FLT.on=true;FLT.vab=false;$("flight").classList.add("show");S.paused=true;cfg();fitF();$("fThr").value=0;lastFT=performance.now();
   requestAnimationFrame(flightFrame);}
 function endFlight(){FLT.on=false;$("flight").classList.remove("show");if(typeof enter==="function")enter($("stage"));S.paused=$("bPause").classList.contains("on");cfg();}
+// ---------- countdown ----------
+// Space (or the button) starts a 10 s count. T−5 the water deluge starts and the upper tower arms swing away; T−3 the liquid
+// engines light and spool up while the hold-down clamps keep the rocket on the pad; T−0 the clamps open, the base umbilicals
+// drop, solid boosters light, throttle goes to full and the rocket is yours. Space during the count skips to T−0.
+function startCount(){if(CD.s!=="wait")return;CD={s:"count",t:10};warp=1;warpTo=null;msgT=0;tick(10);}
+function tick(n){if(!JX)return;
+  if(n===10){callout("T−10","countdown started");JX.snd.say("T minus ten");}
+  else if(n===3){callout("IGNITION SEQUENCE START");JX.snd.say("ignition sequence start");}
+  else if(n>0){callout(String(n));if(n!==2)JX.snd.say(String(n));}
+  JX.snd.beep(n<=3);}
+function release(skip){if(CD.s==="go")return;CD={s:"go",t:0};tRel=FT;for(const v of VS)v.clamped=false;if(AV){AV.thr=1;$("fThr").value=100;}kickF=1;flashF=Math.max(flashF,0.8);
+  if(JX){JX.snd.say("liftoff");JX.snd.beep(true);}if(skip){msg="Countdown skipped.";msgT=1.5;}}
+function countFrame(dtR){if(!AV||CD.s==="go")return;
+  if(CD.s==="wait"){AV.thr=0;return;}
+  warp=1;warpTo=null;const prev=CD.t;CD.t-=dtR;
+  for(let n=Math.ceil(prev)-1;n>=Math.max(0,Math.ceil(CD.t));n--)if(n>0)tick(n);
+  AV.thr=CD.t<3?Math.min(1,(3-CD.t)/2.4):0;   // spool up from T−3
+  if(CD.t<=0)release(false);}
+// pad effects: how far along each thing is (0..1), from the countdown clock and the time since release
+function padFx(){const since=CD.s==="go"?(tRel?FT-tRel:99):-1,T=CD.s==="count"?CD.t:CD.s==="wait"?10:-since;
+  return{up:CD.s==="wait"?0:Math.max(0,Math.min(1,(5-T)/3)),lo:since<0?0:Math.min(1,since/0.6),clamp:since<0?0:Math.min(1,since/0.4),
+    deluge:CD.s==="wait"?0:T>5?0:since<0?Math.min(1,(5-T)/1):Math.max(0,1-(since-20)/8),
+    vent:CD.s==="wait"?Math.min(1,0.4+FT/25):CD.s==="count"?Math.max(0,(T-8)/2):0};}
 // ---------- mission timeline + event callouts ----------
 // The list comes from the rocket itself: lift-off, Max-Q, one separation per stage (boosters or a stage), space, orbit,
 // and the Moon when the rocket has the Δv to get there (or as soon as it actually arrives).
@@ -98,7 +124,7 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
     const dx=(n.px-oldPx)*UM,dy=(n.py-oldPy)*UM,rx=dx*c+dy*s,ry=-dx*s+dy*c;
     n.phi=v.phi;n.om=om;n.x=X0+rx;n.y=Y0+ry;
     let ux=n.x-v.x,uy=n.y-v.y;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
-    n.vx=V0x+om*ry+ux*1.4;n.vy=V0y-om*rx+uy*1.4;n.thr=0;n.landed=false;VS.push(n);}
+    n.vx=V0x+om*ry+ux*1.4;n.vy=V0y-om*rx+uy*1.4;n.thr=0;n.landed=false;n.frost=v.frost||0;VS.push(n);}
   const bo=pieces.some(P=>P.some(p=>p.t==="sdec"));mark("sep");callout(bo?"BOOSTER SEPARATION":"STAGE SEPARATION");kickF=Math.max(kickF,0.35);anAV=null;
   if(JX){JX.snd.clunk();JX.goal("stage");}}
 function switchV(d){const c=VS.filter(v=>v.ctrl&&!v.crashed);if(c.length<2){msg="Nothing else to fly. Boosters need their own probe core.";msgT=3;return;}
@@ -119,7 +145,7 @@ function stepV(v,dt,u){
   for(let n=0;n<v.eng.length;n++){const tk=v.feeds[n];let av=0;for(const j of tk)av+=v.ps[j].fuel;
     const P=v.ps[v.eng[n]];
     if(P.t==="srb"){   // a solid booster lights the first time you throttle up, then burns flat out until it's empty: no throttle, no off switch
-      if(thr>0&&av>1e-6)P.ign=true;v.lit[n]=!!P.ign&&av>1e-6;if(!v.lit[n])continue;
+      if(thr>0&&av>1e-6&&!v.clamped)P.ign=true;v.lit[n]=!!P.ign&&av>1e-6;if(!v.lit[n])continue;
       const E=v.est[n],k=curveAt(E.curve,1-av/capOf(P));F+=(E.vac.F-(E.vac.F-E.sl.F)*a)*k;nS++;P.fuel=Math.max(0,av-E.vac.F*k/(E.vac.isp*G0)*dt);continue;}
     v.lit[n]=thr>0&&av>1e-6;
     if(!v.lit[n])continue;const E=v.est[n];F+=(E.vac.F-(E.vac.F-E.sl.F)*a)*thr;const use=Math.min(av,E.vac.F/(E.vac.isp*G0)*thr*dt);for(const j of tk)v.ps[j].fuel-=use*v.ps[j].fuel/av;}
@@ -147,7 +173,7 @@ function stepV(v,dt,u){
     const ap=Math.max(-mx,Math.min(mx,want));tq+=ap;
     if(rT>0){const base=mx-rT,extra=Math.max(0,Math.abs(ap)-base);if(extra>1e-3){rcsUse+=extra/v.rcsArm;v.puffR=Math.sign(ap);}else v.puffR=0;}else v.puffR=0;}
   if(rcsUse>0){let need=rcsUse/(RCS_ISP*G0)*dt;for(const p of v.rcs){const d=Math.min(p.mono,need*p.mono/mono);p.mono-=d;}}
-  if(v.landed){if(ax*ux+ay*uy<=0){v.vx=v.vy=0;v.om=0;const tilt=wrapA(v.phi-Math.atan2(v.x,v.y));if(Math.abs(tilt)<0.6)v.phi-=tilt*Math.min(1,dt*2);ground(v,true);v.t+=dt;return;}v.landed=false;}
+  if(v.landed){if(v.clamped||ax*ux+ay*uy<=0){v.vx=v.vy=0;v.om=0;const tilt=wrapA(v.phi-Math.atan2(v.x,v.y));if(Math.abs(tilt)<0.6)v.phi-=tilt*Math.min(1,dt*2);ground(v,true);v.t+=dt;return;}v.landed=false;}
   v.om=Math.max(-2,Math.min(2,v.om+tq/v.I*dt));v.phi+=v.om*dt;
   v.vx+=ax*dt;v.vy+=ay*dt;v.x+=v.vx*dt;v.y+=v.vy*dt;
   if(h-groundAt(v.body,v.x,v.y).h<v.reach+60)ground(v,false);
@@ -202,8 +228,9 @@ function orbitOf(r){const B=BOD[r.body],mu=B.mu,rr=Math.hypot(r.x,r.y),v2=r.vx*r
 // ---------- input ----------
 addEventListener("keydown",e=>{if(!FLT.on)return;const k=e.key.toLowerCase();keys.add(k);
   if(k==="escape"){endFlight();}
+  else if((k==="z"||k==="w"||k==="shift")&&CD.s==="wait"){msg="The rocket is held down on the pad. Press Space to start the countdown.";msgT=3;}
   else if(k==="z")AV.thr=1;else if(k==="x")AV.thr=0;
-  else if(k===" "){if(!e.repeat)doStage();}
+  else if(k===" "){if(!e.repeat){if(CD.s==="wait")startCount();else if(CD.s==="count")release(true);else doStage();}}
   else if(k==="g"){if(AV.hasLegs){AV.legs=!AV.legs;msg=AV.legs?"Legs down":"Legs up";msgT=1.5;}else{msg="No landing legs on this craft.";msgT=2;}}
   else if(k==="["||k==="]")switchV(k==="]"?1:-1);
   else if(k>="1"&&k<="9"&&!e.repeat)setSas(SAS_MODES[+k-1]);
@@ -219,21 +246,39 @@ addEventListener("keydown",e=>{if(!FLT.on)return;const k=e.key.toLowerCase();key
   e.stopImmediatePropagation();},true);
 addEventListener("keyup",e=>{if(FLT.on)keys.delete(e.key.toLowerCase());},true);
 fcv.addEventListener("wheel",e=>{e.preventDefault();if(mapView){mapWheel(e);return;}zoomF=Math.max(0.05,Math.min(20000,zoomF*(e.deltaY<0?1.15:1/1.15)));},{passive:false});
-$("fThr").oninput=()=>{if(AV)AV.thr=+$("fThr").value/100;};
+$("fThr").oninput=()=>{if(AV&&CD.s==="go")AV.thr=+$("fThr").value/100;};
 for(const[id,d]of[["fL",-1],["fR",1]]){const b=$(id);b.onpointerdown=()=>{rotBtn=d;};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>{rotBtn=0;};}
 $("fMap").onclick=()=>{mapView=!mapView;if(mapView)mapOpen();};$("fWarp2").onclick=()=>{warp=WARPS[(WARPS.indexOf(warp)+1)%WARPS.length];};
-$("fStage").onclick=doStage;$("fRcs").onclick=toggleRcs;$("fLegs").onclick=()=>{if(AV&&AV.hasLegs)AV.legs=!AV.legs;};
+$("fStage").onclick=()=>{if(CD.s==="wait")startCount();else if(CD.s==="count")release(true);else doStage();};$("fCount").onclick=startCount;$("fRcs").onclick=toggleRcs;$("fLegs").onclick=()=>{if(AV&&AV.hasLegs)AV.legs=!AV.legs;};
 $("fBack").onclick=endFlight;$("fRetry").onclick=()=>startFlight(launchPs,launchName,true);$("fBuild").onclick=()=>{endFlight();openVab();};
+// ---------- pad emitters: cold vapour from the tank vents, frost flaking off, steam clouds from the flame trench ----------
+function padEmit(dt){const v=AV;if(!v||v.body!==0||dt<=0)return;const fx=padFx(),rr=Math.hypot(v.x,v.y),hAG=rr-PR-Math.max(0,terrH(Math.atan2(v.x,v.y)*PR));
+  // boil-off: each fuelled tank breathes white vapour out of two vents near its top; it drifts down and away with the wind
+  if(fx.vent>0&&v.landed)for(const p of v.ps){if(p.t!=="tank"||!(p.fuel>0))continue;for(const sd of[-1,1]){if(Math.random()>fx.vent*dt*7)continue;
+    const[qx,qy]=loc(v,(p.x+sd*p.w/2-v.px)*UM,(p.y+p.h-6-v.py)*UM);
+    smoke.push({vap:1,body:0,x:qx,y:qy,vx:sd*(2+Math.random()*2.5)+windDir*wx.wind*0.3,vy:-0.6-Math.random()*0.8,t:0,life:3.5+Math.random()*3,r0:0.6,r1:4+Math.random()*5,o:0.9});}}
+  // frost flakes off as the rocket climbs: gone by about 10 km
+  const fr=Math.max(0,Math.min(v.frost||0,1-hAG/10000));if(fr<(v.frost||0)&&!v.landed){const n=Math.min(30,((v.frost-fr)*4000)|0);for(let i=0;i<n&&smoke.length<900;i++){const p=v.ps[(Math.random()*v.ps.length)|0];if(p.t!=="tank")continue;
+    const[qx,qy]=loc(v,(p.x+(Math.random()-0.5)*p.w-v.px)*UM,(p.y+Math.random()*p.h-v.py)*UM);smoke.push({flake:1,body:0,x:qx,y:qy,vx:v.vx*0.92,vy:v.vy*0.92,t:0,life:1.5+Math.random(),r0:0.25,r1:0,o:1});}}
+  v.frost=fr;for(const o of VS)if(o!==v&&o.frost)o.frost=Math.max(0,o.frost-dt*0.02);
+  // exhaust steam: while engines fire near the pad, huge clouds roll sideways out of both ends of the flame trench
+  const near=Math.abs(Math.atan2(v.x,v.y)*PR)<400&&hAG<300;
+  if(near&&v.F>0){const k=Math.min(1,v.F/((v.m||1)*9.81))*(1-hAG/300),n=Math.min(10,Math.random()<k*dt*70?1+((k*dt*70)|0):0);
+    for(let i=0;i<n&&steam.length<340;i++){const sd=Math.random()<0.5?-1:1,x0=sd*(launchW*0.5+4);
+      steam.push({x:x0,y:PR+1.5+Math.random()*3,vx:sd*(18+Math.random()*30),vy:2+Math.random()*5,t:0,life:22+Math.random()*25,r0:4+Math.random()*4,r1:(25+Math.random()*55)*Math.max(0.6,launchH/60),g:0.85+Math.random()*0.15});}}
+  for(const q of steam){q.t+=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(0.55,dt);q.vy=q.vy*Math.pow(0.7,dt)+0.4*dt;q.x+=windDir*wx.wind*dt*0.3;}
+  steam=steam.filter(q=>q.t<q.life);}
 // ---------- the loop ----------
 function flightFrame(now){
   if(!FLT.on)return;
   fitF();const dtR=Math.min(0.05,(now-lastFT)/1000);lastFT=now;
   if(AV){
-    if(!AV.crashed){if(keys.has("shift")||keys.has("w"))AV.thr=Math.min(1,AV.thr+0.9*dtR);
+    countFrame(dtR);padEmit(dtR);
+    if(!AV.crashed&&CD.s==="go"){if(keys.has("shift")||keys.has("w"))AV.thr=Math.min(1,AV.thr+0.9*dtR);
       if(keys.has("control")||keys.has("s"))AV.thr=Math.max(0,AV.thr-0.9*dtR);}
     AV.tin=[(keys.has("l")?1:0)-(keys.has("j")?1:0),(keys.has("i")?1:0)-(keys.has("k")?1:0)];
     const u=Math.max(-1,Math.min(1,(keys.has("a")||keys.has("arrowleft")?-1:0)+(keys.has("d")||keys.has("arrowright")?1:0)+rotBtn));
-    if(document.activeElement!==$("fThr"))$("fThr").value=Math.round(AV.thr*100);
+    if(CD.s!=="go")$("fThr").value=Math.round(AV.thr*100);else if(document.activeElement!==$("fThr"))$("fThr").value=Math.round(AV.thr*100);
     const B=BOD[AV.body],hA=Math.hypot(AV.x,AV.y)-B.R,burning=VS.some(v=>v.F>0||v.thr>0&&!v.landed);
     if(warpTo!=null){const left=warpTo-FT;if(left<=dtR*1.05){warp=1;warpTo=null;msg="Warp stopped: "+warpWhat;msgT=2.5;}
       else{let w=1;for(const q of WARPS)if(q*dtR<=left*0.6)w=q;warp=w;}}
@@ -299,7 +344,7 @@ function drawVessel(c,v,bright,plumesOnly){
   v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8),v.thr,v.a,bright,k==="vac");}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
   if(plumesOnly){c.restore();return;}
-  for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
+  for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
   c.restore();}
 // which jets on this block are firing: opposite to the push asked for, and sideways ones for turning (in part cm, y up)
@@ -330,7 +375,7 @@ function renderFlight(dt){
   // camera: the craft in the middle, local "up" pointing up the screen
   // camera like a tracking shot: close on the rocket at first, then pulling back as it climbs so the ground stays in the bottom of
   // the frame (and the whole planet shows from orbit). The mouse wheel zooms on top of that.
-  const hAG=Math.max(1,h-(r.body===0?Math.max(0,terrH(psi*PR)):0)),sBase=FH/(Math.max(2.4,r.H)*3.4),sFol=FH*0.42/hAG;
+  const hAGc=h-(r.body===0?Math.max(0,terrH(psi*PR)):0),hAG=Math.max(1,hAGc),sBase=FH/(Math.max(2.4,r.H)*3.4),sFol=FH*0.42/hAG;
   const s=Math.max(1e-7,Math.min(sBase,sFol)*zoomF);
   // live camera: a slow drift like a handheld long lens, plus shake from thrust, from the air pushing on the rocket,
   // and a jolt when an engine lights or a stage goes. All of it is off for players who asked their system for less motion.
@@ -344,12 +389,15 @@ function renderFlight(dt){
   // exhaust smoke (only where there's air to make it)
   for(const p of smoke){p.t+=dt;if(p.body===0&&B.atm){const rr=Math.hypot(p.x,p.y);p.x+=windDir*wx.wind*dt*p.y/rr;p.y-=windDir*wx.wind*dt*p.x/rr;}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.985;p.vy*=0.985;}
   smoke=smoke.filter(p=>p.t<p.life&&p.body===r.body);
-  for(const p of smoke){const k=p.t/p.life,rad=p.r0+p.r1*k;c.fillStyle=`rgba(225,225,232,${0.32*(1-k)*p.o})`;c.beginPath();c.arc(p.x,p.y,rad,0,6.2832);c.fill();}
+  for(const p of smoke){const k=p.t/p.life,rad=p.r0+p.r1*k;
+    if(p.flake){c.fillStyle=`rgba(240,246,255,${(1-k)})`;c.fillRect(p.x,p.y,0.3,0.3);continue;}
+    c.fillStyle=p.vap?`rgba(246,249,253,${0.42*(1-k)*Math.min(1,k*6)})`:`rgba(225,225,232,${0.32*(1-k)*p.o})`;c.beginPath();c.arc(p.x,p.y,rad,0,6.2832);c.fill();}
   if(r.body===0){
     // Earth: real ground (biomes, sea, trees, rocks, buildings: world.js), then the pads on top
     drawEarth(c,psi*PR,s,FT,now);
     // pads are drawn at a scale that fits the rocket (k), with the pad's top at ground level so the rocket stands on it
-    padAt(c,0,()=>drawTower(c,launchW,launchH,T0==null?0:Math.min(1,(FT-T0)/1.6)));   // the launch tower; its arms swing away at lift-off
+    {const fx=padFx(),lit=AV.F>0&&hAGc<200;   // the pad: water deluge, launch tower with its swing arms, hold-down clamps, heat shimmer
+      padAt(c,0,()=>{drawDeluge(c,launchW,fx.deluge,now);drawTower(c,launchW,launchH,fx.up,fx.lo);drawClamps(c,launchW,fx.clamp);if(lit)drawShimmer(c,launchW,Math.min(1,AV.F/(AV.m*9.81)),now);});}
     padAt(c,PAD2/PR,()=>{c.scale(5,5);c.translate(0,-0.4);c.fillStyle="#6d7586";c.fillRect(-9,-0.5,18,0.9);c.fillStyle="#e8e9ee";c.fillRect(-6,0.38,12,0.04);c.fillStyle="#e8b923";for(const x of[-7.5,7.5])c.fillRect(x-0.4,0.36,0.8,0.06);
       c.fillStyle="#d24b3a";c.fillRect(-0.15,0.4,0.3,3);c.beginPath();c.moveTo(0.15,3.4);c.lineTo(1.8,3.05);c.lineTo(0.15,2.7);c.fill();});}
   else{
@@ -369,6 +417,12 @@ function renderFlight(dt){
       const[wx,wy]=loc(v,(p.x-v.px)*UM,(p.y-v.py)*UM),sp=25+Math.random()*25;
       smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w*UM*0.8,r1:((sol?10:6)+Math.random()*10)*Math.max(1,p.w*UM/2),o:v.a*(sol?1.6:1)});});}
     drawVessel(c,v,bright);}
+  // exhaust steam clouds: big soft billows, lit orange from below while the flame is close
+  if(steam.length&&r.body===0){const lx=AV.F>0&&hAGc<400?Math.max(0,1-hAGc/400):0,[nx,ny]=loc(r,0,-(r.py-Math.min(...r.cpts.map(q=>q[1])))*UM);
+    for(const q of steam){const k=q.t/q.life,rad=q.r0+q.r1*Math.sqrt(k),al=0.55*(1-k)*Math.min(1,q.t*3),d=Math.hypot(q.x-nx,q.y-ny),lit=lx*Math.max(0,1-d/150);
+      const cR=Math.round(235*q.g+15*lit),cG=Math.round(235*q.g-25*lit),cB=Math.round(238*q.g-60*lit),gg=c.createRadialGradient(q.x,q.y,0,q.x,q.y,rad);
+      gg.addColorStop(0,`rgba(${cR},${cG},${cB},${al})`);gg.addColorStop(0.65,`rgba(${cR},${cG},${cB},${al*0.6})`);gg.addColorStop(1,`rgba(${cR},${cG},${cB},0)`);c.fillStyle=gg;c.beginPath();c.arc(q.x,q.y,rad,0,6.2832);c.fill();}}
+  if(r.body===0&&r.F>0&&hAGc<500){const[nx,ny]=loc(r,0,-(r.py-Math.min(...r.cpts.map(q=>q[1])))*UM);drawFlameGlow(c,nx,ny,Math.min(1,r.F/(r.m*9.81)*0.5)*(1-hAGc/500));}
   // night (and the planet's shadow in orbit): darken everything, then put back what glows: lights and engine flames
   const dark=1-sun.light;
   if(dark>0.02){c.save();c.setTransform(1,0,0,1,0,0);c.fillStyle=`rgba(4,8,22,${dark*0.85})`;c.fillRect(0,0,FW,FH);c.restore();
@@ -439,9 +493,10 @@ function hudFlight(dt){
   rv("fSpd",sp,fmt);$("dSpd").querySelector(".arc").style.strokeDasharray=`${245*Math.min(1,Math.log10(1+sp)/Math.log10(11001))} 999`;
   const big=h>=10000;rv("fAlt",big?h/1000:h,big?(x=>x.toFixed(1)):fmt);set("fAltU",big?"KM":"M");
   $("dAlt").querySelector(".arc").style.strokeDasharray=`${245*Math.min(1,Math.log10(1+Math.max(0,h))/Math.log10(2.6e6))} 999`;
-  set("fClock",T0==null?"T−00:00:00":"T+"+clk(FT-T0));
+  set("fClock",CD.s==="count"?"T−"+clk(Math.ceil(CD.t)):CD.s==="wait"?"T−00:00:10":T0==null?"T−00:00:00":"T+"+clk(FT-T0));
+  $("fCount").style.display=CD.s==="wait"&&!r.crashed?"":"none";
   if(!anAV||++hudN%15===0)anAV=analyze(r.ps,EN,r.ps.map(p=>p.fuel||0));
-  set("fStageN",r.ctrl?`STAGE ${Math.min(nSt0,Math.max(1,nSt0-anAV.stages.length+1))} / ${nSt0}`:"");
+  if(CD.s!=="go")set("fStageN",CD.s==="wait"?"HOLD · ON THE PAD":"COUNTDOWN");else set("fStageN",r.ctrl?`STAGE ${Math.min(nSt0,Math.max(1,nSt0-anAV.stages.length+1))} / ${nSt0}`:"");
   set("fVes",r.name+(r.body?" · MOON":" · "+clockStr(hourAt(psi,FT))+" · DAY "+(1+Math.floor((FT+CLK0/24*DAY)/DAY))));set("fWarp",r.wv>1||warp>1?`WARP ${r.wv<warp?r.wv+"× ("+warpWhy+")":warp+"×"}`:"");
   // events: what just happened gets a callout and a tick on the timeline
   if(!said.lift&&!r.landed&&r.t>0.2&&h>1.5){said.lift=1;T0=FT;mark("liftoff");callout("LIFTOFF");kickF=Math.max(kickF,0.7);}
@@ -489,7 +544,7 @@ function hudFlight(dt){
     set("vSrb",bl>0?tfm(bl):"–");rv("vDvT",anAV.total,ms);
     const hs=anAV.stages.map((q,k)=>`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b>${fmt(q.dv)}</b></span><span>${Math.round(q.burn)} s</span><i>TWR ${q.twr.toFixed(2)} · ${q.eng} engine${q.eng===1?"":"s"}</i></div>`).join("");
     if(hs!==stgSig){stgSig=hs;$("fStg").innerHTML=hs;}}
-  $("fStage").disabled=!st.dropKind;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
+  $("fStage").disabled=CD.s==="go"&&!st.dropKind;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
   msgT-=dt;const mb=$("fMsg");mb.style.display=msgT>0?"":"none";if(msgT>0)set("fMsg",msg);
   $("fRetry").style.display=r.crashed?"":"none";$("fMapBar").style.display=mapView?"":"none";}
 // fold-away panels in flight: INFO panels on the left, the small numbers and SAS on the right

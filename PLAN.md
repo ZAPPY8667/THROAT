@@ -98,7 +98,7 @@ bigger Moon from phase 1.5 came with it. See HISTORY.md.
 - **No part-name labels** (Wyatt didn't pick them).
 - The **rocket editor** gets the same blueprint/cutaway style (white-line parts on a grid). **Flight keeps realistic rocket art.**
 
-## Phase 3: cinematic launch (v1.19)
+## Phase 3: cinematic launch (v1.19) — done (spoken callouts use the browser voice; no radio filter possible on speechSynthesis)
 - **Pre-launch on the pad** (while the rocket sits waiting and through the countdown):
   - **Umbilical arms** from the tower connect to each stage's tanks. Upper arms swing away from T-5 to T-2, the base
     umbilicals drop at T-0. Draw the hoses with sag; arms retract with easing.

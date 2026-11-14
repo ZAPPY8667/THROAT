@@ -349,6 +349,9 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   .call b{font-size:24px;letter-spacing:.24em}.fmapbar{top:auto;bottom:200px}
   .flight .fbt label.sl{flex:1 1 100%;order:-1}.flight .fbt{top:32px}.flight .etabs{top:150px}.fdrawer{top:150px}.tl{margin:0 26px}.flight .fmsg{top:150px}}
 .saslist button kbd{display:inline-block!important}
+.cdbtn{position:absolute;left:50%;bottom:140px;transform:translateX(-50%);height:44px!important;padding:0 26px!important;font:600 14px var(--sans)!important;letter-spacing:.24em;text-transform:uppercase;border-color:var(--red)!important;background:rgba(255,59,47,.14)!important;color:#fff!important;animation:livePulse 2.2s ease-in-out infinite}
+.cdbtn:hover{background:rgba(255,59,47,.28)!important}
+@media (max-width:700px){.cdbtn{bottom:auto;top:38%;height:40px!important;padding:0 16px!important;font-size:12px!important;letter-spacing:.16em}}
 .wto{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:8px 0 4px}.wto button.b{height:26px;font-size:11px;padding:0 6px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 /* scrollbars */
@@ -446,7 +449,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <div>Editor: move part + what's under it<i>drag (<kbd>Alt</kbd>: just it)</i></div><div>Stretch a tank<i><kbd>Shift</kbd> + wheel</i></div>
       <div>Editor: mirror pairs<kbd>M</kbd></div><div>Editor: remove part<i><kbd>Del</kbd> or drag to the parts list</i></div>
       <div>Throttle up / down<i><kbd>Shift</kbd> <kbd>Ctrl</kbd> or <kbd>W</kbd> <kbd>S</kbd></i></div><div>Full / cut<i><kbd>Z</kbd> <kbd>X</kbd></i></div>
-      <div>Steer<i><kbd>A</kbd> <kbd>D</kbd></i></div><div>Next stage<kbd>Space</kbd></div>
+      <div>Steer<i><kbd>A</kbd> <kbd>D</kbd></i></div><div>Countdown, then next stage<kbd>Space</kbd></div>
       <div>Landing legs<kbd>G</kbd></div><div>RCS on / off<kbd>T</kbd></div><div>RCS nudge<i><kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd></i></div><div>SAS holds<i><kbd>1</kbd>–<kbd>9</kbd></i></div><div></div><div>Fly another craft<i><kbd>[</kbd> <kbd>]</kbd></i></div>
       <div>Map<kbd>M</kbd></div><div>Time / weather / warp to<i>TIME tab</i></div><div>Time warp<i><kbd>.</kbd> <kbd>,</kbd></i></div>
       <div>Retry / editor<i><kbd>R</kbd> <kbd>B</kbd></i></div><div>Back to the test stand<kbd>Esc</kbd></div>
@@ -477,6 +480,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="dials" id="fDials"><div class="dial" id="dSpd"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fSpd">–</b><small id="fSpdU">M/S</small></div><span>SPEED</span></div><div class="dial" id="dAlt"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fAlt">–</b><small id="fAltU">M</small></div><span>ALTITUDE</span></div></div>
   <div class="tline" id="fTline"><div class="tclk"><b id="fClock">T+00:00:00</b><span id="fStageN"></span></div><div class="tl" id="fTl"><div class="tlbar"><i id="fTlFill"></i></div></div></div>
   <div class="call" id="fCall"><b></b><small></small></div>
+  <button class="b go cdbtn" id="fCount" data-ic="play" style="display:none" title="Start the 10-second countdown (Space)">Start countdown</button>
   <div class="sasbox" id="fSas"><svg class="ring" viewBox="0 0 100 100" aria-label="Heading ring">
       <circle cx="50" cy="50" r="41" class="r0"/><path d="M50 4v8" class="up"/><path d="M50 96v-5M4 50h5M96 50h-5" class="tk"/>
       <g id="hgPro"><circle cx="50" cy="13" r="4" class="pro"/></g><g id="hgRet"><path d="M46 9l8 8M54 9l-8 8" class="ret"/></g>

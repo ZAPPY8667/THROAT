@@ -40,6 +40,12 @@ const JUICE=(()=>{
     crash(size){if(!ok())return;const t=now();size=Math.max(0.2,Math.min(1,size||1));noise(t,2.6,1.3*size,2200,90);thump(t,1.3,1.1*size,75,24);noise(t+0.08,0.6,0.5*size,6000,800,"highpass");grains(t+0.1,1.6,60,0.45*size);},
     clunk(){if(!ok())return;const t=now();noise(t,0.12,0.6,900,250,"bandpass");thump(t,0.14,0.5,190,80,"triangle");},
     chime(){if(!ok())return;const t=now();thump(t,0.25,0.16,660,655,"triangle");thump(t+0.11,0.45,0.16,990,985,"triangle");},
+    // countdown beep: a short clean tone, higher for the last ones
+    beep(hi){if(!ok())return;const t=now();thump(t,0.13,0.14,hi?1320:880,hi?1315:875,"sine");},
+    // spoken callouts with the browser's own offline voice: a bit low and quick, like a radio loop. Silent with sound off.
+    say(txt){if(!on||typeof speechSynthesis==="undefined")return;try{const u=new SpeechSynthesisUtterance(txt);u.rate=1.08;u.pitch=0.85;u.volume=0.9;
+      const v=speechSynthesis.getVoices().find(x=>/en[-_](US|GB)/i.test(x.lang)&&/male|david|daniel|alex|google us/i.test(x.name))||speechSynthesis.getVoices().find(x=>/^en/i.test(x.lang));if(v)u.voice=v;
+      speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}},
     get on(){return on;},
     toggle(){on=!on;store.set(SK,on);if(init()){if(A.state==="suspended")A.resume();master.gain.setTargetAtTime(on?0.55:0,now(),0.05);}btns();}};
   // ---------- the loop: what is burning right now → roar, hiss and crackle ----------

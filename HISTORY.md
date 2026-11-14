@@ -103,6 +103,14 @@ made on the test stand.
   arm; the arms swing away in the 1.6 s after lift-off. (Phase 3 will add the countdown, clamps, venting and deluge.)
 - Night darkens the scene with an overlay, then lights and engine flames are drawn again on top so they glow.
 
+## v1.19: cinematic launch (phase 3)
+- Launch puts the rocket on the pad in a hold: tanks vent cold vapour, bare tanks are frosted up to the fuel level (the SLS-style
+  orange foam is insulation, so no frost there). Space / Start countdown → 10 s count with beeps, big numbers and a spoken voice
+  (browser speechSynthesis, muted with sound off). T−5 deluge + upper arms swing away; T−3 liquid engines spool up against the
+  hold-down clamps (solid boosters wait, as on real pads); T−0 clamps open, base umbilicals drop, full throttle.
+- Steam clouds roll out of both ends of the trench, lit orange by the flame; the flame lights the ground; heat shimmer; frost
+  flakes off on the way up (gone by ~10 km). The headless tests run without the countdown (no JX); clamps have their own test.
+
 ## Things that went wrong (don't repeat)
 - The flight bundle is one closure: map.js already has `tfmt`/`kmf`, so a second `const` with those names breaks the whole page.
 - Wyatt shared a schlieren reference image with no text; Claude assumed what he wanted and changed things. He said

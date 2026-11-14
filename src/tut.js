@@ -10,7 +10,7 @@ const TUT=[
   {t:"It's running",p:()=>`Your engine makes <b>${(thrust()/1000).toFixed(2)} kN</b> of thrust. Watch the Mach diamonds in the plume. The test stand just recorded these numbers for flight.`,at:()=>$("probe"),side:"right",next:"Next"},
   {t:"Build a rocket",p:"Click <b>Rocket</b> to build a rocket around your engine.",at:()=>$("bLaunch"),done:()=>FLT.vab||FLT.on},
   {t:"The rocket editor",p:"Here's a rocket, ready to fly. Later you can drag parts in from the left to build your own. For now, press <b>Launch</b>.",at:()=>$("vGo"),done:()=>FLT.on},
-  {t:"Lift off",p:"Press <kbd>Z</kbd> for full throttle. Steer with <kbd>A</kbd> / <kbd>D</kbd>.",at:()=>$("fThr"),done:()=>FLT.on&&AV&&AV.maxAlt>150},
+  {t:"Lift off",p:"Press <kbd>Space</kbd> (or <b>Start countdown</b>) to count down from 10. The engines light at T−3 and the rocket goes at zero. Then steer with <kbd>A</kbd> / <kbd>D</kbd>.",at:()=>$("fCount"),done:()=>FLT.on&&AV&&AV.maxAlt>150},
   {t:"You're flying",p:"Lean east (<kbd>D</kbd>) as you climb. When the fuel runs out press <kbd>Space</kbd> to drop the stage. <kbd>M</kbd> shows the map. Try to reach space, then orbit. 🏆 Goals has more to try.",pos:"bl",next:"Got it"}];
 let tutI=-1,tutEl=null,tutRing=null,tutShown=-1;
 const thrust=()=>Math.hypot(thrX,thrY);
