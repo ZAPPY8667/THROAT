@@ -3372,6 +3372,8 @@ function mark(k,t){const e=EV.find(q=>q.k===k&&q.t==null);if(e)e.t=t==null?FT:t;
 function callout(t,sub){if(!JX)return;const el=$("fCall");el.querySelector("b").textContent=t;el.querySelector("small").textContent=sub||"";
   el.classList.remove("go");void el.offsetWidth;el.classList.add("go");}
 // ---------- staging ----------
+// separation motors on dropped side boosters: how long they burn, how hard they push sideways, and how fast they tip the nose out
+const SEP_T=1.2,SEP_A=25,SEP_OM=0.3;
 function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.keys()),decs=nextDecs(v.ps,all);
   if(!decs.length){msg="Nothing left to stage.";msgT=2.5;return;}
   const sp=split(v.ps,v.adj,all,decs,v.root),om=v.om,c=Math.cos(v.phi),s=Math.sin(v.phi);
@@ -3385,9 +3387,12 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
     const dx=(n.px-oldPx)*UM,dy=(n.py-oldPy)*UM,rx=dx*c+dy*s,ry=-dx*s+dy*c;
     n.phi=v.phi;n.om=om;n.x=X0+rx;n.y=Y0+ry;
     let ux=n.x-v.x,uy=n.y-v.y;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
-    n.vx=V0x+om*ry+ux*1.4;n.vy=V0y-om*rx+uy*1.4;n.thr=0;n.landed=false;n.frost=v.frost||0;VS.push(n);}
-  const bo=pieces.some(P=>P.some(p=>p.t==="sdec"));mark("sep");callout(bo?"BOOSTER SEPARATION":"STAGE SEPARATION");kickF=Math.max(kickF,0.35);anAV=null;
-  if(JX){JX.snd.clunk();JX.goal("stage");}}
+    n.vx=V0x+om*ry+ux*1.4;n.vy=V0y-om*rx+uy*1.4;n.thr=0;n.landed=false;n.frost=v.frost||0;VS.push(n);
+    // a side booster (it took its side decoupler with it): fire its separation motors. sepSide = which side of the core it was on,
+    // in the rocket's own left/right; the push is along that, and the nose tips outward (positive turn = clockwise = to the right)
+    if(P.some(p=>p.t==="sdec")){const side=Math.sign(rx*c-ry*s)||1;n.sepSide=side;n.sepT=SEP_T;n.om+=side*SEP_OM;}}
+  const bo=pieces.some(P=>P.some(p=>p.t==="sdec"));mark("sep");callout(bo?"BOOSTER SEPARATION":"STAGE SEPARATION");kickF=Math.max(kickF,bo?0.7:0.35);anAV=null;
+  if(JX){JX.snd.clunk();if(bo)JX.snd.bang(0.7);JX.goal("stage");}}
 // ---------- splitting off part of a craft (abort, tower jettison): the piece keeps its place and speed, like a stage ----------
 function splitOff(v,idx,name,kick){const c=Math.cos(v.phi),s=Math.sin(v.phi),om=v.om,oldPx=v.px,oldPy=v.py,X0=v.x,Y0=v.y,V0x=v.vx,V0y=v.vy;
   const P=v.ps.filter((p,i)=>idx.has(i)),R=v.ps.filter((p,i)=>!idx.has(i));v.ps=R;derive(v,true);{const rx=v.x-X0,ry=v.y-Y0;v.vx=V0x+om*ry;v.vy=V0y-om*rx;}
@@ -3443,6 +3448,9 @@ function stepV(v,dt,u){
   else{v.q=0;v.D=0;v.rho=rho;}
   // launch escape motor: a few seconds of very hard push along the nose, pulling the capsule clear of the rocket
   if(v.lesT>0){const Fl=m*9.81*9;ax+=Fl/m*s;ay+=Fl/m*c;v.lesT-=dt;if(v.lesT<=0)v.lesDone=v.t;}
+  // booster separation motors: for SEP_T seconds after the side decouplers fire, small solid motors at the nose and tail push the
+  // empty booster sideways, away from the core (about 2.5 g), so it can't drift back into the rocket
+  if(v.sepT>0){const k=Math.min(dt,v.sepT)/dt;ax+=v.sepSide*SEP_A*c*k;ay-=v.sepSide*SEP_A*s*k;v.sepT-=dt;}
   // parachutes: open over 3 s; sized so the capsule comes down at about 7 m/s at sea level (faster in thin air). They swing the
   // capsule round to hang heat-shield-down.
   if(v.chute===1&&rho>0&&sp>0.3){v.chuteK=Math.min(1,(v.chuteK||0)+dt/3);const A=m*9.81*2/(RHO0*49)*v.chuteK*v.chuteK,Dc=0.5*rho*sp*sp*A;ax-=Dc/m*v.vx/sp;ay-=Dc/m*v.vy/sp;
@@ -3676,6 +3684,8 @@ function drawVessel(c,v,bright,plumesOnly){
   const lat=v.vx*Math.cos(v.phi)-v.vy*Math.sin(v.phi),bd={g:(v.gim||0)*0.14,k:Math.max(-0.0015,Math.min(0.0015,(v.om||0)/600-lat*v.a/36000))};
   v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright,bd);return;}const fk=fireKind(k,p);const g=clusterGeo(p),pf=(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8);if(g.k>1){for(const[ex,row]of g.xs)if(!row)plume(c,p.x+ex,p.y,g.ew*pf,v.thr,v.a,bright,k==="vac",bd,fk);return;}plume(c,p.x,p.y,p.w*pf,v.thr,v.a,bright,k==="vac",bd,fk);}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
+  if(v.sepT>0)for(const p of v.ps)if(p.t==="srb"){const sd=v.sepSide,xi=p.x-sd*p.w/2,k=Math.min(1,v.sepT/SEP_T*1.5);   // separation motors
+    for(const[yy,ang]of[[p.y+p.h*0.92,-sd*2.2],[p.y+p.h*0.1,-sd*1.0]]){c.save();c.translate(xi,yy);c.rotate(ang);c.globalAlpha=k;srbPlume(c,0,0,p.w*0.55,Math.max(0.35,v.a),bright);c.restore();}}
   for(const p of v.ps)if(p.t==="les"&&v.lesT>0)for(const sd of[-1,1]){c.save();c.translate(p.x+sd*p.w*0.42,p.y+p.h*0.5);c.rotate(sd*2.4);srbPlume(c,0,0,p.w*0.35,v.a,bright);c.restore();}
   if(plumesOnly){c.restore();return;}
   if(v.chute===1&&v.chuteK>0){const cp=v.ps.find(p=>p.t==="capsule");if(cp){const top=cp.y+cp.h,k=v.chuteK,L=cp.w*3.2*k,R2=cp.w*1.5*k;   // three main canopies on long lines
@@ -3761,6 +3771,9 @@ function renderFlight(dt){
   flyers=flyers.filter(q=>q.t<25&&Math.hypot(q.x,q.y)>BOD[q.body].R);
   // every craft near this one: the one you fly, dropped stages, boosters
   for(const v of VS){if(v.body!==r.body||Math.hypot(v.x-r.x,v.y-r.y)>Math.max(4000,FH/s*2))continue;
+    if(v.sepT>0&&v.a>0.02&&smoke.length<600*QPUFF[QL]){const cc=Math.cos(v.phi),ss=Math.sin(v.phi),sd=v.sepSide;   // separation motors' smoke, blown in toward the core
+      for(const p of v.ps)if(p.t==="srb")for(const yy of[p.y+p.h*0.92,p.y+p.h*0.1]){if(Math.random()>0.7)continue;const[wx,wy]=loc(v,(p.x-sd*p.w/2-v.px)*UM,(yy-v.py)*UM),out=-sd*(8+Math.random()*10);
+        smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.4+out*cc+(Math.random()-0.5)*4,vy:v.vy*0.4-out*ss+(Math.random()-0.5)*4,t:0,life:2.5+Math.random()*2,r0:p.w*UM*0.4,r1:(4+Math.random()*5)*Math.max(1,p.w*UM/2),o:v.a*1.3});}}
     if(v.F>0&&v.a>0.03&&smoke.length<600*QPUFF[QL]){const cc=Math.cos(v.phi),ss=Math.sin(v.phi);v.eng.forEach((i,n)=>{const p=v.ps[i],sol=p.t==="srb";if(!v.lit[n]||Math.random()>(sol?1.6:0.8*v.thr)*v.a)return;
       const[wx,wy]=loc(v,(p.x-v.px)*UM,(p.y-v.py)*UM),sp=25+Math.random()*25;
       smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w*UM*0.8,r1:((sol?10:6)+Math.random()*10)*Math.max(1,p.w*UM/2),o:v.a*(sol?1.6:1)});});}

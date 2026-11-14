@@ -221,6 +221,13 @@ made on the test stand.
   cone noses on side decouplers). Carried as one block (`kitBlock`, a tank-like or fin-like box so `snapPart` works unchanged),
   dropped as parts; `hangSdec` moves the side decoupler to where the core beside the booster is; mirrored as twins.
 
+## v1.34: boosters push off
+- Wyatt: "in booster separation make them push off with force". Side boosters (a dropped piece holding a side decoupler) fire
+  separation motors for `SEP_T` 1.2 s: `SEP_A` 25 m/s² sideways away from the core along the booster's own left/right
+  (`v.sepSide`), plus a 0.3 rad/s nose-out spin (`SEP_OM`). Result: ~30 m/s apart, ~50 m out and noses ~35° out 2 s later
+  (tests/flight/separation.js). Drawn as small solid-motor jets at the inner side of each booster's nose (aimed in and forward)
+  and tail (in and back) with smoke blown toward the core; a bang and a harder camera jolt. Before: a 1.4 m/s drift.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
