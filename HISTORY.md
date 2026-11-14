@@ -173,6 +173,10 @@ made on the test stand.
   three sine waves running down the flame. Vacuum: one squashed radial glow (the old 7 wedges showed hard edges), outer layers
   fade, only the core stays bright. Nozzle glow lights the rocket's base. Gimbal bend from v1.27 kept for all, boosters included.
 
+## v1.29: phone test stand
+- On phones (`SMALL`) loading a scenario zooms the stand to the walls' bounding box (`fitCam`, snapped to `ZL`, room behind the
+  nozzle for the flame), and world labels (`TXT`) are 1.8× bigger. Before, the engine was a few pixels tall at 390 px wide.
+
 ## Things that went wrong (don't repeat)
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
   dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.

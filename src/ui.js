@@ -22,8 +22,8 @@ const MONO='ui-monospace,"Cascadia Mono","SF Mono","JetBrains Mono",Menlo,Consol
 function icoBtn(el,n,label){el.innerHTML=ico(n)+(label?`<span>${label}</span>`:"");}
 document.querySelectorAll("[data-ic]").forEach(el=>el.insertAdjacentHTML("afterbegin",ico(el.dataset.ic)));
 const CP=4,W=NX*CP,H=NY*CP;                              // world "pixels", 4 per cell (640×360 in the normal-size world)
-const TXT=W/640;                                          // labels drawn in the world grow with it so they stay the same size on screen
 const SMALL=matchMedia("(max-width:900px),(max-height:520px)").matches;
+const TXT=W/640*(SMALL?1.8:1);                                        // (phones: bigger, the screen is small) labels drawn in the world grow with it so they stay the same size on screen
 const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
 // The canvas always has exactly as many pixels as the screen shows (times the display's pixel density),
 // so labels and numbers drawn on it stay sharp at any window size and on high-res screens.
@@ -658,7 +658,13 @@ function atmoUI(){if(atmo===atmoShown)return;atmoShown=atmo;icoBtn($("bAir"),atm
 const VIEWS=[[6,"Real"],[0,"Glow"],[1,"Gases"],[2,"Pressure"],[3,"Temp"],[4,"Mach"],[5,"Shocks"]];
 function setView(v){S.view=v;document.querySelectorAll("#views button").forEach(b=>b.classList.toggle("on",+b.dataset.v===v));}
 function load(id){if(id==="custom"){if(customDesign){loadDesignUI(customDesign,$("scen").querySelector('[value=custom]').textContent);undoS.pop();}return;}
-  S.scen=id;doAct("scen",id);select(null);wallsDirty=true;TN=0;keySig="";keysUI();atmoShown=-1;atmoUI();cam.z=1;cam.x=cam.y=0;lastWater=waterMade;lastSim=simTime;$("scen").value=id;}
+  S.scen=id;doAct("scen",id);select(null);wallsDirty=true;TN=0;keySig="";keysUI();atmoShown=-1;atmoUI();cam.z=1;cam.x=cam.y=0;lastWater=waterMade;lastSim=simTime;$("scen").value=id;
+  if(SMALL)setTimeout(fitCam,60);}
+// phones: the whole world squeezed into a narrow screen makes the engine a few pixels tall, so zoom in on the walls
+// (the engine) and leave a bit of room behind the nozzle for the flame
+function fitCam(){let x0=NX,x1=-1,y0=NY,y1=-1;for(let k=0;k<NC;k++)if(wall[k]){const x=k%NX,y=(k/NX)|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+  if(x1<0)return;const bw=(x1-x0+1)*CP*1.6,bh=(y1-y0+1)*CP*1.25;let z=1;for(const q of ZL)if(W/q>=bw&&H/q>=bh)z=q;
+  cam.z=z;cam.x=x0*CP-(W/z-bw/1.6)*0.12;cam.y=((y0+y1+1)/2)*CP-H/z/2;clampCam();}
 // build toolbar + views
 $("tools").innerHTML=TOOLS.map(([id,name,key])=>`<button class="tool" data-tool="${id}" title="${name} (${key})"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">${ICON[id]}</svg><span>${name}</span><kbd>${key}</kbd></button>`).join("");
 document.querySelectorAll("#tools .tool").forEach(b=>b.onclick=()=>setTool(b.dataset.tool));

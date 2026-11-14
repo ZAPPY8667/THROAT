@@ -5,7 +5,7 @@ Read CLAUDE.md, then HISTORY.md (sections v1.15 onward) for why things are tuned
 
 ## Open items
 Done in v1.25: live site checked, playtest pass (see HISTORY.md v1.25), flight school + new goals, Rajdhani font, playtest email text.
-1. Phone test stand: the engine is tiny on a 390 px screen; zoom the stand view to the engine on narrow screens.
+1. ✅ (v1.29) Phone test stand zooms to the engine.
 2. SLS-shaped rocket: ~14 game-minutes to orbit (core is weak after the boosters drop); try a stronger core cluster.
 3. Known gaps: trees/buildings have no collisions; no separate upper-stage part; pre-v1.16 saved rockets fly oddly.
 
