@@ -1,7 +1,7 @@
 // ================= FIRST-TIME TUTORIAL =================
 // A few coach cards that walk a newcomer through the whole game once: light the engine on the test stand, build a rocket
 // around it, launch. Each step moves on by itself when the player actually does the thing (no "Next" to click through),
-// and a ring shows what to press. Runs on the first visit; Skip ends it; Controls and Goals can start it again.
+// and a ring shows what to press. Starts when a first-time player picks "Build an engine" on the title screen; Skip ends it; Controls and Goals can start it again.
 const TUT_KEY="throat.tut.v1";
 const TUT=[
   {t:"Welcome to THROAT",p:"This is a rocket engine on a test stand. Real gas physics runs here: hydrogen and oxygen flow in, burn, and blast out of the nozzle. Let's fire it, then fly it.",next:"Let's go"},
@@ -54,7 +54,7 @@ function tutLoop(){
   else{x=Math.max(10,Math.min(W-cw-10,r.left+r.width/2-cw/2));y=r.bottom+14+ch<H-8?r.bottom+14:Math.max(10,r.top-ch-14);}
   tutEl.style.left=Math.round(x)+"px";tutEl.style.top=Math.round(y)+"px";}
 // first visit: start once the page has settled; anyone who already finished goals before this existed has played: skip it
-setTimeout(()=>{const st=store.get(TUT_KEY,null);if(!st&&!(JX&&Object.keys(JX.done).length>2))tutStart();},700);
+// first visit: the title screen (title.js) starts the tutorial when the player picks "Build an engine"
 $("bTut").onclick=()=>{$("help").classList.remove("show");tutStart();};
 $("bTut2").onclick=()=>{$("help").classList.remove("show");tutStart(TUT2);};
 window.__tut={start:tutStart,school:()=>tutStart(TUT2),end:tutEnd,get step(){return tutI;}};

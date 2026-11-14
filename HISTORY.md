@@ -228,6 +228,25 @@ made on the test stand.
   (tests/flight/separation.js). Drawn as small solid-motor jets at the inner side of each booster's nose (aimed in and forward)
   and tail (in and back) with smoke blown toward the core; a bang and a harder camera jolt. Before: a 1.4 m/s drift.
 
+## v1.35: title screen, the demo goes to the Moon and back, propellant density
+- **Title screen** (`title.js`): THROAT over the live demo (cockpit displays hidden by `#flight.attract`, camera shifted right
+  on wide screens so the title doesn't cover the rocket, callouts muted, the demo restarts when it ends). Watch a launch (demo
+  from the pad, with captions) · Build an engine (the stand; first-timers get the tutorial, which no longer starts by itself)
+  · Fly a rocket (editor). Enter / Esc. Flight keys are ignored while it's up.
+- **Demo part 2**: at the Moon the core drops; LAND from the incoming path (warp 20 while falling high, close-up under 2.5 km);
+  ASCENT on the Moon to 20 km; NODE "home" (re-entry periapsis ~30 km); warp to Earth; stage down to the capsule, hold
+  retrograde (heat shield first); warp 2 only while it glows; chutes under 240 m/s and 9 km; splashdown/touchdown. ~10 min.
+  Close-up zoom now targets the real framing scale (it stacked on the v1.25 small-craft zoom and filled the screen with hull).
+- Found on the way: the ASCENT autopilot couldn't take off from the Moon (TWR ~13 there: it reached the target height going
+  straight up, then the circularise burn pointed along the vertical path and escaped). Now it leans over within 2 km where there
+  is no air, and circularises pointing flat along the ground. The Super Heavy had no decoupler under the capsule, so a capsule
+  coming home couldn't drop the service module and burned up nose-first: added.
+- **Propellant density**: a tank holds what its engines burn (`tagTanks` → `p.fk`; `RHO_FUEL` h2 360, ch4 830, kero 1030 kg/m³;
+  `engFuel`: Wren/Mule/Bison kerosene, your engine = last stand fuel, saved engines = their fuel). Tank dry mass stays by volume.
+  In flight the marks are kept (a dropped tank keeps its fuel); in the editor they're redone. Retuned: Heavy's Mule boosters'
+  tanks 300 → 140, Lander 160/90 → 70/40, Super Heavy service module 36 → 18; old-save upgrade makes kerosene tanks shorter.
+  The editor shows "120 t kerosene + oxygen". All ready-made rockets still reach orbit on the autopilot.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

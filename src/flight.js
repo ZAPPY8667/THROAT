@@ -74,9 +74,10 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)*UM,(q[1]-npy)*UM)),v.H);
   v.boomS=Math.max(1.5,v.H*0.6);}
 function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
+  if(ps.some(p=>p.t==="tank"&&p.fuel==null))tagTanks(ps,adjOf(ps),false);   // fresh tanks: fill them with what their engines burn
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
-let showCen=false;
+let showCen=false,camShift=0;
 let launchSeed=Date.now()%2147483647||7;
 function startFlight(ps,name,keepWx){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
@@ -123,7 +124,7 @@ function buildEvents(a){EV=[{k:"liftoff",l:"LIFTOFF"},{k:"maxq",l:"MAX-Q"}];nSt0
   EV.push({k:"space",l:"SPACE"},{k:"orbit",l:"ORBIT"});if(a.total>4200)EV.push({k:"moon",l:"MOON"});}
 function mark(k,t){const e=EV.find(q=>q.k===k&&q.t==null);if(e)e.t=t==null?FT:t;else if(k==="moon")EV.push({k,l:"MOON",t:FT});}
 // big thin centred text that fades in and out (LIFTOFF, MAX-Q, STAGE SEPARATION...). Hints still use the small message box.
-function callout(t,sub){if(!JX)return;const el=$("fCall");el.querySelector("b").textContent=t;el.querySelector("small").textContent=sub||"";
+function callout(t,sub){if(!JX||typeof titleUp!=="undefined"&&titleUp)return;const el=$("fCall");el.querySelector("b").textContent=t;el.querySelector("small").textContent=sub||"";
   el.classList.remove("go");void el.offsetWidth;el.classList.add("go");}
 // ---------- staging ----------
 // separation motors on dropped side boosters: how long they burn, how hard they push sideways, and how fast they tip the nose out
@@ -285,7 +286,7 @@ function orbitOf(r){const B=BOD[r.body],mu=B.mu,rr=Math.hypot(r.x,r.y),v2=r.vx*r
   const ex=r.vy*hz/mu-r.x/rr,ey=-r.vx*hz/mu-r.y/rr,e=Math.hypot(ex,ey);
   if(E>=0)return{esc:true,e,ex,ey,hz,pe:hz*hz/mu/(1+e)-B.R};const a=-mu/(2*E);return{a,e,ex,ey,hz,ap:a*(1+e)-B.R,pe:a*(1-e)-B.R};}
 // ---------- input ----------
-addEventListener("keydown",e=>{if(!FLT.on)return;const tg=e.target&&e.target.tagName;if(tg==="INPUT"||tg==="SELECT"){if(e.key==="Escape")e.target.blur();return;}const k=e.key.toLowerCase();keys.add(k);
+addEventListener("keydown",e=>{if(!FLT.on||typeof titleUp!=="undefined"&&titleUp)return;const tg=e.target&&e.target.tagName;if(tg==="INPUT"||tg==="SELECT"){if(e.key==="Escape")e.target.blur();return;}const k=e.key.toLowerCase();keys.add(k);
   if(DEMO.on&&!["m","u","h","escape"].includes(k))demoStop("You have the controls. The autopilot tabs on the left (ASCENT, NODE, LAND) can fly it again.");   // any key ends the demo
   if(k==="escape"){endFlight();}
   else if((k==="z"||k==="w"||k==="shift")&&CD.s==="wait"){msg="The rocket is held down on the pad. Press Space to start the countdown.";msgT=3;}
@@ -486,7 +487,9 @@ function renderFlight(dt){
   camT+=dt;kickF=Math.max(0,kickF-dt*1.5);flashF=Math.max(0,flashF-dt*2);
   const still=typeof REDUCED!=="undefined"&&REDUCED,thrK=r.F>0&&r.m?Math.min(1,r.F/(r.m*9.81*2.5)):0;
   const amp=still?0:FDS*(kickF*12+thrK*(0.4+r.a)*1.6+Math.min(1,(r.q||0)/25000)*4),dr=still?0:FDS;
-  const ox=(Math.sin(camT*0.31)*6+Math.sin(camT*0.17+1)*4)*dr+(Math.random()-0.5)*amp,oy=(Math.sin(camT*0.23+2)*4+Math.sin(camT*0.13)*3)*dr+(Math.random()-0.5)*amp;
+  // behind the title screen on a wide screen, the rocket sits right of centre so the title on the left doesn't cover it
+  camShift+=((typeof titleUp!=="undefined"&&titleUp&&FW>FH*1.2?FW*0.17:0)-camShift)*Math.min(1,dt*3);
+  const ox=camShift+(Math.sin(camT*0.31)*6+Math.sin(camT*0.17+1)*4)*dr+(Math.random()-0.5)*amp,oy=(Math.sin(camT*0.23+2)*4+Math.sin(camT*0.13)*3)*dr+(Math.random()-0.5)*amp;
   c.setTransform(1,0,0,1,FW/2+ox,FH*0.55+oy);c.scale(s,-s);c.rotate(psi);c.translate(-r.x,-r.y);
   // clouds: far ones (d > 0) first, smaller and closer to the rocket's spot, so they slide by slower (parallax); near ones (d < 0)
   // are drawn later, over the rocket. Grey in rain, tinted at sunrise and sunset, dimmer at night.

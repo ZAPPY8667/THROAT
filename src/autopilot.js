@@ -32,7 +32,9 @@ function apAscent(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),h=rr-B.R,o=or
   if(AP.ph==="start"){if(typeof CD!=="undefined"&&CD.s!=="go"){AP.msg="Counting down…";point(v,up);return;}AP.ph="climb";}
   if(AP.ph==="climb"){
     // gravity turn: tip over smoothly from straight up to flat as the rocket climbs; keep enough time to apoapsis so it doesn't fall back
-    const f=clamp(Math.max((h-800)/(O.turnEnd-800),(sp-60)/1500),0,1),pitch=Math.pow(f,O.shape)*Math.PI/2*0.98;let tilt=pitch;
+    // with no air to fly through (the Moon) there's no reason to climb straight up: lean over within the first 2 km. Otherwise a
+    // light, powerful craft reaches its target height going straight up and has nothing left to turn with (v1.35)
+    const f=clamp(Math.max((h-800)/(O.turnEnd-800),(sp-60)/1500,B.atm?0:(h-150)/2000),0,1),pitch=Math.pow(f,O.shape)*Math.PI/2*0.98;let tilt=pitch;
     if(h>12000&&!o.esc&&tt){const want=30+50*(1-f);if(tt.ap<want&&o.ap<O.alt)tilt=Math.max(0,tilt-(want-tt.ap)*0.012);}
     // don't swing far from where the air is pushing while it's thick: limit the angle between nose and path
     const pro=sp>30?angOf(v.vx,v.vy)-up:0;if((v.q||0)>3000)tilt=clamp(tilt,pro-0.12,pro+0.12);
@@ -47,7 +49,9 @@ function apAscent(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),h=rr-B.R,o=or
     AP.msg=`Coasting to apoapsis: circularise ${fmt(dv)} m/s in ${tt?Math.round(tt.ap-tb/2):"?"} s`;
     if(tt&&tt.ap<=tb/2+1&&h>B.floor)AP.ph="circ";
     if(tt&&tt.ap<=tb/2+1&&h<=B.floor){AP.ph="circ";}}
-  else if(AP.ph==="circ"){const ra=rr,vc=Math.sqrt(B.mu/ra),vh=Math.abs(o.hz)/ra;point(v,angOf(v.vx,v.vy)+(o.ap<O.alt*0.98&&tt&&tt.ap>tt.per/2?-0.15:0));
+  // circularise: push sideways (flat along the ground, the way it's going), not along the path: if the path still climbs steeply,
+  // pushing along it only raises the apoapsis (on the Moon that sent it off into space, v1.35)
+  else if(AP.ph==="circ"){const ra=rr,vc=Math.sqrt(B.mu/ra),vh=Math.abs(o.hz)/ra,sd=o.hz<0?1:-1;point(v,up+sd*Math.PI/2-sd*(o.ap<O.alt*0.98&&tt&&tt.ap>tt.per/2?0.15:0));
     const need=vc-vh,a=Math.max(0.3,apThrust(v).all/mOf(v));v.thr=clamp(need/(a*1.5),0.05,1);AP.msg=`Circularising: ${fmt(Math.max(0,need))} m/s to go`;
     if(!o.esc&&o.pe>Math.max(B.floor+5000,O.alt*0.9)||o.esc){v.thr=0;apOff("done");}}}
 // ---------------- NODE: plan and fly a burn ----------------

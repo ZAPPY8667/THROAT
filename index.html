@@ -354,6 +354,16 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   .flight .fbt label.sl{flex:1 1 100%;order:-1}.flight .fbt{top:32px}.flight .etabs{top:150px}.fdrawer{top:150px}.tl{margin:0 26px}.flight .fmsg{top:auto;bottom:290px}
   .tl .ev em{display:none}.tl .ev.next em{display:block}.toast{top:150px}}   /* phone: only the next event is labelled, so the names don't overlap */
 .saslist button kbd{display:inline-block!important}
+/* title screen (title.js): over the live demo, whose cockpit displays are hidden */
+#flight.attract>*:not(#fcv){visibility:hidden!important}
+.title{position:fixed;inset:0;z-index:80;background:linear-gradient(90deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.55) 42%,rgba(0,0,0,0) 70%);display:flex;align-items:center}
+.title-box{margin-left:6vw;max-width:min(560px,88vw);color:var(--txt)}
+.title-tag{font:600 11px var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--dim)}.title-tag::before{content:"";display:inline-block;width:14px;height:2px;background:var(--red);vertical-align:middle;margin-right:10px}
+.title h1{font:300 clamp(56px,11vw,128px)/0.95 var(--sans);letter-spacing:.16em;margin:10px 0 18px;color:#fff}
+.title p{font:500 16px/1.5 var(--sans);color:#d8dbe0;margin:0 0 24px}
+.title-b{display:flex;gap:10px;flex-wrap:wrap}.title-b .b{height:44px;padding:0 20px;font-size:15px}
+.title small{display:block;margin-top:22px;color:var(--faint);font:500 11px var(--sans);letter-spacing:.06em}
+@media (max-width:700px){.title{align-items:flex-end;background:linear-gradient(0deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.6) 55%,rgba(0,0,0,0) 85%)}.title-box{margin:0 18px 34px}.title p{font-size:14px}.title-b .b{flex:1 1 100%}}
 .demo{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:min(560px,calc(100vw - 24px));z-index:6;background:rgba(0,0,0,.72);border:1px solid var(--line2);border-left:3px solid var(--red);border-radius:var(--r);padding:10px 14px 12px;color:var(--txt);font:500 14px/1.45 var(--sans)}
 .demo p{margin:4px 0 10px}.demo .row{gap:8px}.demo-tag{font:600 10px var(--sans);letter-spacing:.24em;text-transform:uppercase;color:var(--red)}
 @media (max-width:700px){.demo{top:auto;bottom:230px;font-size:12.5px;padding:8px 11px 10px}}
@@ -1219,7 +1229,7 @@ const ICP={
   mirror:["M12 3v18","M8 7 3 12l5 5z","M16 7l5 5-5 5z"],legs:["M12 4v8","M12 12l-6 8","M12 12l6 8","M3.5 20h5","M15.5 20h5"],fit:["M4 9V4h5","M20 9V4h-5","M4 15v5h5","M20 15v5h-5"],
   stage:["M12 4l7 8H5z","M5 17h14"],centre:["o 12 12 7","M12 5v14","M5 12h14"],chute:["M4 11a8 8 0 0 1 16 0z","M4 11l8 9 8-9","M12 11v9"],abort:["M12 3l10 18H2z","M12 10v5","M12 18v.1"],rcs:["o 12 12 3","M12 2v5","M12 17v5","M2 12h5","M17 12h5"],warp:["M3 6l8 6-8 6z","M12 6l8 6-8 6z"],map:["M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z","M9 4v14","M15 6v14"],
   build:["M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"],back:["M19 12H5","M11 6l-6 6 6 6"],
-  warpdn:["M21 6l-8 6 8 6z","M12 6l-8 6 8 6z"],share:["M12 3v12","M7 8l5-5 5 5","M5 13v7h14v-7"],rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
+  warpdn:["M21 6l-8 6 8 6z","M12 6l-8 6 8 6z"],share:["M12 3v12","M7 8l5-5 5 5","M5 13v7h14v-7"],flame:["M12 3c3 4 5 6.5 5 10a5 5 0 0 1-10 0c0-2.2 1-3.8 2.2-5 .1 2 1 3.2 2.3 3.5-.9-3 .2-6 .5-8.5z"],rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
 function ico(n){return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${(ICP[n]||[]).map(d=>d[0]==="o"?(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}"/>`)(d.slice(2).split(" ")):`<path d="${d}"/>`).join("")}</svg>`;}
 const SANS='"Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
 const MONO='ui-monospace,"Cascadia Mono","SF Mono","JetBrains Mono",Menlo,Consolas,monospace';   // numbers drawn on canvases
@@ -2205,13 +2215,17 @@ const UM=0.1,MK=1000;
 // The fuel's weight stays in the part's mass the whole flight: it's small next to the rocket and not worth the bookkeeping.
 const RCS_F=250*MK,RCS_ISP=180,RCS_MONO=2.5*MK;
 const G0=9.80665,RHO_P=360;   // bulk density of liquid hydrogen + liquid oxygen, kg/m³
-const tankCap=(w,h)=>RHO_P*Math.PI*(w*UM/2)**2*(h*UM);
+// v1.35: a tank holds whatever its engines burn, and the propellants weigh very different amounts for the same tank: liquid
+// hydrogen is so light that hydrogen + oxygen comes to 360 kg/m³; methane + oxygen 830; kerosene + oxygen 1,030 (nearly 3×).
+// So a kerosene stage is heavy and compact, a hydrogen stage big and light. p.fk on a tank = the fuel it holds (none = hydrogen).
+const RHO_FUEL={h2:RHO_P,ch4:830,kero:1030},FUEL_NAME={h2:"hydrogen",ch4:"methane",kero:"kerosene"};
+const tankCap=(w,h,fk)=>(RHO_FUEL[fk]||RHO_P)*Math.PI*(w*UM/2)**2*(h*UM);
 // solid boosters carry their own propellant, packed much denser than the liquids (real solid propellant is ~1,750 kg/m³;
 // 900 allows for the hollow core);
 // the bottom 2 m is the nozzle, so it holds no propellant
 const RHO_S=900,SRB_NZ=20,SRB_REF=18;   // SRB_REF: a booster this wide pushes its listed thrust × MK (real SLS boosters: ~15 MN at 3.7 m)
 const srbCap=(w,h)=>RHO_S*Math.PI*(w*UM/2)**2*(Math.max(0,h-SRB_NZ)*UM);
-const capOf=p=>p.t==="tank"?tankCap(p.w,p.h):p.t==="srb"?srbCap(p.w,p.h):0;
+const capOf=p=>p.t==="tank"?tankCap(p.w,p.h,p.fk):p.t==="srb"?srbCap(p.w,p.h):0;
 const hasProp=p=>p.t==="tank"||p.t==="srb";
 const isEng=p=>p.t==="engine"||p.t==="srb";
 const isBrain=p=>p.t==="probe"||p.t==="capsule";   // a capsule is a probe core with a heat shield, parachutes and a crew
@@ -2230,7 +2244,7 @@ const A2=(w,r)=>(w/r)**2;   // how a part's mass (or an engine's thrust) grows w
 const PT={
   probe:  {name:"Probe core",     ws:[40], wr:[10,160], h:w=>Math.round(w*0.5), m:w=>4*MK*A2(w,60), desc:"The brain. You need one to steer, and its reaction wheels turn the rocket even with the engine off."},
   nose:   {name:"Nose cone",      ws:[40], wr:[10,160], h:w=>Math.round(w*1.6), m:w=>1.5*MK*A2(w,60), desc:"Cuts air drag a lot. Put one on top of every stack that leads the way."},
-  tank:   {name:"Fuel tank",      ws:[40], wr:[10,160], h:()=>200, m:(w,h)=>MK*A2(w,60)*h/90+0.08*tankCap(w,h), desc:"Liquid hydrogen + oxygen. Shift+wheel stretches its length, Ctrl+wheel its width."},
+  tank:   {name:"Fuel tank",      ws:[40], wr:[10,160], h:()=>200, m:(w,h)=>MK*A2(w,60)*h/90+0.08*tankCap(w,h), desc:"Propellant for the engines under it: hydrogen + oxygen (light), or methane / kerosene + oxygen if those engines burn it (2–3× heavier for the same tank). Shift+wheel stretches its length, Ctrl+wheel its width."},
   adapter:{name:"Adapter",        ws:[84], wr:[14,160], h:w=>40, m:w=>3*MK*A2(w,120), desc:"Joins a wide stack (below) to a narrower one (above). Set both widths in its settings."},
   engine: {name:"Engine",         ws:[30], wr:[8,120],  h:w=>w, m:()=>9*MK, desc:"An engine."},
   srb:    {name:"Solid booster",  ws:[37], wr:[10,120], h:()=>300,m:(w,h)=>2*MK*A2(w,60)*h/150+0.12*srbCap(w,h), desc:"Fuel and engine in one. Lights when you throttle up and can't be stopped or throttled until it burns out. Stretch it for a longer burn."},
@@ -2311,11 +2325,19 @@ function split(ps,adj,inSet,decs,root){const D=new Set(decs);
   for(const i of rest)if(!done.has(i)){const c=bfs(adj,i,j=>restS.has(j));c.forEach(j=>done.add(j));pieces.push(c);}
   return{keep,pieces};}
 // stage-by-stage Δv: burn until whatever the next decoupler drops has run dry, drop it, repeat
+// which fuel an engine burns: the kerosene workhorses (Wren, Mule, Bison), your engine = what you last tested on the stand,
+// a saved engine = what it was saved with, the rest hydrogen
+function engFuel(p){const k=engKey(p);return k==="wren"||k==="mule"||k==="bison"?"kero":k==="lib"?(p.n&&p.n.fuel)||"h2":k==="stand"&&typeof engineNums==="function"?engineNums().fuel||"h2":"h2";}
+// mark each tank with the fuel of the engines it feeds (a tank shared by two kinds takes the denser one). In flight the marks are
+// kept (a dropped tank keeps what's in it); in the editor they're redone, since engines get swapped.
+function tagTanks(ps,adj,redo){const all=new Set(ps.keys());if(redo)for(const p of ps)if(p.t==="tank")delete p.fk;
+  ps.forEach((p,i)=>{if(p.t!=="engine")return;const k=engFuel(p);if(k==="h2")return;
+    for(const j of feedOf(ps,adj,i,all)){const q=ps[j];if(q.t==="tank"&&(!q.fk||RHO_FUEL[k]>RHO_FUEL[q.fk]))q.fk=k;}});}
 function analyze(ps,_eng,fuel){
   const out={stages:[],total:0,warn:[],root:rootIdx(ps),m0:0,H:0,mass:0};
   if(!ps.length){out.warn.push("Drag parts in from the left to build a rocket.");return out;}
   if(out.root<0){out.warn.push("Add a probe core. It's the brain, and the rocket is built around it.");return out;}
-  const adj=adjOf(ps),all=bfs(adj,out.root,()=>true);
+  const adj=adjOf(ps),all=bfs(adj,out.root,()=>true);tagTanks(ps,adj,!(typeof FLT!=="undefined"&&FLT.on));
   const loose=ps.length-all.size;if(loose)out.warn.push(`${loose} part${loose>1?"s aren't":" isn't"} attached (shown red) and will be left behind.`);
   const F=ps.map((p,i)=>hasProp(p)?(fuel?fuel[i]:capOf(p)):0);
   let S=all,first=true,lo=1e9,hi=-1e9;for(const i of all){lo=Math.min(lo,ps[i].y);hi=Math.max(hi,ps[i].y+ps[i].h);}out.H=(hi-lo)*UM;
@@ -2526,12 +2548,13 @@ function oldScale(ps){return Array.isArray(ps)&&ps.some(p=>p.t==="dec"&&p.h===15
 function upscaleOld(ps){
   const r=Math.round,clampW=(t,w)=>PT[t].wr?Math.max(PT[t].wr[0],Math.min(PT[t].wr[1],w)):w;
   const size=p=>{const t=p.t;let w,h;
-    if(t==="tank"){w=clampW(t,r(p.w*2/3));h=r(p.h*2.4);}
+    if(t==="tank"){w=clampW(t,r(p.w*2/3));h=r(p.h*2.4*(p.fk?Math.min(1,1.2*RHO_P/RHO_FUEL[p.fk]):1));}   // kerosene/methane tanks: shorter, as their propellant is denser
     else if(t==="srb"){w=clampW(t,r(p.w*0.3));h=r(p.h*1.73);}   // the old 60×150 booster becomes the Sparrow's 18×260
     else if(t==="engine"){const e=p.e||"stand",o=OLD_ENG[e]||[60,60];w=clampW(t,r(ENG[e].w*p.w/o[0]));h=engH({t,e,w,k:1});}
     else if(PT[t].radial){w=PT[t].ws[0];h=PT[t].h(w);}
     else{w=clampW(t,r(p.w*2/3));h=PT[t].h(w);}
     return{w,h};};
+  tagTanks(ps,adjOf(ps),true);
   const q=ps.map(p=>({p,o:{x:p.x,y:p.y,w:p.w,h:p.h},n:size(p),nx:null,ny:null}));
   const touchY=(a,b)=>Math.abs(b.o.y-(a.o.y+a.o.h))<0.6&&Math.abs(a.o.x-b.o.x)<(a.o.w+b.o.w)/2-0.5;   // b sits on a
   const stack=q.filter(e=>!PT[e.p.t].radial).sort((a,b)=>a.o.y-b.o.y);
@@ -2580,21 +2603,23 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
   const W=40;   // 4 m core, Falcon-like
   if(name==="hopper"){stack(0,[["engine",30],["tank",W,120],["probe",W],["nose",W]]);pair("leg",W/2+15,46);}
   else if(name==="orbiter"){stack(0,[["engine",30],["tank",W,215],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);pair("fin",W/2+15,46);}
+  // v1.35: kerosene tanks (Mule, Bison, Wren) hold nearly 3× the mass of hydrogen ones, so they are about half as long as before
   else if(name==="heavy"){const top=stack(0,[["engine",30],["tank",W,360],["dec",W],["engine:vac",30],["tank",W,140],["probe",W],["nose",W]]);
-    const bw=34,bx=W/2+3+bw/2,mh=mkPart("engine:mule",30).h;pair("sdec",W/2+1.5,90);pair("engine:mule",bx,0,30);pair("tank",bx,mh,bw,300);pair("nose",bx,mh+300,bw);pair("fin",bx+bw/2+15,mh);}
+    const bw=34,bx=W/2+3+bw/2,mh=mkPart("engine:mule",30).h;pair("sdec",W/2+1.5,90);pair("engine:mule",bx,0,30);pair("tank",bx,mh,bw,140);pair("nose",bx,mh+140,bw);pair("fin",bx+bw/2+15,mh);}
   else if(name==="sparrow"){   // the Orbiter with two solid boosters strapped on, flush to the core: they light with the throttle; Space drops them
     stack(0,[["engine",30],["tank",W,250],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);
     const bw=18,bx=W/2+3+bw/2;pair("sdec",W/2+1.5,60);pair("srb:thumper",bx,0,bw,260);pair("nose",bx,260,bw);pair("fin",bx+bw/2+15,0);}
-  else if(name==="lander"){const y=stack(0,[["engine:bison",56],["tank",84,160],["adapter",84],["dec",W],["engine:wren",22],["tank",W,90],["probe",W],["nose",W]]);
+  else if(name==="lander"){const y=stack(0,[["engine:bison",56],["tank",84,70],["adapter",84],["dec",W],["engine:wren",22],["tank",W,40],["probe",W],["nose",W]]);
     pair("leg",W/2+15,A.find(p=>p.t==="engine"&&p.e==="wren").y+32);pair("fin",84/2+15,70);}
   else if(name==="sls"){   // SLS proportions: an 8.4 m orange core with a 4-engine cluster, two slim 3.7 m solid boosters flush to its
     // sides with pointed noses, an upper stage with a vacuum engine, a service module, and an Orion-style capsule with its escape tower
+    // a decoupler under the capsule (v1.35): coming home, the service module drops so the heat shield faces the air
     // core 48 m, boosters 44 m (v1.30; were 60 and 54): the long core alone had a thrust-to-weight of 1.1 after the boosters left,
     // so the climb to orbit took ~14 minutes and it arrived with 490 t of fuel unused. Now it gets there in ~7, like the others.
     const C=84,eng=add("engine:stand:4",0,0,C);let y=eng.h;
     const core=add("tank",0,y,C,480);core.sk="foam";y+=480;
     const ad=add("adapter",0,y,C,50);ad.w2=50;y+=50;
-    y=stack(y,[["dec",50],["engine:vac",28],["tank",50,80],["dec",50],["engine:wren",22],["tank",50,36],["capsule",50],["les",14]]);
+    y=stack(y,[["dec",50],["engine:vac",28],["tank",50,80],["dec",50],["engine:wren",22],["tank",50,18],["dec",50],["capsule",50],["les",14]]);
     const bw=37,bx=C/2+3+bw/2;pair("sdec",C/2+1.5,200);pair("srb:thumper",bx,0,bw,440);pair("nose",bx,440,bw,80);for(const p of A)if(p.t==="nose"&&p.w===bw)p.ns="cone";}
   return A;}
 
@@ -3107,7 +3132,7 @@ function vWiden(i,dw){const p=vps[i],r=PT[p.t].wr,w=Math.max(r[0],Math.min(r[1],
   const keepShape=p.t==="nose"||p.t==="probe"||p.t==="capsule"||p.t==="les"||p.t==="engine";vResize(i,w,p.t==="engine"?engH({t:"engine",e:p.e,w,k:p.k}):keepShape?Math.max(4,Math.round(p.h*w/p.w)):p.h,q=>{if(q.t==="adapter"&&q.w2>=w)q.w2=w-2;});}
 function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.display="none";return;}const p=vps[i],d=PT[p.t];el.style.display="";
   const cap=capOf(p),isE=p.t==="engine",isS=p.t==="srb",E=isE||isS?engStat(p):null,lib=libAll();
-  let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fM(partMass(p)+cap)}${cap?` (${fM(cap)} propellant)`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:isS?BOOST[boostKey(p)].desc:d.desc}</div>`;
+  let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fM(partMass(p)+cap)}${cap?` (${fM(cap)} ${p.t==="tank"?FUEL_NAME[p.fk||"h2"]+" + oxygen":"propellant"})`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:isS?BOOST[boostKey(p)].desc:d.desc}</div>`;
   if(isS){const B=E,k=boostKey(p),bt=cap*B.sl.isp*G0/B.sl.F;
     h+=`<div class="tip" style="margin-top:4px">Sea level <b>${fF(B.sl.F)} · ${Math.round(B.sl.isp)} s</b>${B.sl.est?" (est.)":""}<br>Vacuum <b>${fF(B.vac.F)} · ${Math.round(B.vac.isp)} s</b>${B.vac.est?" (est.)":""}<br>Burns about <b>${Math.round(bt)} s</b> ${curveSvg(B.curve)}${k==="stand"?`<br>${B.src==="tested"?"From your last booster burn on the test stand.":"Not burned yet: these are the Thumper's numbers until you fire a booster on the test stand."}`:""}</div>
     <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap"><button class="b${k==="stand"?" on":""}" data-bo="stand">Your booster</button><button class="b${k==="thumper"?" on":""}" data-bo="thumper">Thumper</button>${lib.filter(e=>e.kind==="solid").map(e=>`<button class="b${k==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-bo="${e.id}"></button>`).join("")}</div>`;}
@@ -3320,9 +3345,10 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)*UM,(q[1]-npy)*UM)),v.H);
   v.boomS=Math.max(1.5,v.H*0.6);}
 function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
+  if(ps.some(p=>p.t==="tank"&&p.fuel==null))tagTanks(ps,adjOf(ps),false);   // fresh tanks: fill them with what their engines burn
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
-let showCen=false;
+let showCen=false,camShift=0;
 let launchSeed=Date.now()%2147483647||7;
 function startFlight(ps,name,keepWx){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
@@ -3369,7 +3395,7 @@ function buildEvents(a){EV=[{k:"liftoff",l:"LIFTOFF"},{k:"maxq",l:"MAX-Q"}];nSt0
   EV.push({k:"space",l:"SPACE"},{k:"orbit",l:"ORBIT"});if(a.total>4200)EV.push({k:"moon",l:"MOON"});}
 function mark(k,t){const e=EV.find(q=>q.k===k&&q.t==null);if(e)e.t=t==null?FT:t;else if(k==="moon")EV.push({k,l:"MOON",t:FT});}
 // big thin centred text that fades in and out (LIFTOFF, MAX-Q, STAGE SEPARATION...). Hints still use the small message box.
-function callout(t,sub){if(!JX)return;const el=$("fCall");el.querySelector("b").textContent=t;el.querySelector("small").textContent=sub||"";
+function callout(t,sub){if(!JX||typeof titleUp!=="undefined"&&titleUp)return;const el=$("fCall");el.querySelector("b").textContent=t;el.querySelector("small").textContent=sub||"";
   el.classList.remove("go");void el.offsetWidth;el.classList.add("go");}
 // ---------- staging ----------
 // separation motors on dropped side boosters: how long they burn, how hard they push sideways, and how fast they tip the nose out
@@ -3531,7 +3557,7 @@ function orbitOf(r){const B=BOD[r.body],mu=B.mu,rr=Math.hypot(r.x,r.y),v2=r.vx*r
   const ex=r.vy*hz/mu-r.x/rr,ey=-r.vx*hz/mu-r.y/rr,e=Math.hypot(ex,ey);
   if(E>=0)return{esc:true,e,ex,ey,hz,pe:hz*hz/mu/(1+e)-B.R};const a=-mu/(2*E);return{a,e,ex,ey,hz,ap:a*(1+e)-B.R,pe:a*(1-e)-B.R};}
 // ---------- input ----------
-addEventListener("keydown",e=>{if(!FLT.on)return;const tg=e.target&&e.target.tagName;if(tg==="INPUT"||tg==="SELECT"){if(e.key==="Escape")e.target.blur();return;}const k=e.key.toLowerCase();keys.add(k);
+addEventListener("keydown",e=>{if(!FLT.on||typeof titleUp!=="undefined"&&titleUp)return;const tg=e.target&&e.target.tagName;if(tg==="INPUT"||tg==="SELECT"){if(e.key==="Escape")e.target.blur();return;}const k=e.key.toLowerCase();keys.add(k);
   if(DEMO.on&&!["m","u","h","escape"].includes(k))demoStop("You have the controls. The autopilot tabs on the left (ASCENT, NODE, LAND) can fly it again.");   // any key ends the demo
   if(k==="escape"){endFlight();}
   else if((k==="z"||k==="w"||k==="shift")&&CD.s==="wait"){msg="The rocket is held down on the pad. Press Space to start the countdown.";msgT=3;}
@@ -3732,7 +3758,9 @@ function renderFlight(dt){
   camT+=dt;kickF=Math.max(0,kickF-dt*1.5);flashF=Math.max(0,flashF-dt*2);
   const still=typeof REDUCED!=="undefined"&&REDUCED,thrK=r.F>0&&r.m?Math.min(1,r.F/(r.m*9.81*2.5)):0;
   const amp=still?0:FDS*(kickF*12+thrK*(0.4+r.a)*1.6+Math.min(1,(r.q||0)/25000)*4),dr=still?0:FDS;
-  const ox=(Math.sin(camT*0.31)*6+Math.sin(camT*0.17+1)*4)*dr+(Math.random()-0.5)*amp,oy=(Math.sin(camT*0.23+2)*4+Math.sin(camT*0.13)*3)*dr+(Math.random()-0.5)*amp;
+  // behind the title screen on a wide screen, the rocket sits right of centre so the title on the left doesn't cover it
+  camShift+=((typeof titleUp!=="undefined"&&titleUp&&FW>FH*1.2?FW*0.17:0)-camShift)*Math.min(1,dt*3);
+  const ox=camShift+(Math.sin(camT*0.31)*6+Math.sin(camT*0.17+1)*4)*dr+(Math.random()-0.5)*amp,oy=(Math.sin(camT*0.23+2)*4+Math.sin(camT*0.13)*3)*dr+(Math.random()-0.5)*amp;
   c.setTransform(1,0,0,1,FW/2+ox,FH*0.55+oy);c.scale(s,-s);c.rotate(psi);c.translate(-r.x,-r.y);
   // clouds: far ones (d > 0) first, smaller and closer to the rocket's spot, so they slide by slower (parallax); near ones (d < 0)
   // are drawn later, over the rocket. Grey in rain, tinted at sunrise and sunset, dimmer at night.
@@ -3975,7 +4003,9 @@ function apAscent(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),h=rr-B.R,o=or
   if(AP.ph==="start"){if(typeof CD!=="undefined"&&CD.s!=="go"){AP.msg="Counting down…";point(v,up);return;}AP.ph="climb";}
   if(AP.ph==="climb"){
     // gravity turn: tip over smoothly from straight up to flat as the rocket climbs; keep enough time to apoapsis so it doesn't fall back
-    const f=clamp(Math.max((h-800)/(O.turnEnd-800),(sp-60)/1500),0,1),pitch=Math.pow(f,O.shape)*Math.PI/2*0.98;let tilt=pitch;
+    // with no air to fly through (the Moon) there's no reason to climb straight up: lean over within the first 2 km. Otherwise a
+    // light, powerful craft reaches its target height going straight up and has nothing left to turn with (v1.35)
+    const f=clamp(Math.max((h-800)/(O.turnEnd-800),(sp-60)/1500,B.atm?0:(h-150)/2000),0,1),pitch=Math.pow(f,O.shape)*Math.PI/2*0.98;let tilt=pitch;
     if(h>12000&&!o.esc&&tt){const want=30+50*(1-f);if(tt.ap<want&&o.ap<O.alt)tilt=Math.max(0,tilt-(want-tt.ap)*0.012);}
     // don't swing far from where the air is pushing while it's thick: limit the angle between nose and path
     const pro=sp>30?angOf(v.vx,v.vy)-up:0;if((v.q||0)>3000)tilt=clamp(tilt,pro-0.12,pro+0.12);
@@ -3990,7 +4020,9 @@ function apAscent(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),h=rr-B.R,o=or
     AP.msg=`Coasting to apoapsis: circularise ${fmt(dv)} m/s in ${tt?Math.round(tt.ap-tb/2):"?"} s`;
     if(tt&&tt.ap<=tb/2+1&&h>B.floor)AP.ph="circ";
     if(tt&&tt.ap<=tb/2+1&&h<=B.floor){AP.ph="circ";}}
-  else if(AP.ph==="circ"){const ra=rr,vc=Math.sqrt(B.mu/ra),vh=Math.abs(o.hz)/ra;point(v,angOf(v.vx,v.vy)+(o.ap<O.alt*0.98&&tt&&tt.ap>tt.per/2?-0.15:0));
+  // circularise: push sideways (flat along the ground, the way it's going), not along the path: if the path still climbs steeply,
+  // pushing along it only raises the apoapsis (on the Moon that sent it off into space, v1.35)
+  else if(AP.ph==="circ"){const ra=rr,vc=Math.sqrt(B.mu/ra),vh=Math.abs(o.hz)/ra,sd=o.hz<0?1:-1;point(v,up+sd*Math.PI/2-sd*(o.ap<O.alt*0.98&&tt&&tt.ap>tt.per/2?0.15:0));
     const need=vc-vh,a=Math.max(0.3,apThrust(v).all/mOf(v));v.thr=clamp(need/(a*1.5),0.05,1);AP.msg=`Circularising: ${fmt(Math.max(0,need))} m/s to go`;
     if(!o.esc&&o.pe>Math.max(B.floor+5000,O.alt*0.9)||o.esc){v.thr=0;apOff("done");}}}
 // ---------------- NODE: plan and fly a burn ----------------
@@ -4071,14 +4103,14 @@ function apStep(dt){const v=AV;if(!AP.mode||!v)return;if(v.crashed){apOff("crash
 
 // ================= DEMO: "WATCH A LAUNCH" =================
 // One click and the game shows itself off: the Super Heavy counts down, lifts off, drops its boosters and core, reaches orbit,
-// then plans and flies the burn to the Moon, while a caption says in plain words what's happening. Everything is flown by the
-// real autopilot and physics (nothing is pre-recorded). Time speeds up on the long quiet parts. Any key, or "Take control",
+// flies to the Moon, lands, takes off again and comes home under parachutes, while a caption says in plain words what's
+// happening. Everything is flown by the real autopilot and physics (nothing is pre-recorded). Time speeds up on the long quiet parts. Any key, or "Take control",
 // hands the rocket to the player wherever it is.
 const DEMO={on:false,ph:"",t:0,el:null,zoom:1,said:{}};
-function demoStart(){
+function demoStart(o){   // o.bg: running behind the title screen (no caption box)
   if(FLT.vab&&typeof closeVab==="function")closeVab(true);
   startFlight(tpl("sls"),"Super Heavy");
-  Object.assign(DEMO,{on:true,ph:"pad",t:0,zoom:1,said:{},tz:null,close:false});msgT=0;
+  Object.assign(DEMO,{on:true,ph:"pad",t:0,zoom:1,said:{},tz:null,close:false,s:0});msgT=0;
   if(JX)JX.quiet=true;   // watching isn't doing: no goals are ticked off during the demo
   if(!DEMO.el){const d=document.createElement("div");d.className="demo";
     d.innerHTML='<span class="demo-tag">Demo</span><p></p><div class="row"><button class="b go" data-ic="play">Take control</button><button class="b">Stop demo</button></div>';
@@ -4086,7 +4118,7 @@ function demoStart(){
     bt.onclick=()=>demoStop("You have the controls. The autopilot tabs on the left (ASCENT, NODE, LAND) can fly it again.");
     bs.onclick=()=>{demoStop();endFlight();};
     if(typeof ico==="function")d.querySelectorAll("[data-ic]").forEach(b=>{b.innerHTML=ico(b.dataset.ic)+b.innerHTML;});}
-  DEMO.el.style.display="";dSay("The Super Heavy: 91 m tall, 2,100 tonnes. A crew capsule sits on top, under its escape tower. Nobody is touching the controls: the autopilot flies everything from here.");}
+  DEMO.bg=!!(o&&o.bg);DEMO.el.style.display=DEMO.bg?"none":"";dSay("The Super Heavy: 91 m tall, 2,100 tonnes. A crew capsule sits on top, under its escape tower. Nobody is touching the controls: the autopilot flies everything from here.");}
 function demoStop(why){if(JX)JX.quiet=false;if(!DEMO.el)return;const was=DEMO.on;DEMO.on=false;DEMO.el.style.display="none";
   // hand over as it is: engines keep burning, the heading hold keeps it pointing where it was (apOff would cut the throttle)
   if(was&&AP.mode){AP.mode=null;AP.ph="";if(AV){AV.sas="stab";AV.hold=AV.phi;}}
@@ -4094,13 +4126,17 @@ function demoStop(why){if(JX)JX.quiet=false;if(!DEMO.el)return;const was=DEMO.on
 const dSay=t=>{if(DEMO.el)DEMO.el.querySelector("p").textContent=t;};
 const dOnce=(k,f)=>{if(!DEMO.said[k]){DEMO.said[k]=1;f();}};
 // called once per frame from flightFrame (real seconds)
-function demoStep(dt){if(!DEMO.on||!AV)return;DEMO.t+=dt;const v=AV,P=DEMO.ph;
+function demoStep(dt){if(!DEMO.on&&DEMO.ph==="end"&&DEMO.el&&DEMO.el.style.display!=="none"&&zoomF!==1)zoomF=Math.exp(Math.log(zoomF)*(1-Math.min(1,dt*1.2)));
+  if(!DEMO.on||!AV)return;DEMO.t+=dt;const v=AV,P=DEMO.ph;
   if(v.crashed){dSay("Something went wrong and the rocket was lost. Press R to try again, or Stop demo.");DEMO.on=false;return;}
-  // the camera: closer on the pad, and for a few seconds after each separation, then back to the normal tracking shot
-  // close-ups: the tracking camera pulls far back to keep the ground in view; a close-up undoes that so the rocket fills ~a third
-  // of the screen (the pull-back is height above ground ÷ (1.43 × rocket height), see the camera in flight.js)
-  const hAG=Math.hypot(v.x,v.y)-BOD[v.body].R,close=Math.max(1,hAG/(1.43*Math.max(2.4,v.H)))*0.8,want=DEMO.close?close:DEMO.zoom;
-  zoomF=Math.exp(Math.log(zoomF)+(Math.log(want)-Math.log(zoomF))*Math.min(1,dt*1.2));
+  // the camera: closer on the pad, and for a few seconds after each separation, then back to the normal tracking shot.
+  // The tracking camera (renderFlight) picks a base scale from three: framing the rocket, following the ground as it climbs,
+  // keeping a small craft visible; zoomF multiplies it. A close-up wants the rocket ~a third of the screen tall. The demo eases
+  // the size on screen (DEMO.s, pixels per metre), not zoomF, so when the base scale jumps (the small-craft rule switches on at
+  // 40 km) the picture doesn't. Heights are above the ground under the craft, as the camera measures them.
+  const hAG=Math.hypot(v.x,v.y)-BOD[v.body].R-(v.body===0?Math.max(0,terrH(Math.atan2(v.x,v.y)*PR)):0),H=Math.max(2.4,v.H),sBase=FH/(H*3.4),sFol=FH*0.42/Math.max(1,hAG),
+    sMin=v.body===0&&hAG<ATM_TOP&&v.H<15?40/H:0,base=Math.max(Math.min(sBase,sFol),sMin),want=DEMO.close?Math.max(base,0.8*sBase):base*DEMO.zoom;
+  if(!(DEMO.s>0))DEMO.s=base*zoomF;DEMO.s=Math.exp(Math.log(DEMO.s)+(Math.log(want)-Math.log(DEMO.s))*Math.min(1,dt*1.2));zoomF=DEMO.s/base;
   const seps=EV.filter(e=>e.k==="sep"&&e.t!=null).length;
   if(P==="pad"){DEMO.zoom=1.4;if(DEMO.t>5){apEngage("ascent",{alt:70000});DEMO.ph="count";
       dSay("Countdown. At T−5 water floods the pad to soak up the sound; at T−3 the four core engines light while clamps hold the rocket down.");}}
@@ -4123,10 +4159,45 @@ function demoStep(dt){if(!DEMO.on||!AV)return;DEMO.t+=dt;const v=AV,P=DEMO.ph;
     if(!AP.mode){DEMO.ph="coast";DEMO.t=0;dSay("On the way. In real life this takes three days; here, time warp. Watch the path bend as the Moon's gravity grabs it.");}}
   else if(P==="coast"){if(DEMO.t>3&&!DEMO.said.wm){DEMO.said.wm=1;   // warp to just before the Moon's gravity takes over
       const Pr=v.body===0?predict(v.body,v.x,v.y,v.vx,v.vy,FT):null,mk=Pr&&Pr.marks.find(m=>m.k==="enter");if(mk)warpToEventAt(FT+mk.t-60,"the Moon");}
-    if(v.body===1){DEMO.ph="end";warp=1;warpTo=null;mapView=false;DEMO.zoom=1;
-      dSay("Arrived at the Moon! That's the demo. Take control to fly it yourself (LAND can set you down), or build your own rocket with B.");
+    if(v.body===1){DEMO.ph="moon";DEMO.t=0;warp=1;warpTo=null;mapView=false;DEMO.zoom=1;
+      // the core still has fuel, but it's 48 m of tank: the upper stage does the landing, so drop the core here
+      if(v.ps.some(p=>p.t==="engine"&&p.k>1)){doStage();DEMO.close=true;}
+      dSay("The Moon's gravity has us. The big core stage is dropped: the upper stage, the service module and the capsule go on to land.");}}
+  // ---- part 2: land on the Moon, take off, fly home, re-enter, parachutes (v1.35) ----
+  else if(P==="moon"){if(DEMO.t>6){DEMO.close=false;DEMO.ph="approach";DEMO.t=0;
+      const Pr=predict(v.body,v.x,v.y,v.vx,v.vy,FT),mk=Pr.marks.find(m=>m.k==="pe"&&m.body===1);if(mk&&mk.t>120)warpToEventAt(FT+mk.t-90,"the Moon");
+      dSay("Falling toward the Moon. Nobody steers yet: time warp until we're close.");}}
+  else if(P==="approach"){if(warpTo==null&&DEMO.t>2){apEngage("land",{target:"here"});DEMO.ph="land";DEMO.t=0;
+      dSay("Landing. The Moon has no air to slow us, so the engine does it all: first it cancels the sideways speed, about 1 km/s.");}}
+  else if(P==="land"){const hAG2=hAG;
+    warp=v.F>0?(hAG2<400?1:4):hAG2>6000?20:4;DEMO.close=hAG2<2500;
+    if(AP.ph==="fall"&&!AP.burning)dOnce("fall",()=>dSay("Now it just falls. The landing burn starts as late as it can: the shorter the burn, the less fuel it takes."));
+    if(AP.burning)dOnce("burn",()=>dSay("Landing burn! Slowing from hundreds of metres a second to a gentle 2 m/s at touchdown."));
+    if(v.landed){DEMO.ph="onmoon";DEMO.t=0;warp=1;DEMO.close=true;dSay("Touchdown on the Moon! Gravity here is a sixth of Earth's. Now: home.");}}
+  else if(P==="onmoon"){if(DEMO.t>6){apEngage("ascent",{alt:20000,turnEnd:8000});DEMO.ph="moonup";DEMO.t=0;DEMO.close=false;
+      dSay("Lift-off from the Moon. With no air in the way it can lean over almost at once, straight into orbit.");}}
+  else if(P==="moonup"){warp=v.F>0?4:hAG>5000?20:4;
+    if(!AP.mode){DEMO.ph="moonorbit";DEMO.t=0;warp=1;dSay("In orbit around the Moon, 20 km up. One more burn and we're on the way home.");}}
+  else if(P==="moonorbit"){if(DEMO.t>4){const n=planNode("home");
+      if(!n){dSay("No path home found this lap, so the demo stops here. Try NODE → Home from Moon yourself!");DEMO.on=false;if(JX)JX.quiet=false;return;}
+      AP.node=n;mapView=true;mapOpen();apEngage("node");DEMO.ph="homeburn";
+      dSay("The burn home: aimed so the path just skims Earth's air, about 30 km up. The air will do the braking.");}}
+  else if(P==="homeburn"){if(v.F>0&&warp<4)warp=4;
+    if(!AP.mode){DEMO.ph="homecoast";DEMO.t=0;
+      const Pr=predict(v.body,v.x,v.y,v.vx,v.vy,FT),mk=Pr.marks.find(m=>m.k==="pe"&&m.body===0);if(mk)warpToEventAt(FT+mk.t-240,"Earth");
+      dSay("Falling home to Earth. Time warp again.");}}
+  else if(P==="homecoast"){if(v.body===0&&(warpTo==null||hAG<250e3)){warpTo=null;warp=1;mapView=false;
+      while(v.ps.some(p=>p.t==="dec"))doStage();   // only the capsule comes home: drop everything under its heat shield
+      const c=AV;c.sas="retro";DEMO.ph="reentry";DEMO.t=0;DEMO.close=true;
+      dSay("Only the capsule comes home. It turns its heat shield to the front: hitting the air at 3 km/s will make it glow.");}}
+  else if(P==="reentry"){warp=hAG>45000||(v.hf||0)<1.5e7?10:4;   // slow only while it glows
+    if((v.hf||0)>1e7)dOnce("hot",()=>dSay("Re-entry! The air in front of the shield is squeezed so hard it glows. The shield takes the heat."));
+    const sp=Math.hypot(v.vx,v.vy);if(sp<240&&hAG<9000){chutes();DEMO.ph="chutes";DEMO.t=0;dSay("Slow enough: parachutes out.");}}
+  else if(P==="chutes"){warp=hAG>400?10:2;
+    if(v.landed){DEMO.ph="end";warp=1;DEMO.close=true;
+      dSay((v.wet?"Splashdown! ":"Touchdown! ")+"Earth to the Moon and back, flown by the autopilots on real physics. That's the demo: take control, or press B and build your own rocket.");
       DEMO.on=false;if(JX)JX.quiet=false;const b=DEMO.el.querySelectorAll("button")[1];b.lastChild.textContent="Close";b.onclick=()=>{DEMO.el.style.display="none";};}}}
-window.__demo={start:demoStart,stop:demoStop,get ph(){return DEMO.ph;},get on(){return DEMO.on;}};
+window.__demo={get D(){return DEMO;},start:demoStart,stop:demoStop,get ph(){return DEMO.ph;},get on(){return DEMO.on;}};
 $("bDemo").onclick=demoStart;
 $("bDemo2").onclick=()=>{$("help").classList.remove("show");demoStart();};
 
@@ -4286,7 +4357,7 @@ addEventListener("keydown",e=>{if(e.key==="Escape"&&lbx.classList.contains("show
 // ================= FIRST-TIME TUTORIAL =================
 // A few coach cards that walk a newcomer through the whole game once: light the engine on the test stand, build a rocket
 // around it, launch. Each step moves on by itself when the player actually does the thing (no "Next" to click through),
-// and a ring shows what to press. Runs on the first visit; Skip ends it; Controls and Goals can start it again.
+// and a ring shows what to press. Starts when a first-time player picks "Build an engine" on the title screen; Skip ends it; Controls and Goals can start it again.
 const TUT_KEY="throat.tut.v1";
 const TUT=[
   {t:"Welcome to THROAT",p:"This is a rocket engine on a test stand. Real gas physics runs here: hydrogen and oxygen flow in, burn, and blast out of the nozzle. Let's fire it, then fly it.",next:"Let's go"},
@@ -4339,10 +4410,37 @@ function tutLoop(){
   else{x=Math.max(10,Math.min(W-cw-10,r.left+r.width/2-cw/2));y=r.bottom+14+ch<H-8?r.bottom+14:Math.max(10,r.top-ch-14);}
   tutEl.style.left=Math.round(x)+"px";tutEl.style.top=Math.round(y)+"px";}
 // first visit: start once the page has settled; anyone who already finished goals before this existed has played: skip it
-setTimeout(()=>{const st=store.get(TUT_KEY,null);if(!st&&!(JX&&Object.keys(JX.done).length>2))tutStart();},700);
+// first visit: the title screen (title.js) starts the tutorial when the player picks "Build an engine"
 $("bTut").onclick=()=>{$("help").classList.remove("show");tutStart();};
 $("bTut2").onclick=()=>{$("help").classList.remove("show");tutStart(TUT2);};
 window.__tut={start:tutStart,school:()=>tutStart(TUT2),end:tutEnd,get step(){return tutI;}};
+
+// ================= TITLE SCREEN =================
+// The first thing anyone sees. Behind the title the demo runs for real (the Super Heavy on the pad, then launching), with the
+// cockpit displays hidden; when it ends it starts again. Three ways in: watch the whole demo with its captions, go to the test
+// stand and build an engine (a first-time player gets the tutorial), or go straight to the rocket editor.
+let titleUp=false,titleEl=null;
+function titleOpen(){titleUp=true;
+  if(!titleEl){const d=document.createElement("div");d.className="title";
+    d.innerHTML=`<div class="title-box"><span class="title-tag">Rocket engine sandbox</span><h1>THROAT</h1>
+      <p>Build a rocket engine on real gas physics: hydrogen and oxygen flowing, burning and blasting out of a nozzle you shaped.
+      Then build a rocket around it and fly it to the Moon.</p>
+      <div class="title-b"><button class="b go" data-ic="play" id="tWatch">Watch a launch</button><button class="b" data-ic="flame" id="tEngine">Build an engine</button><button class="b" data-ic="rocket" id="tFly">Fly a rocket</button></div>
+      <small>A game by Wyatt · Enter: watch · Esc: build an engine</small></div>`;
+    document.body.appendChild(d);titleEl=d;d.querySelectorAll("[data-ic]").forEach(b=>{b.innerHTML=ico(b.dataset.ic)+b.innerHTML;});
+    $("tWatch").onclick=()=>titleGo("watch");$("tEngine").onclick=()=>titleGo("engine");$("tFly").onclick=()=>titleGo("fly");}
+  titleEl.style.display="";demoStart({bg:true});$("flight").classList.add("attract");requestAnimationFrame(titleLoop);}
+function titleLoop(){if(!titleUp)return;requestAnimationFrame(titleLoop);
+  if(!DEMO.on&&(DEMO.ph==="end"||AV&&AV.crashed||!FLT.on))demoStart({bg:true});}   // the attract loop: when the demo ends, start it again
+function titleGo(how){titleUp=false;titleEl.style.display="none";$("flight").classList.remove("attract");
+  if(how==="watch"){demoStart();return;}
+  demoStop();endFlight();
+  if(how==="fly"){openVab();return;}
+  const st=store.get(TUT_KEY,null);if(!st&&!(JX&&Object.keys(JX.done).length>2))setTimeout(tutStart,400);}   // first time on the stand: the tutorial
+addEventListener("keydown",e=>{if(!titleUp)return;if(e.key==="Enter"){titleGo("watch");e.preventDefault();}else if(e.key==="Escape")titleGo("engine");
+  e.stopImmediatePropagation();},true);
+window.__title={open:titleOpen,go:titleGo,get up(){return titleUp;}};
+setTimeout(titleOpen,50);
 
 })();
 

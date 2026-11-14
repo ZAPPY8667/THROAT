@@ -352,6 +352,16 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   .flight .fbt label.sl{flex:1 1 100%;order:-1}.flight .fbt{top:32px}.flight .etabs{top:150px}.fdrawer{top:150px}.tl{margin:0 26px}.flight .fmsg{top:auto;bottom:290px}
   .tl .ev em{display:none}.tl .ev.next em{display:block}.toast{top:150px}}   /* phone: only the next event is labelled, so the names don't overlap */
 .saslist button kbd{display:inline-block!important}
+/* title screen (title.js): over the live demo, whose cockpit displays are hidden */
+#flight.attract>*:not(#fcv){visibility:hidden!important}
+.title{position:fixed;inset:0;z-index:80;background:linear-gradient(90deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.55) 42%,rgba(0,0,0,0) 70%);display:flex;align-items:center}
+.title-box{margin-left:6vw;max-width:min(560px,88vw);color:var(--txt)}
+.title-tag{font:600 11px var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--dim)}.title-tag::before{content:"";display:inline-block;width:14px;height:2px;background:var(--red);vertical-align:middle;margin-right:10px}
+.title h1{font:300 clamp(56px,11vw,128px)/0.95 var(--sans);letter-spacing:.16em;margin:10px 0 18px;color:#fff}
+.title p{font:500 16px/1.5 var(--sans);color:#d8dbe0;margin:0 0 24px}
+.title-b{display:flex;gap:10px;flex-wrap:wrap}.title-b .b{height:44px;padding:0 20px;font-size:15px}
+.title small{display:block;margin-top:22px;color:var(--faint);font:500 11px var(--sans);letter-spacing:.06em}
+@media (max-width:700px){.title{align-items:flex-end;background:linear-gradient(0deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.6) 55%,rgba(0,0,0,0) 85%)}.title-box{margin:0 18px 34px}.title p{font-size:14px}.title-b .b{flex:1 1 100%}}
 .demo{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:min(560px,calc(100vw - 24px));z-index:6;background:rgba(0,0,0,.72);border:1px solid var(--line2);border-left:3px solid var(--red);border-radius:var(--r);padding:10px 14px 12px;color:var(--txt);font:500 14px/1.45 var(--sans)}
 .demo p{margin:4px 0 10px}.demo .row{gap:8px}.demo-tag{font:600 10px var(--sans);letter-spacing:.24em;text-transform:uppercase;color:var(--red)}
 @media (max-width:700px){.demo{top:auto;bottom:230px;font-size:12.5px;padding:8px 11px 10px}}

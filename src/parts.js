@@ -10,13 +10,17 @@ const UM=0.1,MK=1000;
 // The fuel's weight stays in the part's mass the whole flight: it's small next to the rocket and not worth the bookkeeping.
 const RCS_F=250*MK,RCS_ISP=180,RCS_MONO=2.5*MK;
 const G0=9.80665,RHO_P=360;   // bulk density of liquid hydrogen + liquid oxygen, kg/m³
-const tankCap=(w,h)=>RHO_P*Math.PI*(w*UM/2)**2*(h*UM);
+// v1.35: a tank holds whatever its engines burn, and the propellants weigh very different amounts for the same tank: liquid
+// hydrogen is so light that hydrogen + oxygen comes to 360 kg/m³; methane + oxygen 830; kerosene + oxygen 1,030 (nearly 3×).
+// So a kerosene stage is heavy and compact, a hydrogen stage big and light. p.fk on a tank = the fuel it holds (none = hydrogen).
+const RHO_FUEL={h2:RHO_P,ch4:830,kero:1030},FUEL_NAME={h2:"hydrogen",ch4:"methane",kero:"kerosene"};
+const tankCap=(w,h,fk)=>(RHO_FUEL[fk]||RHO_P)*Math.PI*(w*UM/2)**2*(h*UM);
 // solid boosters carry their own propellant, packed much denser than the liquids (real solid propellant is ~1,750 kg/m³;
 // 900 allows for the hollow core);
 // the bottom 2 m is the nozzle, so it holds no propellant
 const RHO_S=900,SRB_NZ=20,SRB_REF=18;   // SRB_REF: a booster this wide pushes its listed thrust × MK (real SLS boosters: ~15 MN at 3.7 m)
 const srbCap=(w,h)=>RHO_S*Math.PI*(w*UM/2)**2*(Math.max(0,h-SRB_NZ)*UM);
-const capOf=p=>p.t==="tank"?tankCap(p.w,p.h):p.t==="srb"?srbCap(p.w,p.h):0;
+const capOf=p=>p.t==="tank"?tankCap(p.w,p.h,p.fk):p.t==="srb"?srbCap(p.w,p.h):0;
 const hasProp=p=>p.t==="tank"||p.t==="srb";
 const isEng=p=>p.t==="engine"||p.t==="srb";
 const isBrain=p=>p.t==="probe"||p.t==="capsule";   // a capsule is a probe core with a heat shield, parachutes and a crew
@@ -35,7 +39,7 @@ const A2=(w,r)=>(w/r)**2;   // how a part's mass (or an engine's thrust) grows w
 const PT={
   probe:  {name:"Probe core",     ws:[40], wr:[10,160], h:w=>Math.round(w*0.5), m:w=>4*MK*A2(w,60), desc:"The brain. You need one to steer, and its reaction wheels turn the rocket even with the engine off."},
   nose:   {name:"Nose cone",      ws:[40], wr:[10,160], h:w=>Math.round(w*1.6), m:w=>1.5*MK*A2(w,60), desc:"Cuts air drag a lot. Put one on top of every stack that leads the way."},
-  tank:   {name:"Fuel tank",      ws:[40], wr:[10,160], h:()=>200, m:(w,h)=>MK*A2(w,60)*h/90+0.08*tankCap(w,h), desc:"Liquid hydrogen + oxygen. Shift+wheel stretches its length, Ctrl+wheel its width."},
+  tank:   {name:"Fuel tank",      ws:[40], wr:[10,160], h:()=>200, m:(w,h)=>MK*A2(w,60)*h/90+0.08*tankCap(w,h), desc:"Propellant for the engines under it: hydrogen + oxygen (light), or methane / kerosene + oxygen if those engines burn it (2–3× heavier for the same tank). Shift+wheel stretches its length, Ctrl+wheel its width."},
   adapter:{name:"Adapter",        ws:[84], wr:[14,160], h:w=>40, m:w=>3*MK*A2(w,120), desc:"Joins a wide stack (below) to a narrower one (above). Set both widths in its settings."},
   engine: {name:"Engine",         ws:[30], wr:[8,120],  h:w=>w, m:()=>9*MK, desc:"An engine."},
   srb:    {name:"Solid booster",  ws:[37], wr:[10,120], h:()=>300,m:(w,h)=>2*MK*A2(w,60)*h/150+0.12*srbCap(w,h), desc:"Fuel and engine in one. Lights when you throttle up and can't be stopped or throttled until it burns out. Stretch it for a longer burn."},
@@ -116,11 +120,19 @@ function split(ps,adj,inSet,decs,root){const D=new Set(decs);
   for(const i of rest)if(!done.has(i)){const c=bfs(adj,i,j=>restS.has(j));c.forEach(j=>done.add(j));pieces.push(c);}
   return{keep,pieces};}
 // stage-by-stage Δv: burn until whatever the next decoupler drops has run dry, drop it, repeat
+// which fuel an engine burns: the kerosene workhorses (Wren, Mule, Bison), your engine = what you last tested on the stand,
+// a saved engine = what it was saved with, the rest hydrogen
+function engFuel(p){const k=engKey(p);return k==="wren"||k==="mule"||k==="bison"?"kero":k==="lib"?(p.n&&p.n.fuel)||"h2":k==="stand"&&typeof engineNums==="function"?engineNums().fuel||"h2":"h2";}
+// mark each tank with the fuel of the engines it feeds (a tank shared by two kinds takes the denser one). In flight the marks are
+// kept (a dropped tank keeps what's in it); in the editor they're redone, since engines get swapped.
+function tagTanks(ps,adj,redo){const all=new Set(ps.keys());if(redo)for(const p of ps)if(p.t==="tank")delete p.fk;
+  ps.forEach((p,i)=>{if(p.t!=="engine")return;const k=engFuel(p);if(k==="h2")return;
+    for(const j of feedOf(ps,adj,i,all)){const q=ps[j];if(q.t==="tank"&&(!q.fk||RHO_FUEL[k]>RHO_FUEL[q.fk]))q.fk=k;}});}
 function analyze(ps,_eng,fuel){
   const out={stages:[],total:0,warn:[],root:rootIdx(ps),m0:0,H:0,mass:0};
   if(!ps.length){out.warn.push("Drag parts in from the left to build a rocket.");return out;}
   if(out.root<0){out.warn.push("Add a probe core. It's the brain, and the rocket is built around it.");return out;}
-  const adj=adjOf(ps),all=bfs(adj,out.root,()=>true);
+  const adj=adjOf(ps),all=bfs(adj,out.root,()=>true);tagTanks(ps,adj,!(typeof FLT!=="undefined"&&FLT.on));
   const loose=ps.length-all.size;if(loose)out.warn.push(`${loose} part${loose>1?"s aren't":" isn't"} attached (shown red) and will be left behind.`);
   const F=ps.map((p,i)=>hasProp(p)?(fuel?fuel[i]:capOf(p)):0);
   let S=all,first=true,lo=1e9,hi=-1e9;for(const i of all){lo=Math.min(lo,ps[i].y);hi=Math.max(hi,ps[i].y+ps[i].h);}out.H=(hi-lo)*UM;
@@ -331,12 +343,13 @@ function oldScale(ps){return Array.isArray(ps)&&ps.some(p=>p.t==="dec"&&p.h===15
 function upscaleOld(ps){
   const r=Math.round,clampW=(t,w)=>PT[t].wr?Math.max(PT[t].wr[0],Math.min(PT[t].wr[1],w)):w;
   const size=p=>{const t=p.t;let w,h;
-    if(t==="tank"){w=clampW(t,r(p.w*2/3));h=r(p.h*2.4);}
+    if(t==="tank"){w=clampW(t,r(p.w*2/3));h=r(p.h*2.4*(p.fk?Math.min(1,1.2*RHO_P/RHO_FUEL[p.fk]):1));}   // kerosene/methane tanks: shorter, as their propellant is denser
     else if(t==="srb"){w=clampW(t,r(p.w*0.3));h=r(p.h*1.73);}   // the old 60×150 booster becomes the Sparrow's 18×260
     else if(t==="engine"){const e=p.e||"stand",o=OLD_ENG[e]||[60,60];w=clampW(t,r(ENG[e].w*p.w/o[0]));h=engH({t,e,w,k:1});}
     else if(PT[t].radial){w=PT[t].ws[0];h=PT[t].h(w);}
     else{w=clampW(t,r(p.w*2/3));h=PT[t].h(w);}
     return{w,h};};
+  tagTanks(ps,adjOf(ps),true);
   const q=ps.map(p=>({p,o:{x:p.x,y:p.y,w:p.w,h:p.h},n:size(p),nx:null,ny:null}));
   const touchY=(a,b)=>Math.abs(b.o.y-(a.o.y+a.o.h))<0.6&&Math.abs(a.o.x-b.o.x)<(a.o.w+b.o.w)/2-0.5;   // b sits on a
   const stack=q.filter(e=>!PT[e.p.t].radial).sort((a,b)=>a.o.y-b.o.y);
@@ -385,20 +398,22 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
   const W=40;   // 4 m core, Falcon-like
   if(name==="hopper"){stack(0,[["engine",30],["tank",W,120],["probe",W],["nose",W]]);pair("leg",W/2+15,46);}
   else if(name==="orbiter"){stack(0,[["engine",30],["tank",W,215],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);pair("fin",W/2+15,46);}
+  // v1.35: kerosene tanks (Mule, Bison, Wren) hold nearly 3× the mass of hydrogen ones, so they are about half as long as before
   else if(name==="heavy"){const top=stack(0,[["engine",30],["tank",W,360],["dec",W],["engine:vac",30],["tank",W,140],["probe",W],["nose",W]]);
-    const bw=34,bx=W/2+3+bw/2,mh=mkPart("engine:mule",30).h;pair("sdec",W/2+1.5,90);pair("engine:mule",bx,0,30);pair("tank",bx,mh,bw,300);pair("nose",bx,mh+300,bw);pair("fin",bx+bw/2+15,mh);}
+    const bw=34,bx=W/2+3+bw/2,mh=mkPart("engine:mule",30).h;pair("sdec",W/2+1.5,90);pair("engine:mule",bx,0,30);pair("tank",bx,mh,bw,140);pair("nose",bx,mh+140,bw);pair("fin",bx+bw/2+15,mh);}
   else if(name==="sparrow"){   // the Orbiter with two solid boosters strapped on, flush to the core: they light with the throttle; Space drops them
     stack(0,[["engine",30],["tank",W,250],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);
     const bw=18,bx=W/2+3+bw/2;pair("sdec",W/2+1.5,60);pair("srb:thumper",bx,0,bw,260);pair("nose",bx,260,bw);pair("fin",bx+bw/2+15,0);}
-  else if(name==="lander"){const y=stack(0,[["engine:bison",56],["tank",84,160],["adapter",84],["dec",W],["engine:wren",22],["tank",W,90],["probe",W],["nose",W]]);
+  else if(name==="lander"){const y=stack(0,[["engine:bison",56],["tank",84,70],["adapter",84],["dec",W],["engine:wren",22],["tank",W,40],["probe",W],["nose",W]]);
     pair("leg",W/2+15,A.find(p=>p.t==="engine"&&p.e==="wren").y+32);pair("fin",84/2+15,70);}
   else if(name==="sls"){   // SLS proportions: an 8.4 m orange core with a 4-engine cluster, two slim 3.7 m solid boosters flush to its
     // sides with pointed noses, an upper stage with a vacuum engine, a service module, and an Orion-style capsule with its escape tower
+    // a decoupler under the capsule (v1.35): coming home, the service module drops so the heat shield faces the air
     // core 48 m, boosters 44 m (v1.30; were 60 and 54): the long core alone had a thrust-to-weight of 1.1 after the boosters left,
     // so the climb to orbit took ~14 minutes and it arrived with 490 t of fuel unused. Now it gets there in ~7, like the others.
     const C=84,eng=add("engine:stand:4",0,0,C);let y=eng.h;
     const core=add("tank",0,y,C,480);core.sk="foam";y+=480;
     const ad=add("adapter",0,y,C,50);ad.w2=50;y+=50;
-    y=stack(y,[["dec",50],["engine:vac",28],["tank",50,80],["dec",50],["engine:wren",22],["tank",50,36],["capsule",50],["les",14]]);
+    y=stack(y,[["dec",50],["engine:vac",28],["tank",50,80],["dec",50],["engine:wren",22],["tank",50,18],["dec",50],["capsule",50],["les",14]]);
     const bw=37,bx=C/2+3+bw/2;pair("sdec",C/2+1.5,200);pair("srb:thumper",bx,0,bw,440);pair("nose",bx,440,bw,80);for(const p of A)if(p.t==="nose"&&p.w===bw)p.ns="cone";}
   return A;}

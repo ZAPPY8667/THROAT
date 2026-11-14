@@ -3,17 +3,12 @@
 Everything in PLAN.md is done (phases 1–5, phase 1.5, the world, backlog 1–6), released as v1.15 → v1.24 and pushed to `main`.
 Read CLAUDE.md, then HISTORY.md (sections v1.15 onward) for why things are tuned the way they are.
 
-## Open items (after v1.34), in order
-1. **Title screen**: the game opens straight onto the test stand, which is a lot for a first-time player. Big THROAT title over a
-   live launch in the background, three buttons: Watch a launch · Build an engine (tutorial) · Fly a rocket.
-2. **Demo part 2**: after reaching the Moon, land on it (LAND autopilot), take off, fly home, re-enter heat-shield first,
-   splash down under parachutes. The whole mission in ~6 minutes.
-3. **Missions with stars**: short challenges with a score (land on the landing zone, orbit using under X t of fuel, Moon and
-   back), 1–3 stars each; replay value beyond the goals list.
-4. **Playtest email v2 for Zack**: what's new since v1.25 (demo, separation motors, share codes so he can send rockets back,
-   kits) + 3 things to try.
-5. **Fuel density per propellant**: kerosene/methane tanks hold more mass than hydrogen ones (real: ~3× denser), with the
-   ready-made rockets retuned so they still reach orbit.
+## Open items
+Done in v1.35: title screen, demo to the Moon and back, propellant density. Wyatt doesn't want challenges/missions: THROAT stays a
+sandbox.
+- **Future: a tech tree** (Wyatt's idea for later): unlock parts and engines as you test and fly. Not started; ask him how it
+  should work (what unlocks what, what you earn it with) before building anything.
+- Playtest email v2 for Zack (demo, separation motors, share codes, kits, title screen) when Wyatt wants it.
 
 ## Rules that bit us
 - Long one-line JS edits: never append `// comment` before more code on the same line (it hid `v.hasLegs` for 7 versions).
