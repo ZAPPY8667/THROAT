@@ -37,7 +37,7 @@ let launchH=3,flyers=[],mapCam=null,predC=null,VS=[],AV=null,EN=null,launchPs=nu
 const WARPS=[1,2,4,10,50,100,500,1000,5000,20000];let FT=0,warpWhy="";
 // webcast extras: the mission timeline (events tick off as they happen), the lift-off clock, Max-Q tracking, and the camera's
 // ignition jolt / flash (kickF, flashF), which fade out over a second or so
-let EV=[],T0=null,qMax=0,qT=0,kickF=0,flashF=0,camT=0,wasLit=false,nSt0=1,evSig="";
+let warpTo=null,warpWhat="",EV=[],T0=null,qMax=0,qT=0,kickF=0,flashF=0,camT=0,wasLit=false,nSt0=1,evSig="";
 function derive(v,keepWorld){   // recompute everything that follows from the parts list; keep the rocket where it is in the world
   const ps=v.ps,adj=adjOf(ps);v.adj=adj;v.root=rootIdx(ps);v.ctrl=v.root>=0;
   let m=0,mx=0,my=0;for(const p of ps){const pm=partMass(p)+(p.fuel||0);m+=pm;mx+=pm*p.x;my+=pm*(p.y+p.h/2);}
@@ -60,14 +60,17 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
 function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
-function startFlight(ps,name){
+let launchSeed=Date.now()%2147483647||7;
+function startFlight(ps,name,keepWx){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
   const a=analyze(launchPs,engineNums()),keep=a.root>=0?bfs(adjOf(launchPs),a.root,()=>true):new Set();
   const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;}EN=engineNums();   // full tanks again on a retry
-  const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)*UM);v.x=0;v.y=PR-lo+0.005;v.landed=true;launchW=v.Wall;launchH=v.H;
+  const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)*UM);v.x=0;v.y=PR+terrH(0)-lo+0.005;v.landed=true;launchW=v.Wall;launchH=v.H;
   VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
   msg="Throttle: Shift / W (Z = full).  Steer: A / D.  Space = next stage.  1–9 = SAS holds.  M = map.  , . = time warp";msgT=10;
-  if(!clouds.length)for(let i=0;i<70;i++){const a=(Math.random()-0.5)*0.12,h=900+Math.random()*3500;clouds.push({a,h,w:180+Math.random()*420,o:0.35+Math.random()*0.4});}
+  // weather for this launch: a new one each time you launch from the editor, the same one when you retry (R)
+  if(!keepWx){launchSeed=(launchSeed*16807+12345)%2147483647||7;}pickWeather(launchSeed%9973);
+  clouds=[];const nC=Math.round(60*wx.cl);for(let i=0;i<nC;i++){const q=k=>hash1(launchSeed*0.01+i*13.7+k),a=(q(1)-0.5)*0.05,h=900+q(2)*3500;clouds.push({a,h,w:300+q(3)*900,o:0.3+q(4)*0.4});}
   FLT.on=true;FLT.vab=false;$("flight").classList.add("show");S.paused=true;cfg();fitF();$("fThr").value=0;lastFT=performance.now();
   requestAnimationFrame(flightFrame);}
 function endFlight(){FLT.on=false;$("flight").classList.remove("show");if(typeof enter==="function")enter($("stage"));S.paused=$("bPause").classList.contains("on");cfg();}
@@ -101,7 +104,7 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
 function switchV(d){const c=VS.filter(v=>v.ctrl&&!v.crashed);if(c.length<2){msg="Nothing else to fly. Boosters need their own probe core.";msgT=3;return;}
   let i=c.indexOf(AV);i=(i+d+c.length)%c.length;AV=c[i];anAV=null;msg="Now flying: "+AV.name;msgT=2.5;$("fThr").value=Math.round(AV.thr*100);}
 // ---------- physics ----------
-function crash(v,sp){
+function crash(v,sp,water){v.splash=!!water;
   if(JX&&AV&&v.body===AV.body){const d=v===AV?0:Math.hypot(v.x-AV.x,v.y-AV.y);if(d<3000)JX.snd.crash(1-d/3000);}   // you hear crashes near you
   v.crashed=true;v.boomT=0;v.thr=0;v.debris=[];const bits=Math.min(40,8+v.ps.length*2);
   for(let i=0;i<bits;i++){const an=Math.random()*Math.PI,s=(6+Math.random()*16)*Math.min(2,0.4+sp/40);
@@ -147,7 +150,7 @@ function stepV(v,dt,u){
   if(v.landed){if(ax*ux+ay*uy<=0){v.vx=v.vy=0;v.om=0;const tilt=wrapA(v.phi-Math.atan2(v.x,v.y));if(Math.abs(tilt)<0.6)v.phi-=tilt*Math.min(1,dt*2);ground(v,true);v.t+=dt;return;}v.landed=false;}
   v.om=Math.max(-2,Math.min(2,v.om+tq/v.I*dt));v.phi+=v.om*dt;
   v.vx+=ax*dt;v.vy+=ay*dt;v.x+=v.vx*dt;v.y+=v.vy*dt;
-  if(h<v.reach+60)ground(v,false);
+  if(h-groundAt(v.body,v.x,v.y).h<v.reach+60)ground(v,false);
   soiCheck(v);
   v.t+=dt;if(v.body===0)v.maxAlt=Math.max(v.maxAlt,h);}
 // SAS hold modes. Each one just picks the heading for the normal heading hold above, so a hold can never turn the rocket
@@ -182,11 +185,15 @@ function railStep(v,T){let left=T,guard=0;
   return true;}
 function ground(v,held){
   const pts=v.legs?v.cptsL:v.cpts,c=Math.cos(v.phi),s=Math.sin(v.phi);let mn=1e18,leg=false;
-  for(const q of pts){const lx=(q[0]-v.px)*UM,ly=(q[1]-v.py)*UM,wx=v.x+lx*c+ly*s,wy=v.y-lx*s+ly*c,r=Math.hypot(wx,wy);if(r<mn){mn=r;leg=q[2]===1;}}
-  const BR=BOD[v.body].R;if(mn>=BR){if(held&&mn-BR>0.05)v.landed=false;return;}const rr=Math.hypot(v.x,v.y),push=BR-mn;
-  if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
-    if(!ok){crash(v,sp);return;}
-    v.landed=true;v.vx=v.vy=0;v.om=0;
+  // the lowest point of the craft below the ground (or the sea) right under it decides: real hills, mountains and water count
+  let pen=-1e18,water=false;
+  for(const q of pts){const lx=(q[0]-v.px)*UM,ly=(q[1]-v.py)*UM,wx=v.x+lx*c+ly*s,wy=v.y-lx*s+ly*c,r=Math.hypot(wx,wy),G=groundAt(v.body,wx,wy),d=BOD[v.body].R+G.h-r;
+    if(d>pen){pen=d;leg=q[2]===1;water=G.water;}}
+  if(pen<=0){if(held&&pen<-0.05)v.landed=false;return;}const rr=Math.hypot(v.x,v.y),push=pen;
+  if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=water?sp<=12:leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
+    if(!ok){crash(v,sp,water);return;}
+    v.landed=true;v.vx=v.vy=0;v.om=0;v.wet=water;
+    if(water&&v===AV){msg=`🌊 Splashdown at ${sp.toFixed(1)} m/s. Floating in the sea.`;msgT=6;v.x+=v.x/rr*push;v.y+=v.y/rr*push;return;}
     if(v===AV&&v.t>3){const pd=padDist(v);if(JX){if(v.body===1)JX.goal("moonland");else if(Math.abs(pd.d)<40&&pd.at)JX.goal("pad");}msg=v.body===1?`🌙 Landed on the Moon at ${sp.toFixed(1)} m/s!`:Math.abs(pd.d)<40?`🎯 Landed on the ${pd.name} at ${sp.toFixed(1)} m/s!`:`✅ Landed at ${sp.toFixed(1)} m/s, ${fmt(Math.abs(pd.d))} m from the ${pd.name}.`;msgT=6;}}
   v.x+=v.x/rr*push;v.y+=v.y/rr*push;}
 function orbitOf(r){const B=BOD[r.body],mu=B.mu,rr=Math.hypot(r.x,r.y),v2=r.vx*r.vx+r.vy*r.vy,E=v2/2-mu/rr,hz=r.x*r.vy-r.y*r.vx;
@@ -203,19 +210,20 @@ addEventListener("keydown",e=>{if(!FLT.on)return;const k=e.key.toLowerCase();key
   else if(k==="t"&&!e.repeat)toggleRcs();
   else if(k==="m"){mapView=!mapView;if(mapView)mapOpen();}
   else if(k==="f"&&mapView)mapFocus();
-  else if(k==="r"){startFlight(launchPs,launchName);}
+  else if(k==="r"){startFlight(launchPs,launchName,true);}
   else if(k==="b"){endFlight();openVab();}
-  else if(k==="."||k===">"){warp=WARPS[Math.min(WARPS.length-1,WARPS.indexOf(warp)+1)];}
+  else if(k==="."||k===">"||k===","||k==="<")warpTo=null;
+  if(k==="."||k===">"){warp=WARPS[Math.min(WARPS.length-1,WARPS.indexOf(warp)+1)];}
   else if(k===","||k==="<"){warp=WARPS[Math.max(0,WARPS.indexOf(warp)-1)];}
   if(["arrowleft","arrowright","arrowup","arrowdown"," "].includes(k))e.preventDefault();
   e.stopImmediatePropagation();},true);
 addEventListener("keyup",e=>{if(FLT.on)keys.delete(e.key.toLowerCase());},true);
-fcv.addEventListener("wheel",e=>{e.preventDefault();if(mapView){mapWheel(e);return;}zoomF=Math.max(0.15,Math.min(8,zoomF*(e.deltaY<0?1.15:1/1.15)));},{passive:false});
+fcv.addEventListener("wheel",e=>{e.preventDefault();if(mapView){mapWheel(e);return;}zoomF=Math.max(0.05,Math.min(20000,zoomF*(e.deltaY<0?1.15:1/1.15)));},{passive:false});
 $("fThr").oninput=()=>{if(AV)AV.thr=+$("fThr").value/100;};
 for(const[id,d]of[["fL",-1],["fR",1]]){const b=$(id);b.onpointerdown=()=>{rotBtn=d;};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>{rotBtn=0;};}
 $("fMap").onclick=()=>{mapView=!mapView;if(mapView)mapOpen();};$("fWarp2").onclick=()=>{warp=WARPS[(WARPS.indexOf(warp)+1)%WARPS.length];};
 $("fStage").onclick=doStage;$("fRcs").onclick=toggleRcs;$("fLegs").onclick=()=>{if(AV&&AV.hasLegs)AV.legs=!AV.legs;};
-$("fBack").onclick=endFlight;$("fRetry").onclick=()=>startFlight(launchPs,launchName);$("fBuild").onclick=()=>{endFlight();openVab();};
+$("fBack").onclick=endFlight;$("fRetry").onclick=()=>startFlight(launchPs,launchName,true);$("fBuild").onclick=()=>{endFlight();openVab();};
 // ---------- the loop ----------
 function flightFrame(now){
   if(!FLT.on)return;
@@ -227,6 +235,8 @@ function flightFrame(now){
     const u=Math.max(-1,Math.min(1,(keys.has("a")||keys.has("arrowleft")?-1:0)+(keys.has("d")||keys.has("arrowright")?1:0)+rotBtn));
     if(document.activeElement!==$("fThr"))$("fThr").value=Math.round(AV.thr*100);
     const B=BOD[AV.body],hA=Math.hypot(AV.x,AV.y)-B.R,burning=VS.some(v=>v.F>0||v.thr>0&&!v.landed);
+    if(warpTo!=null){const left=warpTo-FT;if(left<=dtR*1.05){warp=1;warpTo=null;msg="Warp stopped: "+warpWhat;msgT=2.5;}
+      else{let w=1;for(const q of WARPS)if(q*dtR<=left*0.6)w=q;warp=w;}}
     let wv=warp;warpWhy="";
     if(burning&&wv>4){wv=4;warpWhy="engine on";}
     if(!AV.landed&&hA<B.floor&&wv>10){wv=10;warpWhy=B.atm?"in the air":"near the ground";}
@@ -282,12 +292,13 @@ function srbPlume(ctx,x0,y0,w,a,bright){   // solid exhaust, like SLS boosters a
   ctx.fillStyle=g;ctx.fill();
   ctx.beginPath();ctx.moveTo(x0-w*0.46,y0);ctx.quadraticCurveTo(x0-w*0.5,y0-w*4,x0,y0-w*(6+2*vac)*fl);ctx.quadraticCurveTo(x0+w*0.5,y0-w*4,x0+w*0.46,y0);ctx.closePath();ctx.fillStyle=col([255,255,250],1);ctx.fill();
   ctx.restore();}
-function drawVessel(c,v,bright){
+function drawVessel(c,v,bright,plumesOnly){
   c.save();c.translate(v.x,v.y);c.rotate(-v.phi);
   if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))*UM);boom(c,v);c.restore();return;}
   c.scale(UM,UM);c.translate(-v.px,-v.py);
   v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8),v.thr,v.a,bright,k==="vac");}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
+  if(plumesOnly){c.restore();return;}
   for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
   c.restore();}
@@ -312,12 +323,15 @@ function renderFlight(dt){
   const c=fx,r=AV,B=BOD[r.body],h=Math.hypot(r.x,r.y)-B.R,psi=Math.atan2(r.x,r.y);
   c.setTransform(1,0,0,1,0,0);
   if(mapView){renderMap(c);return;}
-  // sky: blue near the ground, black in space (and always black on the Moon); stars as the air thins
-  const sk=B.atm?Math.min(1,Math.max(0,h/26000)):1,bright=1-sk,top=[lerp(70,2,sk),lerp(140,4,sk),lerp(225,12,sk)],bot=[lerp(150,4,sk),lerp(200,6,sk),lerp(250,16,sk)];
+  // sky: blue by day, orange at sunrise and sunset, navy at night, grey under rain clouds, black in space (always on the Moon)
+  const now=performance.now()/1000,sun=r.body===0?(()=>{const sy=skyFor(psi,h,FT,true);return sy;})():skyFor(psi,h,FT,false),sk=sun.sk,bright=(1-sk)*sun.day,top=sun.top,bot=sun.bot;
   const g=c.createLinearGradient(0,0,0,FH);g.addColorStop(0,col(top,1));g.addColorStop(1,col(bot,1));c.fillStyle=g;c.fillRect(0,0,FW,FH);
-  if(sk>0.25){c.fillStyle=`rgba(255,255,255,${(sk-0.25)*0.9})`;for(let i=0;i<160;i++){const sx=(i*9301+49297)%233280/233280*FW,sy=(i*4673+12345)%93179/93179*FH;c.fillRect(sx,sy,i%7?1.2:2,i%7?1.2:2);}}
+  if(sun.stars>0.25){c.fillStyle=`rgba(255,255,255,${(sun.stars-0.25)*0.9*(1-0.8*Math.min(1,wx.cl-0.5)*(1-sk))})`;for(let i=0;i<160;i++){const sx=(i*9301+49297)%233280/233280*FW,sy=(i*4673+12345)%93179/93179*FH;c.fillRect(sx,sy,i%7?1.2:2,i%7?1.2:2);}}
   // camera: the craft in the middle, local "up" pointing up the screen
-  const s=Math.max(0.00002,(FH/(Math.max(2.4,r.H)*3.4))*zoomF*(h>2000?Math.max(0.5,Math.sqrt(2000/h)):1));
+  // camera like a tracking shot: close on the rocket at first, then pulling back as it climbs so the ground stays in the bottom of
+  // the frame (and the whole planet shows from orbit). The mouse wheel zooms on top of that.
+  const hAG=Math.max(1,h-(r.body===0?Math.max(0,terrH(psi*PR)):0)),sBase=FH/(Math.max(2.4,r.H)*3.4),sFol=FH*0.42/hAG;
+  const s=Math.max(1e-7,Math.min(sBase,sFol)*zoomF);
   // live camera: a slow drift like a handheld long lens, plus shake from thrust, from the air pushing on the rocket,
   // and a jolt when an engine lights or a stage goes. All of it is off for players who asked their system for less motion.
   camT+=dt;kickF=Math.max(0,kickF-dt*1.5);flashF=Math.max(0,flashF-dt*2);
@@ -325,15 +339,15 @@ function renderFlight(dt){
   const amp=still?0:FDS*(kickF*12+thrK*(0.4+r.a)*1.6+Math.min(1,(r.q||0)/25000)*4),dr=still?0:FDS;
   const ox=(Math.sin(camT*0.31)*6+Math.sin(camT*0.17+1)*4)*dr+(Math.random()-0.5)*amp,oy=(Math.sin(camT*0.23+2)*4+Math.sin(camT*0.13)*3)*dr+(Math.random()-0.5)*amp;
   c.setTransform(1,0,0,1,FW/2+ox,FH*0.55+oy);c.scale(s,-s);c.rotate(psi);c.translate(-r.x,-r.y);
-  if(B.atm)for(const cl of clouds){const ca=cl.a,cr=PR+cl.h,cx=Math.sin(ca)*cr,cy=Math.cos(ca)*cr;c.fillStyle=`rgba(255,255,255,${cl.o*(1-sk)})`;c.beginPath();c.ellipse(cx,cy,cl.w,cl.w*0.22,ca,0,6.2832);c.fill();}
+  if(B.atm)for(const cl of clouds){cl.a+=windDir*wx.wind*dt/(PR+cl.h);const ca=cl.a,cr=PR+cl.h,cx=Math.sin(ca)*cr,cy=Math.cos(ca)*cr;const lc=mixC(wx.rain?[150,156,166]:[255,255,255],[255,170,120],sun.dusk*0.6).map(v=>v*Math.max(0.25,sun.light));const cs=`${lc[0]|0},${lc[1]|0},${lc[2]|0}`,al=cl.o*(1-sk);for(let q=0;q<5;q++){const ox2=(q-2)*cl.w*0.32,oy2=(q%2)*cl.w*0.06+Math.abs(q-2)*-cl.w*0.03,rad=cl.w*(0.42-Math.abs(q-2)*0.07),px2=cx+Math.cos(ca)*ox2+Math.sin(ca)*oy2,py2=cy-Math.sin(ca)*ox2+Math.cos(ca)*oy2;
+      const gg=c.createRadialGradient(px2,py2,0,px2,py2,rad);gg.addColorStop(0,`rgba(${cs},${al})`);gg.addColorStop(0.6,`rgba(${cs},${al*0.7})`);gg.addColorStop(1,`rgba(${cs},0)`);c.fillStyle=gg;c.beginPath();c.ellipse(px2,py2,rad,rad*0.45,ca,0,6.2832);c.fill();}}
   // exhaust smoke (only where there's air to make it)
-  for(const p of smoke){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.985;p.vy*=0.985;}
+  for(const p of smoke){p.t+=dt;if(p.body===0&&B.atm){const rr=Math.hypot(p.x,p.y);p.x+=windDir*wx.wind*dt*p.y/rr;p.y-=windDir*wx.wind*dt*p.x/rr;}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.985;p.vy*=0.985;}
   smoke=smoke.filter(p=>p.t<p.life&&p.body===r.body);
   for(const p of smoke){const k=p.t/p.life,rad=p.r0+p.r1*k;c.fillStyle=`rgba(225,225,232,${0.32*(1-k)*p.o})`;c.beginPath();c.arc(p.x,p.y,rad,0,6.2832);c.fill();}
   if(r.body===0){
-    // Earth, the launch pad with its tower, and the landing zone
-    c.fillStyle="#3e6b3a";c.beginPath();c.arc(0,0,PR,0,6.2832);c.fill();
-    c.fillStyle="#5a4632";c.beginPath();c.arc(0,0,PR-6,0,6.2832);c.fill();c.fillStyle="#4f7f45";c.beginPath();c.arc(0,0,PR-0.5,0,6.2832);c.fill();
+    // Earth: real ground (biomes, sea, trees, rocks, buildings: world.js), then the pads on top
+    drawEarth(c,psi*PR,s,FT,now);
     // pads are drawn at a scale that fits the rocket (k), with the pad's top at ground level so the rocket stands on it
     padAt(c,0,()=>{const k=Math.max(2,launchH/12);c.scale(k,k);c.translate(0,-0.4);const tx=-(launchW/2/k+2.2);c.fillStyle="#7c8495";c.fillRect(-8,-0.5,16,0.9);c.fillStyle="#9aa3b5";c.fillRect(tx,0,0.5,14);for(let i=0;i<8;i++)c.fillRect(tx,i*1.75,1.6,0.12);
       c.fillStyle="#e8b923";c.fillRect(-1,0.36,2,0.06);});
@@ -356,7 +370,16 @@ function renderFlight(dt){
       const[wx,wy]=loc(v,(p.x-v.px)*UM,(p.y-v.py)*UM),sp=25+Math.random()*25;
       smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w*UM*0.8,r1:((sol?10:6)+Math.random()*10)*Math.max(1,p.w*UM/2),o:v.a*(sol?1.6:1)});});}
     drawVessel(c,v,bright);}
+  // night (and the planet's shadow in orbit): darken everything, then put back what glows: lights and engine flames
+  const dark=1-sun.light;
+  if(dark>0.02){c.save();c.setTransform(1,0,0,1,0,0);c.fillStyle=`rgba(4,8,22,${dark*0.85})`;c.fillRect(0,0,FW,FH);c.restore();
+    if(r.body===0)drawNightLights(c,psi*PR,s,now,dark);
+    c.save();c.globalCompositeOperation="lighter";c.globalAlpha=Math.min(1,dark*1.2);for(const v of VS)if(v.body===r.body&&v.F>0&&!v.crashed)drawVessel(c,v,0,true);c.restore();}
+  if(r.body===0&&sk<1)drawEarthShadow(c,psi,h,s);
   c.setTransform(1,0,0,1,0,0);
+  if(r.body===0)drawRain(c,h,now,dt);
+  if(r.H*s<10&&!r.crashed){const X=FW/2+ox,Y=FH*0.55+oy;c.strokeStyle="#fff";c.lineWidth=1.5*FDS;c.beginPath();c.moveTo(X-7*FDS,Y+8*FDS);c.lineTo(X,Y-6*FDS);c.lineTo(X+7*FDS,Y+8*FDS);c.stroke();   // too small to see: a marker
+    c.font=`600 ${10*FDS}px ${getComputedStyle(document.body).fontFamily}`;c.fillStyle="rgba(255,255,255,.8)";c.textAlign="center";c.fillText(r.name.toUpperCase(),X,Y+22*FDS);c.textAlign="left";}
   if(flashF>0.01){const g2=c.createRadialGradient(FW/2+ox,FH*0.62+oy,0,FW/2+ox,FH*0.62+oy,FH*0.9);   // ignition flash and bloom
     g2.addColorStop(0,`rgba(255,246,230,${0.75*flashF})`);g2.addColorStop(0.35,`rgba(255,200,150,${0.3*flashF})`);g2.addColorStop(1,"rgba(255,160,100,0)");
     c.save();c.globalCompositeOperation="lighter";c.fillStyle=g2;c.fillRect(0,0,FW,FH);c.restore();}}
@@ -374,17 +397,32 @@ const SAS_INFO=[["stab","STB","Stability","hold the heading you're on"],["pro","
   ["hzE","E","Horizon east","flat along the ground, heading east"],["hzW","W","Horizon west","flat along the ground, heading west"]];
 function toggleRcs(){if(!AV||AV.crashed)return;if(!AV.rcs.length){msg="No RCS thrusters on this craft. Add them in the editor.";msgT=2.5;return;}
   AV.rcsOn=!AV.rcsOn;msg=AV.rcsOn?"RCS on: helps turning. I / K forward / back, J / L sideways.":"RCS off";msgT=2.5;}
+const clockStr=h=>String(Math.floor(h)).padStart(2,"0")+":"+String(Math.floor(h%1*60)).padStart(2,"0");
+let tN=0,moonT=null;
+// warp to an event: sunrise/sunset where the craft is, the next apoapsis or periapsis, or arriving at the Moon
+function warpToEvent(k){const r=AV;if(!r)return;if(k==="stop"){warpTo=null;warp=1;return;}
+  const psi=Math.atan2(r.x,r.y),hr=hourAt(psi,FT),until=x=>{const d=((x-hr+24)%24)*DAY/24;return d<2?d+DAY:d;},o=orbitOf(r),tt=orbTimes(r,o,BOD[r.body]);
+  let dt=null,what="";
+  if(k==="sunrise"){dt=until(6)-1;what="sunrise";}else if(k==="sunset"){dt=until(18)-1;what="sunset";}
+  else if(k==="ap"&&tt){dt=tt.ap-15;what="apoapsis";}else if(k==="pe"&&tt){dt=tt.pe-15;what="periapsis";}
+  else if(k==="moon"&&moonT!=null){dt=moonT-FT-60;what="the Moon";}
+  if(dt==null||dt<1){msg="Nothing to warp to.";msgT=2;return;}
+  if(!r.landed&&r.F>0){msg="Cut the engines first (X), then warp.";msgT=2.5;return;}
+  warpTo=FT+dt;warpWhat=what;msg="Warping to "+what+"…";msgT=2;}
 function setSas(m){if(!AV||AV.crashed||!m)return;AV.sas=m;AV.hold=m==="stab"?AV.phi:null;const i=SAS_INFO.find(q=>q[0]===m);msg="SAS: "+i[2]+" ("+i[3]+")";msgT=2.2;}
 let rowsBuilt=false,stgSig="",sasSig="";
 function buildRows(){
   const mk=(box,list)=>{$(box).innerHTML=list.map(([id,l,t])=>id==="-"?`<div class="grp">${l}</div>`:`<span${t?` title="${t}"`:""}>${l}</span><b id="${id}">–</b>`).join("");};
   mk("fOrbit",[["oAp","Apoapsis","Highest point of the orbit, above the ground"],["oPe","Periapsis","Lowest point of the orbit, above the ground"],["oTAp","Time to Ap"],["oTPe","Time to Pe"],
     ["-","Shape"],["oPer","Period","Time for one lap"],["oE","Eccentricity","0 = a perfect circle, 1 or more = escaping"],["oA","Semi-major axis","Half the long width of the orbit, from the planet's centre"],["oV","Orbital speed"],["oSoi","Gravity of","Which body's gravity you're in (sphere of influence)"]]);
-  mk("fSurf",[["sAlt","Altitude","Height above the ground"],["sVs","Vertical speed"],["sHs","Horizontal speed"],["sSp","Surface speed","Speed over the ground (the planets here don't spin, so it equals orbital speed)"],
+  mk("fSurf",[["sAlt","Altitude","Height above the ground (or the sea) right below"],["sBio","Below","What's under you"],["sGnd","Ground height","Height of the ground below above sea level"],["sVs","Vertical speed"],["sHs","Horizontal speed"],["sSp","Surface speed","Speed over the ground (the planets here don't spin, so it equals orbital speed)"],
     ["-","Air"],["sQ","Dynamic pressure","q: how hard the air pushes on the rocket. Rockets throttle down around the peak, Max-Q"],["sMq","Max-Q"],["sDrag","Drag"],["sRho","Air density"],
     ["-","Ground"],["sPad","To launch pad"],["sLz","To landing zone"]]);
   mk("fVesP",[["vM","Mass (wet)","With the fuel that's left"],["vDry","Mass (dry)","Empty tanks"],["vTwr","TWR now","Thrust ÷ weight right now. Above 1 = climbing"],["vTwrM","TWR max","At full throttle"],
     ["vLit","Engines lit"],["vRcs","RCS fuel","Monopropellant for the RCS jets (T turns them on)"],["vSrb","Booster burn left"],["vDvT","Total Δv","Speed change left in all stages"]]);
+  mk("fTime",[["tClock","Local time","Time of day where the craft is (a day lasts 20 minutes)"],["tDay","Day"],["tSun","Sun"],["tRise","Next sunrise"],["tSet","Next sunset"],
+    ["-","Weather"],["tWx","Sky"],["tWind","Wind","Scenery only: it moves clouds, smoke, trees and waves, not the rocket"],["-","Warp"],["tWarp","Time warp"]]);
+  for(const b of $("fWarpTo").querySelectorAll("[data-wt]"))b.onclick=()=>warpToEvent(b.dataset.wt);
   mk("fData",[["dAp","Ap"],["dPe","Pe"],["dTwr","TWR"],["dDv","Δv"],["dFuel","Fuel"],["dNext","Next"]]);
   $("fSasB").innerHTML=SAS_INFO.map(([m,t,n],i)=>`<button type="button" data-sas="${m}" title="${n} (${i+1})">${t}</button>`).join("");
   $("fSasL").innerHTML=SAS_INFO.map(([m,t,n,d],i)=>`<button type="button" data-sas="${m}"><kbd>${i+1}</kbd>${n}<small>${d}</small></button>`).join("");
@@ -405,7 +443,7 @@ function hudFlight(dt){
   set("fClock",T0==null?"T−00:00:00":"T+"+clk(FT-T0));
   if(!anAV||++hudN%15===0)anAV=analyze(r.ps,EN,r.ps.map(p=>p.fuel||0));
   set("fStageN",r.ctrl?`STAGE ${Math.min(nSt0,Math.max(1,nSt0-anAV.stages.length+1))} / ${nSt0}`:"");
-  set("fVes",r.name+(r.body?" · MOON":""));set("fWarp",r.wv>1||warp>1?`WARP ${r.wv<warp?r.wv+"× ("+warpWhy+")":warp+"×"}`:"");
+  set("fVes",r.name+(r.body?" · MOON":" · "+clockStr(hourAt(psi,FT))+" · DAY "+(1+Math.floor((FT+CLK0/24*DAY)/DAY))));set("fWarp",r.wv>1||warp>1?`WARP ${r.wv<warp?r.wv+"× ("+warpWhy+")":warp+"×"}`:"");
   // events: what just happened gets a callout and a tick on the timeline
   if(!said.lift&&!r.landed&&r.t>0.2&&h>1.5){said.lift=1;T0=FT;mark("liftoff");callout("LIFTOFF");kickF=Math.max(kickF,0.7);}
   if(r.body===0&&r.q>qMax){qMax=r.q;qT=FT;}
@@ -435,10 +473,16 @@ function hudFlight(dt){
     $("fFuelBar").style.width=(sc?100*sf/sc:0)+"%";const nd=st.dropKind;set("dNext",nd?(nd==="boosters"?"drop boosters":"drop stage"):"–");if(o.esc)set("dAp",r.body?"leaving":"escaping");}
   if(open("fpOrbit")){const tt=orbTimes(r,o,B);rv("oAp",o.esc?null:o.ap,kmF);if(o.esc)set("oAp",r.body?"leaving":"escaping");rv("oPe",o.pe,kmF);
     set("oTAp",tt?tfm(tt.ap):"–");set("oTPe",tt?tfm(tt.pe):"–");set("oPer",tt?tfm(tt.per):"–");rv("oE",o.e,x=>x.toFixed(3));rv("oA",o.esc?null:o.a,kmF);rv("oV",sp,ms);set("oSoi",B.name);}
-  if(open("fpSurf")){rv("sAlt",h,kmF);rv("sVs",vv,sms);rv("sHs",Math.abs(vh),ms);rv("sSp",sp,ms);rv("sQ",r.q||0,x=>x>=1000?(x/1000).toFixed(2)+" kPa":Math.round(x)+" Pa");
+  if(open("fpSurf")){const gh=r.body===0?terrH(psi*PR):0;rv("sAlt",h-Math.max(0,gh),kmF);set("sBio",r.body?"Moon":gh<0?"Ocean":biomeAt(psi*PR)[2]);set("sGnd",r.body?"–":gh<0?"sea, "+km(-gh)+" deep":km(gh));rv("sVs",vv,sms);rv("sHs",Math.abs(vh),ms);rv("sSp",sp,ms);rv("sQ",r.q||0,x=>x>=1000?(x/1000).toFixed(2)+" kPa":Math.round(x)+" Pa");
     set("sMq",qMax>0?(qMax/1000).toFixed(2)+" kPa":"–");rv("sDrag",r.D||0,x=>x>=1000?(x/1000).toFixed(2)+" kN":Math.round(x)+" N");rv("sRho",r.rho||0,x=>x.toFixed(x>0.01?3:5)+" kg/m³");
     const ang=r.body===0?Math.atan2(r.x,r.y)*PR:null,arw=d=>d>0.5?" ←":d<-0.5?" →":" ✓";
     set("sPad",ang==null?"–":km(Math.abs(ang))+arw(ang));set("sLz",ang==null?"–":km(Math.abs(ang-PAD2))+arw(ang-PAD2));}
+  if(open("fpTime")){const hr=hourAt(psi,FT),until=x=>((x-hr+24)%24)*DAY/24,tt=orbTimes(r,o,B);
+    set("tClock",clockStr(hr)+(r.body?" (Earth time)":""));set("tDay",String(1+Math.floor((FT+CLK0/24*DAY)/DAY)));set("tSun",sunEl(psi,FT)+sunDip(h)>0?"day":"night");
+    set("tRise",tfm(until(6)));set("tSet",tfm(until(18)));set("tWx",r.body?"no air":wx.n);set("tWind",r.body?"–":Math.round(wx.wind*3.6)+" km/h "+(windDir>0?"from the west":"from the east"));
+    set("tWarp",warpTo!=null?"to "+warpWhat+" in "+tfm(warpTo-FT):r.wv>1?r.wv+"×":"off");
+    if(++tN%20===0){const P=r.body===0&&!o.esc?predict(r.body,r.x,r.y,r.vx,r.vy,FT):null;const mk2=P&&P.marks.find(m=>m.k==="enter");moonT=mk2?FT+mk2.t:null;}
+    $("fWarpTo").querySelector('[data-wt="ap"]').disabled=!tt;$("fWarpTo").querySelector('[data-wt="pe"]').disabled=!tt;$("fWarpTo").querySelector('[data-wt="moon"]').disabled=moonT==null;}
   if(open("fpVes")){rv("vM",r.m||0,fM);rv("vDry",r.dry,fM);rv("vTwr",twr,x=>x.toFixed(2));rv("vTwrM",twrMax,x=>x.toFixed(2));
     set("vLit",`${r.lit.filter(Boolean).length} of ${r.eng.length}`);
     set("vRcs",r.rcs.length?`${fM(r.rcs.reduce((a,p)=>a+p.mono,0))}${r.rcsOn?" · on":""}`:"none");
@@ -451,5 +495,5 @@ function hudFlight(dt){
   $("fRetry").style.display=r.crashed?"":"none";$("fMapBar").style.display=mapView?"":"none";}
 // fold-away panels in flight: INFO panels on the left, the small numbers and SAS on the right
 if(JX&&typeof foldUI==="function")foldUI($("flight"),"flight",[{el:$("fpOrbit"),label:"ORBIT",side:"l"},{el:$("fpSurf"),label:"SURFACE",side:"l"},{el:$("fpVes"),label:"VESSEL",side:"l"},
-  {el:$("fpData"),label:"DATA",side:"r",open:true,title:"Ap, Pe, TWR, Δv and fuel"},{el:$("fpSas"),label:"SAS",side:"r",title:"SAS hold modes"}]);
-window.__flt={predict,moonAt,get FT(){return FT;},get flyers(){return flyers;},get VS(){return VS;},get AV(){return AV;},doStage,switchV,orbitOf,setWarp:w=>{warp=w;},get said(){return said;}};
+  {el:$("fpData"),label:"DATA",side:"r",open:true,title:"Ap, Pe, TWR, Δv and fuel"},{el:$("fpTime"),label:"TIME",side:"r",title:"Clock, weather and warp to sunrise, Ap, Pe or the Moon"},{el:$("fpSas"),label:"SAS",side:"r",title:"SAS hold modes"}]);
+window.__flt={predict,moonAt,get FT(){return FT;},setFT:t=>{FT=t;},get flyers(){return flyers;},get VS(){return VS;},get AV(){return AV;},doStage,switchV,orbitOf,setWarp:w=>{warp=w;},get said(){return said;}};

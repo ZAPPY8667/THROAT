@@ -89,6 +89,16 @@ made on the test stand.
   boosters. The SLS-shaped template reaches orbit (but needs ~14 minutes; the core alone has TWR 0.5 after the boosters go).
 - Still to do in phase 1.5: 1,000 km Earth, capsule + abort tower, parachutes, heat shield, upper stage, engine mount part.
 
+## v1.17: the world (asked for by Wyatt after phase 1.5's first part)
+- Wyatt wanted oceans, biomes, rain, wind, trees, rocks, mountains, buildings, day/night and better time warp. Answers: weather is
+  scenery only; coastal spaceport; hand-made planet, same every game; warp on the ground + clock + warp-to-event; 1,000 km Earth;
+  land anywhere; full day/night (20-minute day); all four areas equally.
+- Earth 1,000 km (orbit ~3.1 km/s), Moon 300 km at 8,000 km. Air still 40 km thick (kept so the ascent tests and feel stay).
+- Ground collisions use the real terrain under each contact point; the sea floats a slow splashdown. Landing zone moved to 2 km
+  west (east of the pad is now ocean).
+- The camera pulls back as the rocket climbs (ground kept in the bottom of the frame); a marker shows the rocket when it's tiny.
+- Night darkens the scene with an overlay, then lights and engine flames are drawn again on top so they glow.
+
 ## Things that went wrong (don't repeat)
 - The flight bundle is one closure: map.js already has `tfmt`/`kmf`, so a second `const` with those names breaks the whole page.
 - Wyatt shared a schlieren reference image with no text; Claude assumed what he wanted and changed things. He said

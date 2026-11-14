@@ -59,7 +59,7 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
 
 ## Phase 1.5: real-size rockets with real proportions (v1.16), do this next
 Goal: Wyatt can build a rocket with the proportions of SLS (and Falcon 9, Starship, New Glenn) and fly it.
-- **Done so far:** real size (10 cm units, ×1000 mass/thrust), free widths, engines scaled by size, flush thin side decouplers,
+- **Done so far:** 1,000 km Earth + bigger Moon (with the v1.17 world), real size (10 cm units, ×1000 mass/thrust), free widths, engines scaled by size, flush thin side decouplers,
   real-size templates incl. an SLS-shaped one. **Left:** bigger Earth/Moon, engine mount part, capsule/abort/parachutes/heat
   shield, upper stage part, booster nose/skirt.
 - **Real size:** parts are in real metres. An SLS-style rocket is ~98 m tall, core ~8.4 m wide, boosters ~3.7 m wide.
@@ -83,7 +83,11 @@ Goal: Wyatt can build a rocket with the proportions of SLS (and Falcon 9, Starsh
 - Tests: update every flight test for the new scale; add ascent-to-orbit for the SLS-style template, an abort test,
   a parachute landing and a re-entry (shield survives, no shield burns up).
 
-## Phase 2: test stand as an engineering cutaway (v1.17)
+## Done outside the phases: the world (v1.17)
+Oceans, biomes, mountains, trees, rocks, spaceport buildings, rain/wind (scenery), day/night, warp-to. 1,000 km Earth and the
+bigger Moon from phase 1.5 came with it. See HISTORY.md.
+
+## Phase 2: test stand as an engineering cutaway (v1.18)
 - Walls render as **crisp white outlines** (contours of the solid regions) on a near-black blue background, instead of pixel steel.
   Tanks, valves, injectors and igniters become line drawings in the same style (red only for active/open state).
 - **Blueprint grid** (faint, 1 cm minor / 10 cm major) and **dimension lines**: auto-measure throat width, exit width and
@@ -94,7 +98,7 @@ Goal: Wyatt can build a rocket with the proportions of SLS (and Falcon 9, Starsh
 - **No part-name labels** (Wyatt didn't pick them).
 - The **rocket editor** gets the same blueprint/cutaway style (white-line parts on a grid). **Flight keeps realistic rocket art.**
 
-## Phase 3: cinematic launch (v1.18)
+## Phase 3: cinematic launch (v1.19)
 - **Pre-launch on the pad** (while the rocket sits waiting and through the countdown):
   - **Umbilical arms** from the tower connect to each stage's tanks. Upper arms swing away from T-5 to T-2, the base
     umbilicals drop at T-0. Draw the hoses with sag; arms retract with easing.
@@ -119,7 +123,7 @@ Goal: Wyatt can build a rocket with the proportions of SLS (and Falcon 9, Starsh
   heat shimmer above the trench.
 - Hook into the existing `JUICE` sounds (ignition bang, roar) and goals (`launch`).
 
-## Phase 4: sky and clouds by altitude (v1.19)
+## Phase 4: sky and clouds by altitude (v1.20)
 - **Layers by altitude:** puffy cumulus at 1–3 km, flat stratus sheets at 4–8 km, thin wispy cirrus at 9–14 km; none above about 15 km.
 - **Fly through them:** passing through a layer briefly fogs the view white (density by thickness), then clears above it.
 - **Parallax depth:** several depth bands; far clouds move slower than near ones relative to the rocket.
@@ -127,7 +131,7 @@ Goal: Wyatt can build a rocket with the proportions of SLS (and Falcon 9, Starsh
   (from roughly 20 km). Keep it consistent with the existing `renderFlight` sky gradient and star field (`flight.js`).
 - Random but stable per launch (seeded), so a retry looks the same.
 
-## Phase 5: flight computer, the MechJeb-style autopilots (v1.20)
+## Phase 5: flight computer, the MechJeb-style autopilots (v1.21)
 Each is a pull-out edge-tab panel with clear Engage/Abort buttons, status text ("Gravity turn… 34%"), and the autopilot's
 plan drawn on the map. The player can take over at any moment (any steering or throttle input disengages it, with a callout).
 - **ASCENT:** set the target orbit altitude (default 60 km). It flies a gravity turn (start speed, turn shape, end angle, all

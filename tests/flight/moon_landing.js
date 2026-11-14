@@ -2,7 +2,7 @@
 const F=require('./harness.js');const W=x=>Math.atan2(Math.sin(x),Math.cos(x));
 const ps=F.tpl('lander');F.startFlight(ps,'L');let a=F.AV;F.doStage();a=F.AV;   // drop the booster on the pad... (keeps upper stage)
 F.VS.length=0;F.VS.push(a);
-const RM=90e3,mu=1.62*RM*RM,r=RM+30e3,vc=Math.sqrt(mu/r);a.body=1;a.x=0;a.y=r;a.vx=vc;a.vy=0;a.phi=Math.PI/2;a.landed=false;a.thr=0;a.legs=true;
+const RM=F.BOD[1].R,mu=1.62*RM*RM,r=RM+30e3,vc=Math.sqrt(mu/r);a.body=1;a.x=0;a.y=r;a.vx=vc;a.vy=0;a.phi=Math.PI/2;a.landed=false;a.thr=0;a.legs=true;
 let t=0;const dt=0.004,FE=a.est.reduce((q,E)=>q+E.vac.F,0),G0=-Math.min(...a.cptsL.map(q=>q[1]-a.py))*0.1;const phys=(s,u)=>{for(let i=0;i<s/dt;i++){F.stepV(a,dt,u());F.FT=F.FT+dt;t+=dt;}};
 const alt=()=>Math.hypot(a.x,a.y)-F.BOD[a.body].R,o=()=>F.orbitOf(a),fuel=()=>a.ps.reduce((s,p)=>s+(p.fuel||0),0);
 const st=tg=>()=>Math.max(-1,Math.min(1,W(tg()-a.phi)*3)),retro=()=>Math.atan2(-a.vx,-a.vy),pro=()=>Math.atan2(a.vx,a.vy);

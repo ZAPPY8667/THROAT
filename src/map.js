@@ -48,8 +48,13 @@ function renderMap(c){
   // Earth with its air, the Moon
   const er=Math.max(PR,3*px*FDS),mr=Math.max(RM,3*px*FDS);
   let g=c.createRadialGradient(0,0,er,0,0,er+ATM_TOP*1.6);g.addColorStop(0,"rgba(90,160,255,.35)");g.addColorStop(1,"rgba(90,160,255,0)");c.fillStyle=g;c.beginPath();c.arc(0,0,er+ATM_TOP*1.6,0,6.2832);c.fill();
-  g=c.createRadialGradient(-er*0.3,er*0.3,er*0.1,0,0,er);g.addColorStop(0,"#5b9a52");g.addColorStop(0.7,"#3e6b3a");g.addColorStop(1,"#2b5236");c.fillStyle=g;c.beginPath();c.arc(0,0,er,0,6.2832);c.fill();
-  c.fillStyle="rgba(60,110,200,.55)";for(const[a,b,w]of[[0.6,0.2,0.5],[2.2,-0.4,0.35],[4.1,0.5,0.6],[5.3,-0.2,0.3]]){c.beginPath();c.ellipse(Math.cos(a)*er*0.55,Math.sin(a)*er*0.55,er*w*0.6,er*w*0.35,b,0,6.2832);c.fill();}
+  // Earth as the game sees it: the sea is blue, and the land around the edge has the colour of its biome (the same planet as in flight);
+  // the side away from the sun is in night
+  g=c.createRadialGradient(-er*0.3,er*0.3,er*0.1,0,0,er);g.addColorStop(0,"#2c6fa6");g.addColorStop(1,"#123e66");c.fillStyle=g;c.beginPath();c.arc(0,0,er,0,6.2832);c.fill();
+  {const band=Math.max(er*0.035,4*px*FDS),N=720;let prev=null,st=0;
+    const flush=(i)=>{if(prev&&prev!=="sea"){c.strokeStyle=prev;c.lineWidth=band;c.beginPath();c.arc(0,0,er-band/2,Math.PI/2-i/N*6.2832,Math.PI/2-st/N*6.2832);c.stroke();}};
+    for(let i=0;i<=N;i++){const sx=i/N*2*Math.PI*PR,h=terrH(sx),col=i===N?null:h<0?"sea":h>3600?"#e9eef3":biomeAt(sx)[4];if(col!==prev){flush(i);prev=col;st=i;}}}
+  {const sg=sunAng(FT);c.fillStyle="rgba(2,6,18,.5)";c.beginPath();c.arc(0,0,er,-sg-Math.PI,-sg);c.closePath();c.fill();}
   const moonDisc=(x,y,al)=>{c.globalAlpha=al;const gg=c.createRadialGradient(x-mr*0.3,y+mr*0.3,mr*0.1,x,y,mr);gg.addColorStop(0,"#c9cbd1");gg.addColorStop(1,"#77797f");c.fillStyle=gg;c.beginPath();c.arc(x,y,mr,0,6.2832);c.fill();
     c.fillStyle="rgba(90,92,100,.5)";for(const[a,d,w]of[[0.5,0.4,0.18],[2.4,0.5,0.12],[4,0.3,0.22],[5.5,0.6,0.1]]){c.beginPath();c.arc(x+Math.cos(a)*mr*d,y+Math.sin(a)*mr*d,mr*w,0,6.2832);c.fill();}c.globalAlpha=1;};
   moonDisc(M.x,M.y,1);

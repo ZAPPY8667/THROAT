@@ -1,8 +1,10 @@
 // ================= ORBITS: Earth, the Moon, and where you're headed =================
 // Each craft moves around one body at a time (its "sphere of influence"), like Space Flight Simulator and KSP.
 // Coasting at high time warp it rides its orbit exactly ("on rails") instead of being stepped.
-const PR=300e3,MU=9.81*PR*PR,P0=101325,RHO0=1.225,HSC=4500,ATM_TOP=40e3,PAD2=2000;   // a small Earth; landing zone 2 km east of the pad
-const RM=90e3,MUM=1.62*RM*RM,DM=2.5e6,NM=Math.sqrt(MU/DM**3),SOI=DM*Math.pow(MUM/MU,0.4),TH0=Math.PI/2+0.35;
+// Earth: 1,000 km radius (v1.17; orbit takes ~3.1 km/s), air to 40 km. The landing zone (PAD2) and the surface are in world.js.
+const PR=1000e3,MU=9.81*PR*PR,P0=101325,RHO0=1.225,HSC=4500,ATM_TOP=40e3;
+// the Moon, scaled to match: 300 km radius, 8,000 km away (a lap takes ~12.6 h of game time)
+const RM=300e3,MUM=1.62*RM*RM,DM=8e6,NM=Math.sqrt(MU/DM**3),SOI=DM*Math.pow(MUM/MU,0.4),TH0=Math.PI/2+0.35;
 const BOD=[{name:"Earth",R:PR,mu:MU,atm:true,floor:ATM_TOP,soi:Infinity},{name:"Moon",R:RM,mu:MUM,atm:false,floor:4000,soi:SOI}];
 const atmP=h=>h>ATM_TOP?0:P0*Math.exp(-h/HSC),atmRho=h=>h>ATM_TOP?0:RHO0*Math.exp(-h/HSC);
 const wrapA=a=>Math.atan2(Math.sin(a),Math.cos(a));
