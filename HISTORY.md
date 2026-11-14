@@ -197,7 +197,32 @@ made on the test stand.
   ("Flew into the hangar", names in `BNAME`). The LAND autopilot uses `groundAt` too, so it sets down on a roof correctly.
   Launch tower and pad stay out of it. Trees stay scenery (forests everywhere would make every landing there a crash).
 
+## v1.33: demo, fuels in flight, auto detail, sharing, kits (+ a crash fix)
+- **Crash fix (live since v1.20):** above 34 km the escape tower jettisons itself; the tower then flies as its own craft that
+  still "has an escape tower" above 34 km, so it jettisoned itself again, inside the same loop over `VS` it was being pushed
+  onto: an endless loop, JavaScript out of memory, the tab died on every Super Heavy flight. `lesCheck` now loops over a copy
+  and skips a craft that is only the tower; `jettisonLes` refuses one too. tests/flight/capsule.js flies the SLS through it.
+  Found by the demo: always fly the showcase rocket all the way up in a real browser.
+- **Demo** (`demo.js`, "Watch a launch" on the stand and in Controls): the Super Heavy on the real autopilots with captions,
+  ×4 warp on the climb, close-ups at Max-Q and separations (zoom that undoes the tracking pull-back: hAG ÷ 1.43·H), orbit,
+  the Moon burn on the map, warp to the Moon's gravity. ~4 minutes. Any key or "Take control" hands over without cutting the
+  engines. Goals are muted while it flies (`JUICE.quiet`); launch/10 km goals are now once per flight (`said.l20/k10`).
+- **Fuel in flight:** the stand records which fuel its tanks hold (`standFuel` in ui.js → `recordTest(F,isp,fuel)` → `card.fuel`);
+  "Your engine" and saved library engines (`e.fuel`, `p.n.fuel`) draw that flame: new methane palette (clear blue-violet,
+  bright diamonds). Tank density stays the shared hydrolox value for every engine: changing it per fuel would rebalance every
+  ready-made rocket (kerosene is ~3× denser), so it's left as a known simplification.
+- **Detail level** (`QL` 2/1/0 in flight.js, `throat.quality.v1`): frame time averaged; > 30 ms for 4 s drops a level (canvas
+  pixel ratio 2 → 1.25 → 0.8, steam/smoke caps × 0.6 / 0.3, flames 3 layers, no shimmer); < 18 ms for 12 s raises it unless it
+  dropped this flight. Headless Chrome went 22 → 57 fps.
+- **Share** (editor): `THROAT-R1z:` + base64url of deflate-raw JSON (only shape fields, `SHARE_KEYS`; ~480 chars for the SLS);
+  plain `THROAT-R1:` where CompressionStream is missing. Loading validates every part, gives fresh ids, keeps twins, runs the
+  old-save upgrade. Text boxes no longer trigger editor/stand shortcuts (TEXTAREA added to the key guards).
+- **Kits** (editor palette, end of the list): Upper stage (decoupler + Lumen Vac + 40×110 tank) and Booster pair (Thumpers with
+  cone noses on side decouplers). Carried as one block (`kitBlock`, a tank-like or fin-like box so `snapPart` works unchanged),
+  dropped as parts; `hangSdec` moves the side decoupler to where the core beside the booster is; mirrored as twins.
+
 ## Things that went wrong (don't repeat)
+- Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
   dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.
 - A new palette id with an extra field ("engine:stand:4") broke the editor palette (ENG lookup by the whole suffix): check

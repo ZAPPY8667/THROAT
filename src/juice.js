@@ -90,7 +90,7 @@ const JUICE=(()=>{
     requestAnimationFrame(()=>toastEl.classList.add("in"));const el=toastEl;
     setTimeout(()=>{el.classList.remove("in");setTimeout(()=>{el.remove();nextToast();},350);},3800);}
   const count=()=>GOALS.filter(g=>done[g[0]]).length;
-  function goal(id){if(done[id])return;const g=GOALS.find(x=>x[0]===id);if(!g)return;done[id]=Date.now();store.set(GK,done);
+  function goal(id){if(done[id]||api.quiet)return;const g=GOALS.find(x=>x[0]===id);if(!g)return;done[id]=Date.now();store.set(GK,done);
     const n=count();toast(`<small>Goal ${n===GOALS.length?"— ALL DONE! 🎉":`${n} of ${GOALS.length}`}</small>🏆 ${g[1]}`);snd.chime();btns();if(gl&&gl.classList.contains("show"))list();}
   // the goals card: what's done, and a hint for each thing still to do
   const gl=document.createElement("div");gl.className="help goals";gl.innerHTML='<div class="card"><h2>Goals</h2><div class="glist"></div><div class="row" style="margin-top:10px"><span class="tip">Hints show for goals you haven\'t done yet. Esc to close.</span><button class="b" style="margin-left:auto">Reset goals</button></div></div>';
@@ -108,5 +108,6 @@ const JUICE=(()=>{
     const g=$("bGoals");if(g)g.innerHTML=ico("trophy")+`<b>${count()}/${GOALS.length}</b>`;}
   for(const id of["bSnd","fSnd"])$(id).onclick=()=>snd.toggle();$("bGoals").onclick=openGoals;btns();
   window.__juice={get audio(){return A&&A.state;},get roar(){return roarG?+roarG.gain.value.toFixed(3):null;},get cutoff(){return roarF?Math.round(roarF.frequency.value):null;},stand,fly,get done(){return done;}};   // for browser tests
-  return{snd,goal,stand,fly,openGoals,toast,GOALS,get done(){return done;}};
+  const api={snd,goal,stand,fly,openGoals,toast,GOALS,get done(){return done;},quiet:false};   // quiet: the demo is flying, no goals
+  return api;
 })();

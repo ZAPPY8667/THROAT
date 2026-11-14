@@ -16,4 +16,10 @@ function reentry(shieldFirst){const v=F.mkVessel([F.mkPart('capsule')],'C');F.AV
   return v;}
 let v=reentry(true);ok(!v.crashed,'heat shield first: survives re-entry');
 v=reentry(false);ok(v.crashed,'nose first: burns up');
+// the escape tower drops by itself above 34 km, once, and the tower flying on its own doesn't keep splitting (that ran the page
+// out of memory on every Super Heavy flight before v1.33)
+{F.startFlight(F.tpl('sls'),'SLS');F.apEngage('ascent',{alt:70000});let t=0,most=0;
+  while(t<160){F.apStep(0.02);for(const w of F.VS.slice())F.stepV(w,0.02,0);F.lesCheck();t+=0.02;most=Math.max(most,F.VS.length);if(most>20)break;}
+  const towers=F.VS.filter(w=>w.ps.some(p=>p.t==='les'));
+  ok(!F.AV.hasLes&&towers.length===1&&most<=8,`tower jettisoned above the air once (${towers.length} tower, at most ${most} craft at a time)`);}
 if(bad)process.exit(1);console.log('capsule ok');

@@ -12,8 +12,8 @@ def rd(name):
         return f.read()
 
 # the rocket editor + flight mode live in their own closure inside the UI script
-flight = ('var FLT={on:false,vab:false},_rt=null,_rb=null;function recordTest(F,i){if(_rt)_rt(F,i);}function recordBurn(b){if(_rb)_rb(b);}\n(()=>{\n'
-          + ''.join(rd(n) + '\n' for n in ['parts.js', 'orbit.js', 'world.js', 'vab.js', 'flight.js', 'autopilot.js', 'map.js', 'lib.js', 'tut.js'])
+flight = ('var FLT={on:false,vab:false},_rt=null,_rb=null;function recordTest(F,i,f){if(_rt)_rt(F,i,f);}function recordBurn(b){if(_rb)_rb(b);}\n(()=>{\n'
+          + ''.join(rd(n) + '\n' for n in ['parts.js', 'orbit.js', 'world.js', 'vab.js', 'flight.js', 'autopilot.js', 'demo.js', 'map.js', 'lib.js', 'tut.js'])
           + '})();\n')
 # sound + goals sit in the UI closure (so the test stand can use them) just before the flight bundle (so flight can too)
 ui = rd('ui.js').replace('/*FLIGHT*/', rd('juice.js') + '\n' + flight)

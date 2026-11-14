@@ -7,14 +7,14 @@ const JX=typeof JUICE!=="undefined"?JUICE:null;
 // ---------- test-stand records ----------
 const CARD_KEY="throat.card.v1";
 let card=store.get(CARD_KEY,{sl:null,vac:null}),hist=[];
-_rt=function(F,isp){
+_rt=function(F,isp,fuel){
   if(!(F>100&&isp>0&&isFinite(isp))){hist=[];return;}
   hist.push([simTime,F,isp]);while(hist.length&&simTime-hist[0][0]>1.2e-3)hist.shift();
   if(hist.length<6||simTime-hist[0][0]<0.8e-3)return;
   let lo=1e18,hi=0,sf=0,si=0;for(const[,f,i]of hist){lo=Math.min(lo,f);hi=Math.max(hi,f);sf+=f;si+=i;}
   const mF=sf/hist.length,mI=si/hist.length;if((hi-lo)/mF>0.06)return;            // steady to within 6%
   const k=atmo?"sl":"vac",old=card[k];
-  if(!old||Math.abs(old.F-mF)/old.F>0.01||Math.abs(old.isp-mI)>2){card[k]={F:mF,isp:mI,t:Date.now()};store.set(CARD_KEY,card);vAn=null;}};
+  if(!old||Math.abs(old.F-mF)/old.F>0.01||Math.abs(old.isp-mI)>2||(fuel&&card.fuel!==fuel)){card[k]={F:mF,isp:mI,t:Date.now()};if(fuel)card.fuel=fuel;store.set(CARD_KEY,card);vAn=null;}};
 // solid boosters: the test stand reports each finished burn (average thrust, Isp, thrust curve); kept per outside air like the engine
 _rb=function(b){if(!(b&&b.F>100&&b.isp>0&&isFinite(b.isp)))return;const k=b.atmo?"sl":"vac";card.srb=card.srb||{};
   card.srb[k]={F:b.F,isp:b.isp,curve:b.curve,t:Date.now()};store.set(CARD_KEY,card);vAn=null;};
@@ -29,10 +29,20 @@ function engineNums(){
   if(!sl&&!vac){sl={F:2250,isp:355};src="default";}
   if(sl&&!vac)vac={F:sl.F*1.1,isp:sl.isp*1.1,est:true};          // no vacuum test: a sea-level nozzle gains about 10% in vacuum
   if(vac&&!sl)sl={F:vac.F*0.9,isp:vac.isp*0.9,est:true};
-  return{sl,vac,src};}
+  return{sl,vac,src,fuel:card.fuel||"h2"};}
 // ---------- vessels ----------
 const fcv=$("fcv"),fx=fcv.getContext("2d");let FW=1280,FH=720,FDS=1;
-function fitF(){const r=fcv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);FW=Math.max(320,Math.round(r.width*d));FH=Math.max(200,Math.round(r.height*d));if(fcv.width!==FW||fcv.height!==FH){fcv.width=FW;fcv.height=FH;}FDS=FH/720;}
+// ---------- detail level (v1.33) ----------
+// A slower computer gets a simpler picture instead of a jerky one. The frame time is watched all through a flight; if it stays
+// slow (under ~33 frames a second) the detail drops a step: fewer pixels (the canvas is drawn smaller and stretched), fewer steam
+// and smoke puffs, three flame layers instead of five, no heat shimmer. Quick frames for a while bring it back up, but not after
+// it had to drop in this flight (so it doesn't flicker between the two). The level is remembered on this computer.
+const QKEY="throat.quality.v1";let QL=Math.max(0,Math.min(2,store.get(QKEY,2))),qlAvg=16,qlT=0,qlUp=0,qlNoUp=false;
+const QPIX=[0.8,1.25,2],QPUFF=[0.3,0.6,1];
+function qualityTick(dtR){if(!(dtR>0)||dtR>0.25)return;qlAvg+=(dtR*1000-qlAvg)*0.04;qlT+=dtR;if(qlT<4)return;
+  if(qlAvg>30&&QL>0){QL--;qlT=0;qlNoUp=true;store.set(QKEY,QL);if(!msgT||msgT<0.5){msg="Lots going on: drawing a little less detail to keep it smooth.";msgT=2.5;}}
+  else if(!qlNoUp&&qlAvg<18&&QL<2){qlUp+=dtR;if(qlUp>12){QL++;qlT=0;qlUp=0;store.set(QKEY,QL);}}else qlUp=0;}
+function fitF(){const r=fcv.getBoundingClientRect(),d=Math.min(QPIX[QL],devicePixelRatio||1);FW=Math.max(320,Math.round(r.width*d));FH=Math.max(200,Math.round(r.height*d));if(fcv.width!==FW||fcv.height!==FH){fcv.width=FW;fcv.height=FH;}FDS=FH/720;}
 let launchH=3,flyers=[],mapCam=null,predC=null,VS=[],AV=null,EN=null,launchPs=null,launchName="",smoke=[],warp=1,mapView=false,zoomF=1,keys=new Set(),msg="",msgT=0,lastFT=0,rotBtn=0,clouds=[],said={},vesId=0,hudN=0,anAV=null,launchW=0.6;
 const WARPS=[1,2,4,10,50,100,500,1000,5000,20000];let FT=0,warpWhy="";
 // webcast extras: the mission timeline (events tick off as they happen), the lift-off clock, Max-Q tracking, and the camera's
@@ -81,7 +91,7 @@ function startFlight(ps,name,keepWx){
   clouds=makeClouds(launchSeed);   // three layers by altitude (world.js)
   FLT.on=true;FLT.vab=false;$("flight").classList.add("show");S.paused=true;cfg();fitF();$("fThr").value=0;lastFT=performance.now();
   requestAnimationFrame(flightFrame);}
-function endFlight(){FLT.on=false;$("flight").classList.remove("show");if(typeof enter==="function")enter($("stage"));S.paused=$("bPause").classList.contains("on");cfg();}
+function endFlight(){if(typeof demoStop==="function")demoStop();FLT.on=false;$("flight").classList.remove("show");if(typeof enter==="function")enter($("stage"));S.paused=$("bPause").classList.contains("on");cfg();}
 // ---------- countdown ----------
 // Space (or the button) starts a 10 s count. T−5 the water deluge starts and the upper tower arms swing away; T−3 the liquid
 // engines light and spool up while the hold-down clamps keep the rocket on the pad; T−0 the clamps open, the base umbilicals
@@ -143,7 +153,11 @@ function abort(){const v=AV;if(!v||v.crashed)return;const ci=v.ps.findIndex(p=>p
   const cp=v.ps[ci],idx=new Set();v.ps.forEach((p,i)=>{if(p.y>=cp.y-0.01&&Math.abs(p.x-cp.x)<cp.w/2+1)idx.add(i);});
   if(idx.size===v.ps.length){v.lesT=3;}else{const n=splitOff(v,idx,v.name+" capsule");v.thr=0;v.name=v.name+" (aborted)";n.lesT=3;AV=n;}
   if(CD.s!=="go"){CD={s:"go",t:0};tRel=FT;}msgT=0;AV.clamped=false;AV.landed=false;callout("ABORT","escape tower firing");kickF=1;if(JX){JX.goal("abort");JX.snd.bang(1);JX.snd.say("abort, abort");}}
-function jettisonLes(v,why){const li=v.ps.findIndex(p=>p.t==="les");if(li<0)return;splitOff(v,new Set([li]),"Escape tower",25);if(v===AV)callout("TOWER JETTISON",why||"");}
+// the tower drops by itself 1.2 s after an abort, or once it's above the air. A tower already flying on its own has nothing to
+// drop off: before v1.33 it kept "jettisoning itself", each copy did the same in the same loop, and the page ran out of memory
+// at 34 km on every Super Heavy flight. So: only craft with something besides the tower, and loop over a copy of the list.
+function lesCheck(){for(const v of VS.slice())if(v.hasLes&&!v.crashed&&!(v.lesT>0)&&v.ps.some(p=>p.t!=="les")&&((v.lesDone!=null&&v.t-v.lesDone>1.2)||(v.body===0&&Math.hypot(v.x,v.y)-PR>ATM_TOP*0.85)))jettisonLes(v,v.lesDone!=null?"":"not needed above the air");}
+function jettisonLes(v,why){const li=v.ps.findIndex(p=>p.t==="les");if(li<0||v.ps.every(p=>p.t==="les"))return;splitOff(v,new Set([li]),"Escape tower",25);if(v===AV)callout("TOWER JETTISON",why||"");}
 function chutes(){const v=AV;if(!v||v.crashed)return;if(!v.hasCap){msg="Parachutes come with the crew capsule.";msgT=2.5;return;}
   if(v.chute){msg="Parachutes are already out.";msgT=1.5;return;}if(v.body!==0){msg="No air here: parachutes won't work.";msgT=2.5;return;}
   const sp=Math.hypot(v.vx,v.vy);if(sp>280){msg=`Too fast for parachutes (${fmt(sp)} m/s): they'd tear. Wait until below 280 m/s.`;msgT=3;return;}
@@ -264,6 +278,7 @@ function orbitOf(r){const B=BOD[r.body],mu=B.mu,rr=Math.hypot(r.x,r.y),v2=r.vx*r
   if(E>=0)return{esc:true,e,ex,ey,hz,pe:hz*hz/mu/(1+e)-B.R};const a=-mu/(2*E);return{a,e,ex,ey,hz,ap:a*(1+e)-B.R,pe:a*(1-e)-B.R};}
 // ---------- input ----------
 addEventListener("keydown",e=>{if(!FLT.on)return;const tg=e.target&&e.target.tagName;if(tg==="INPUT"||tg==="SELECT"){if(e.key==="Escape")e.target.blur();return;}const k=e.key.toLowerCase();keys.add(k);
+  if(DEMO.on&&!["m","u","h","escape"].includes(k))demoStop("You have the controls. The autopilot tabs on the left (ASCENT, NODE, LAND) can fly it again.");   // any key ends the demo
   if(k==="escape"){endFlight();}
   else if((k==="z"||k==="w"||k==="shift")&&CD.s==="wait"){msg="The rocket is held down on the pad. Press Space to start the countdown.";msgT=3;}
   else if(k==="z")AV.thr=1;else if(k==="x")AV.thr=0;
@@ -304,7 +319,7 @@ function padEmit(dt){const v=AV;if(!v||v.body!==0||dt<=0)return;const fx=padFx()
   // exhaust steam: while engines fire near the pad, huge clouds roll sideways out of both ends of the flame trench
   const near=Math.abs(Math.atan2(v.x,v.y)*PR)<400&&hAG<300;
   if(near&&v.F>0){const k=Math.min(1,v.F/((v.m||1)*9.81))*(1-hAG/300),n=Math.min(10,Math.random()<k*dt*70?1+((k*dt*70)|0):0);
-    for(let i=0;i<n&&steam.length<340;i++){const sd=Math.random()<0.5?-1:1,x0=sd*(launchW*0.5+4);
+    for(let i=0;i<n&&steam.length<340*QPUFF[QL];i++){const sd=Math.random()<0.5?-1:1,x0=sd*(launchW*0.5+4);
       steam.push({x:x0,y:PR+1.5+Math.random()*3,vx:sd*(18+Math.random()*30),vy:2+Math.random()*5,t:0,life:22+Math.random()*25,r0:4+Math.random()*4,r1:(25+Math.random()*55)*Math.max(0.6,launchH/60),g:0.85+Math.random()*0.15});}}
   for(const q of steam){q.t+=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(0.55,dt);q.vy=q.vy*Math.pow(0.7,dt)+0.4*dt;q.x+=windDir*wx.wind*dt*0.3;}
   steam=steam.filter(q=>q.t<q.life);}
@@ -313,8 +328,8 @@ function flightFrame(now){
   if(!FLT.on)return;
   fitF();const dtR=Math.min(0.05,(now-lastFT)/1000);lastFT=now;
   if(AV){
-    countFrame(dtR);padEmit(dtR);
-    for(const v of VS)if(v.hasLes&&!v.crashed&&!(v.lesT>0)&&((v.lesDone!=null&&v.t-v.lesDone>1.2)||(v.body===0&&Math.hypot(v.x,v.y)-PR>ATM_TOP*0.85)))jettisonLes(v,v.lesDone!=null?"":"not needed above the air");
+    countFrame(dtR);padEmit(dtR);qualityTick(dtR);if(typeof demoStep==="function")demoStep(dtR);
+    lesCheck();
     if(AP.mode&&(keys.has("shift")||keys.has("w")||keys.has("control")||keys.has("s")||keys.has("z")||keys.has("x")))apOff("you took over");
     if(!AV.crashed&&CD.s==="go"&&!AP.mode){if(keys.has("shift")||keys.has("w"))AV.thr=Math.min(1,AV.thr+0.9*dtR);
       if(keys.has("control")||keys.has("s"))AV.thr=Math.max(0,AV.thr-0.9*dtR);}
@@ -351,16 +366,19 @@ function flightFrame(now){
 // ---------- drawing ----------
 const lerp=(a,b,t)=>a+(b-a)*t,col=(c,a)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
 // ---------- engine flames ----------
-// One drawing for every flame, coloured by what burns. Hydrogen + oxygen (your engine, Lumen Vac) burns almost invisible: a pale
+// One drawing for every flame, coloured by what burns. Methane (an engine tested on methane) is a clear blue-violet with bright
+// diamonds, like Raptor. Hydrogen + oxygen (your engine, Lumen Vac) burns almost invisible: a pale
 // blue-violet column whose shock diamonds glow orange-white. Kerosene (Wren, Mule, Bison) is bright: white-hot at the nozzle, then
 // yellow-orange, with soot darkening the tail. Solid boosters: a blinding white column with white smoke. The edges boil (a few
 // sine waves moving down the flame at different speeds), the flame widens as the air thins, and the whole thing swings with the
 // gimbal and curves behind a turning rocket (see bd in drawVessel).
 const PAL={
   h2:  {edge:[110,130,255],mid:[170,180,255],core:[230,236,255],dia:[255,210,185],glow:[150,160,255],turb:0.10,ang:0.03,dias:1,  soot:0,  body:0.55},
+  ch4: {edge:[150,105,255],mid:[120,135,255],core:[225,228,255],dia:[240,205,255],glow:[135,120,255],turb:0.12,ang:0.035,dias:0.9,soot:0,body:0.8},
   kero:{edge:[255,90,25],  mid:[255,170,60], core:[255,248,215],dia:[255,250,225],glow:[255,145,55], turb:0.20,ang:0.05,dias:0.45,soot:0.5,body:1},
   srb: {edge:[245,125,45], mid:[255,215,140],core:[255,253,242],dia:[255,255,240],glow:[255,230,180],turb:0.14,ang:0.04,dias:0.2, soot:0.7,body:1}};
-const fireKind=k=>k==="wren"||k==="mule"||k==="bison"?"kero":"h2";
+// your engine burns whatever it burned on the test stand; a saved engine keeps the fuel it was saved with
+const fireKind=(k,p)=>k==="wren"||k==="mule"||k==="bison"?"kero":k==="stand"?engineNums().fuel:k==="lib"&&p&&p.n&&p.n.fuel?p.n.fuel:"h2";
 function flame(ctx,x0,y0,w,thr,a,bright,kind,vacEng,bd){   // in the rocket's frame (y up): exhaust goes down; sizes scale with the bell width w
   if(thr<=0.01)return;
   const P=PAL[kind],T=performance.now()/1000,vac=1-a,fl=0.95+Math.random()*0.1,seed=x0*0.37;
@@ -381,7 +399,7 @@ function flame(ctx,x0,y0,w,thr,a,bright,kind,vacEng,bd){   // in the rocket's fr
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,R,0,6.2832);ctx.fill();ctx.restore();}
   // the body: five nested layers, faint and wide outside, bright and narrow inside. Stacked, they make a soft edge that boils.
   const N=24,cl=kind==="h2"?0.32:kind==="kero"?0.6:0.7;
-  for(let j=0;j<5;j++){const f=j/4,sc=1.55-1.05*f,len=lerp(1.08,cl,f*f),c1=f<0.5?P.edge:f<0.8?P.mid:P.core,c2=f<0.8?P.edge:P.mid;
+  for(let j=0;j<5;j+=QL>0?1:2){const f=j/4,sc=1.55-1.05*f,len=lerp(1.08,cl,f*f),c1=f<0.5?P.edge:f<0.8?P.mid:P.core,c2=f<0.8?P.edge:P.mid;
     const al=lerp(0.13,0.8,f)*thr*(j===4?1:P.body)*(j===4?1:0.3+0.7*a),LL=L*len*(j===4?1-0.4*vac:1);   // in vacuum the gas spreads thin: only the core stays bright
     const rad=(t,sd)=>{let r=(w*0.48+spread*t)*sc*(1+P.turb*(1.4-f)*Math.min(1,t*2.5)*nz(t*6,seed+sd*1.7+j));
       if(kind==="h2"&&a>0.2)r*=1-0.2*a*Math.abs(Math.sin(t*len*Math.PI*5));   // in air the jet pinches at each shock diamond
@@ -410,7 +428,7 @@ function drawVessel(c,v,bright,plumesOnly){
   // curved flame behind it; in air a sideways wind blows the far end back. Real exhaust is fast (~3 km/s) and would barely curve,
   // so the flame is drawn as if it were ~60 m/s: you can see the rocket steer. g is the nozzle swivel (up to ~8°).
   const lat=v.vx*Math.cos(v.phi)-v.vy*Math.sin(v.phi),bd={g:(v.gim||0)*0.14,k:Math.max(-0.0015,Math.min(0.0015,(v.om||0)/600-lat*v.a/36000))};
-  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright,bd);return;}const fk=fireKind(k);const g=clusterGeo(p),pf=(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8);if(g.k>1){for(const[ex,row]of g.xs)if(!row)plume(c,p.x+ex,p.y,g.ew*pf,v.thr,v.a,bright,k==="vac",bd,fk);return;}plume(c,p.x,p.y,p.w*pf,v.thr,v.a,bright,k==="vac",bd,fk);}});
+  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright,bd);return;}const fk=fireKind(k,p);const g=clusterGeo(p),pf=(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8);if(g.k>1){for(const[ex,row]of g.xs)if(!row)plume(c,p.x+ex,p.y,g.ew*pf,v.thr,v.a,bright,k==="vac",bd,fk);return;}plume(c,p.x,p.y,p.w*pf,v.thr,v.a,bright,k==="vac",bd,fk);}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
   for(const p of v.ps)if(p.t==="les"&&v.lesT>0)for(const sd of[-1,1]){c.save();c.translate(p.x+sd*p.w*0.42,p.y+p.h*0.5);c.rotate(sd*2.4);srbPlume(c,0,0,p.w*0.35,v.a,bright);c.restore();}
   if(plumesOnly){c.restore();return;}
@@ -481,7 +499,7 @@ function renderFlight(dt){
     drawEarth(c,psi*PR,s,FT,now);
     // pads are drawn at a scale that fits the rocket (k), with the pad's top at ground level so the rocket stands on it
     {const fx=padFx(),lit=AV.F>0&&hAGc<200;   // the pad: water deluge, launch tower with its swing arms, hold-down clamps, heat shimmer
-      padAt(c,0,()=>{drawDeluge(c,launchW,fx.deluge,now);drawTower(c,launchW,launchH,fx.up,fx.lo);drawClamps(c,launchW,fx.clamp);if(lit)drawShimmer(c,launchW,Math.min(1,AV.F/(AV.m*9.81)),now);});}
+      padAt(c,0,()=>{drawDeluge(c,launchW,fx.deluge,now);drawTower(c,launchW,launchH,fx.up,fx.lo);drawClamps(c,launchW,fx.clamp);if(lit&&QL>0)drawShimmer(c,launchW,Math.min(1,AV.F/(AV.m*9.81)),now);});}
     padAt(c,PAD2/PR,()=>{c.scale(5,5);c.translate(0,-0.4);c.fillStyle="#6d7586";c.fillRect(-9,-0.5,18,0.9);c.fillStyle="#e8e9ee";c.fillRect(-6,0.38,12,0.04);c.fillStyle="#e8b923";for(const x of[-7.5,7.5])c.fillRect(x-0.4,0.36,0.8,0.06);
       c.fillStyle="#d24b3a";c.fillRect(-0.15,0.4,0.3,3);c.beginPath();c.moveTo(0.15,3.4);c.lineTo(1.8,3.05);c.lineTo(0.15,2.7);c.fill();});}
   else{
@@ -497,7 +515,7 @@ function renderFlight(dt){
   flyers=flyers.filter(q=>q.t<25&&Math.hypot(q.x,q.y)>BOD[q.body].R);
   // every craft near this one: the one you fly, dropped stages, boosters
   for(const v of VS){if(v.body!==r.body||Math.hypot(v.x-r.x,v.y-r.y)>Math.max(4000,FH/s*2))continue;
-    if(v.F>0&&v.a>0.03&&smoke.length<600){const cc=Math.cos(v.phi),ss=Math.sin(v.phi);v.eng.forEach((i,n)=>{const p=v.ps[i],sol=p.t==="srb";if(!v.lit[n]||Math.random()>(sol?1.6:0.8*v.thr)*v.a)return;
+    if(v.F>0&&v.a>0.03&&smoke.length<600*QPUFF[QL]){const cc=Math.cos(v.phi),ss=Math.sin(v.phi);v.eng.forEach((i,n)=>{const p=v.ps[i],sol=p.t==="srb";if(!v.lit[n]||Math.random()>(sol?1.6:0.8*v.thr)*v.a)return;
       const[wx,wy]=loc(v,(p.x-v.px)*UM,(p.y-v.py)*UM),sp=25+Math.random()*25;
       smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w*UM*0.8,r1:((sol?10:6)+Math.random()*10)*Math.max(1,p.w*UM/2),o:v.a*(sol?1.6:1)});});}
     drawVessel(c,v,bright);}
@@ -586,7 +604,7 @@ function hudFlight(dt){
   const big=h>=10000;rv("fAlt",big?h/1000:h,big?(x=>x.toFixed(1)):fmt);set("fAltU",big?"KM":"M");
   $("dAlt").querySelector(".arc").style.strokeDasharray=`${245*Math.min(1,Math.log10(1+Math.max(0,h))/Math.log10(2.6e6))} 999`;
   set("fClock",CD.s==="count"?"T−"+clk(Math.ceil(CD.t)):CD.s==="wait"?"T−00:00:10":T0==null?"T−00:00:00":"T+"+clk(FT-T0));
-  $("fCount").style.display=CD.s==="wait"&&!r.crashed?"":"none";
+  $("fCount").style.display=CD.s==="wait"&&!r.crashed&&!(typeof DEMO!=="undefined"&&DEMO.on)?"":"none";
   if(!anAV||++hudN%15===0)anAV=analyze(r.ps,EN,r.ps.map(p=>p.fuel||0));
   if(CD.s!=="go")set("fStageN",CD.s==="wait"?"HOLD · ON THE PAD":"COUNTDOWN");else set("fStageN",r.ctrl?`STAGE ${Math.min(nSt0,Math.max(1,nSt0-anAV.stages.length+1))} / ${nSt0}`:"");
   set("fVes",r.name+(r.body?" · MOON":" · "+clockStr(hourAt(psi,FT))+" · DAY "+(1+Math.floor((FT+CLK0/24*DAY)/DAY))));set("fWarp",r.wv>1||warp>1?`WARP ${r.wv<warp?r.wv+"× ("+warpWhy+")":warp+"×"}`:"");
@@ -594,7 +612,7 @@ function hudFlight(dt){
   if(!said.lift&&!r.landed&&r.t>0.2&&h>1.5){said.lift=1;T0=FT;mark("liftoff");callout("LIFTOFF");kickF=Math.max(kickF,0.7);}
   if(r.body===0&&r.q>qMax){qMax=r.q;qT=FT;}
   if(!said.maxq&&qMax>1500&&r.q<qMax*0.85&&h>500){said.maxq=1;mark("maxq",qT);callout("MAX-Q",(qMax/1000).toFixed(1)+" kPa · the air's hardest push");}
-  if(JX){if(r.maxAlt>20)JX.goal("launch");if(r.body===0&&h>10000)JX.goal("km10");}
+  if(JX){if(!said.l20&&r.maxAlt>20){said.l20=1;JX.goal("launch");}if(!said.k10&&r.body===0&&h>10000){said.k10=1;JX.goal("km10");}}   // once per flight (a watched demo flight doesn't count later)
   if(r.body===0){if(!said.orbit&&!o.esc&&o.pe>ATM_TOP){said.orbit=1;if(JX)JX.goal("orbit");mark("orbit");callout("ORBIT",`${km(o.pe)} × ${km(o.ap)}`);}
     if(o.esc&&!said.esc){said.esc=1;callout("ESCAPE VELOCITY","leaving Earth for good");}
     if(!said.space&&h>ATM_TOP){said.space=1;if(JX)JX.goal("space");mark("space");callout("SPACE","above 40 km");}}
@@ -662,4 +680,4 @@ if(JX&&typeof foldUI==="function")foldUI($("flight"),"flight",[{el:$("fpOrbit"),
   {el:$("fpAsc"),label:"ASCENT",side:"l",title:"Ascent autopilot: flies you to orbit"},{el:$("fpNode"),label:"NODE",side:"l",title:"Maneuver planner: plan and fly burns (circularise, change orbit, go to the Moon, come home)"},
   {el:$("fpLand"),label:"LAND",side:"l",title:"Landing autopilot"},
   {el:$("fpData"),label:"DATA",side:"r",open:true,title:"Ap, Pe, TWR, Δv and fuel"},{el:$("fpTime"),label:"TIME",side:"r",title:"Clock, weather and warp to sunrise, Ap, Pe or the Moon"},{el:$("fpSas"),label:"SAS",side:"r",title:"SAS hold modes"}]);
-window.__flt={predict,moonAt,get FT(){return FT;},setFT:t=>{FT=t;},get flyers(){return flyers;},get VS(){return VS;},get AV(){return AV;},doStage,switchV,orbitOf,setWarp:w=>{warp=w;},get said(){return said;}};
+window.__flt={get QL(){return QL;},setQL:q=>{QL=q;},predict,moonAt,get FT(){return FT;},setFT:t=>{FT=t;},get flyers(){return flyers;},get VS(){return VS;},get AV(){return AV;},doStage,switchV,orbitOf,setWarp:w=>{warp=w;},get said(){return said;}};

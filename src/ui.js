@@ -15,7 +15,7 @@ const ICP={
   mirror:["M12 3v18","M8 7 3 12l5 5z","M16 7l5 5-5 5z"],legs:["M12 4v8","M12 12l-6 8","M12 12l6 8","M3.5 20h5","M15.5 20h5"],fit:["M4 9V4h5","M20 9V4h-5","M4 15v5h5","M20 15v5h-5"],
   stage:["M12 4l7 8H5z","M5 17h14"],centre:["o 12 12 7","M12 5v14","M5 12h14"],chute:["M4 11a8 8 0 0 1 16 0z","M4 11l8 9 8-9","M12 11v9"],abort:["M12 3l10 18H2z","M12 10v5","M12 18v.1"],rcs:["o 12 12 3","M12 2v5","M12 17v5","M2 12h5","M17 12h5"],warp:["M3 6l8 6-8 6z","M12 6l8 6-8 6z"],map:["M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z","M9 4v14","M15 6v14"],
   build:["M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"],back:["M19 12H5","M11 6l-6 6 6 6"],
-  warpdn:["M21 6l-8 6 8 6z","M12 6l-8 6 8 6z"],rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
+  warpdn:["M21 6l-8 6 8 6z","M12 6l-8 6 8 6z"],share:["M12 3v12","M7 8l5-5 5 5","M5 13v7h14v-7"],rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
 function ico(n){return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${(ICP[n]||[]).map(d=>d[0]==="o"?(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}"/>`)(d.slice(2).split(" ")):`<path d="${d}"/>`).join("")}</svg>`;}
 const SANS='"Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
 const MONO='ui-monospace,"Cascadia Mono","SF Mono","JetBrains Mono",Menlo,Consolas,monospace';   // numbers drawn on canvases
@@ -779,7 +779,7 @@ $("dFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d
   catch(err){$("dList").innerHTML='<span class="bad">That file isn\'t a THROAT design.</span>';}e.target.value="";};
 let lastAuto="";setInterval(()=>{const d=exportDesign(),j=JSON.stringify(d);if(j!==lastAuto){lastAuto=j;store.set(AS,{t:Date.now(),d});}},6000);
 const help=$("help");$("bHelp").onclick=()=>help.classList.toggle("show");help.onclick=e=>{if(e.target===help)help.classList.remove("show");};
-window.addEventListener("keydown",e=>{const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT")return;const k=e.key.toLowerCase();
+window.addEventListener("keydown",e=>{const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT"||tg==="TEXTAREA")return;const k=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey)&&k==="z"){e.preventDefault();if(e.shiftKey)redo();else undo();return;}
   if((e.ctrlKey||e.metaKey)&&k==="y"){e.preventDefault();redo();return;}
   if(e.ctrlKey||e.metaKey)return;
@@ -801,6 +801,8 @@ window.addEventListener("keydown",e=>{const tg=e.target.tagName;if(tg==="INPUT"|
 let lastWater=0,lastSim=0,rateShown=0,frames=0,lastT=performance.now(),fps=0,ui=0;
 // thrust = the net push of the gas (above outside pressure) on everything solid; propellant use = what the tanks pour out
 let thrX=0,thrY=0,mdotS=0,lastMass=0,lastMassT=0,lastSrb=0,burn=null;
+// which fuel the engine on the stand burns: whichever fuel gas the tanks hold most of (flight draws its flame to match)
+function standFuel(){let h=0,c=0,k=0;for(const t of tanks){h+=t.Y[H2]||0;c+=t.Y[CH4]||0;k+=t.Y[KER]||0;}return c>h&&c>=k?"ch4":k>h&&k>c?"kero":"h2";}
 function measureThrust(){let fx=0,fy=0;const A=DX*DX;
   for(let k=0;k<NC;k++){if(wall[k])continue;const x=k%NX,pg=(GAM-1)*(En[k]-0.5*(mx[k]*mx[k]+my[k]*my[k])/rho[k])-pAmb;
     if(x>0&&wall[k-1])fx-=pg*A;if(x<NX-1&&wall[k+1])fx+=pg*A;if(k>=NX&&wall[k-NX])fy-=pg*A;if(k+NX<NC&&wall[k+NX])fy+=pg*A;}
@@ -846,7 +848,7 @@ function readouts(){
     if(F>800&&!srbBurning)JUICE.goal("light");if(F>800&&!atmo)JUICE.goal("vac");if(burn&&burn.done)JUICE.goal("srb");
     {const ar=ARW[((Math.round(Math.atan2(thrY,thrX)/(Math.PI/4))%8)+8)%8];roll("rF",$("rF"),F<100?null:F,x=>(x>=1000?(x/1000).toFixed(2)+" kN ":Math.round(x)+" N ")+ar);}
     if(F>1200&&lastF<300&&!S.paused)kick($("stage"),Math.min(1,F/3500));lastF=F;   // something just lit: jolt the screen
-    if(!srbBurning)recordTest(F,F>=100&&mdotS>1e-2?F/(mdotS*9.80665):0);
+    if(!srbBurning)recordTest(F,F>=100&&mdotS>1e-2?F/(mdotS*9.80665):0,standFuel());
     roll("rI",$("rI"),F>=100&&mdotS>1e-2?F/(mdotS*9.80665):null,x=>Math.round(x)+" s");
     {const r=$("rowB");if(burn){r.style.display="";const mp=srbMass-burn.m0,t=(burn.done?burn.t1:simTime)-burn.t0;
       set("rBurn",`${burn.done?"burnt out":"burning"} · ${(t*1e3).toFixed(1)} ms · peak ${(burn.peak/1000).toFixed(2)} kN · ${burn.imp.toFixed(1)} N·s${steadyIsp(burn)>0?` · Isp ${Math.round(steadyIsp(burn))} s`:""}`);}else r.style.display="none";}

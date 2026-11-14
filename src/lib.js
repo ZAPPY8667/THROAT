@@ -5,13 +5,14 @@
 const ELIB="throat.englib.v1";
 const libAll=()=>store.get(ELIB,[]);
 const libGet=id=>libAll().find(e=>e.id===id);
-const libNums=e=>({name:e.name,sl:e.sl,vac:e.vac,curve:e.curve});
+const libNums=e=>({name:e.name,sl:e.sl,vac:e.vac,curve:e.curve,fuel:e.fuel});
 function libSave(kind,name){const N=kind==="solid"?boosterNums():engineNums();if(N.src!=="tested")return null;
   const L=libAll(),e={id:"e"+Date.now().toString(36),name,kind,sl:{F:N.sl.F,isp:N.sl.isp,est:!!N.sl.est},vac:{F:N.vac.F,isp:N.vac.isp,est:!!N.vac.est},t:Date.now()};
-  if(kind==="solid")e.curve=N.curve;
+  if(kind==="solid")e.curve=N.curve;else e.fuel=N.fuel;
   const i=L.findIndex(x=>x.name===name&&x.kind===kind);if(i>=0){e.id=L[i].id;L[i]=e;}else L.push(e);store.set(ELIB,L.slice(-40));return e;}
 const kN=F=>(F/1000).toFixed(2)+" kN";
-function numsTxt(N){return`Sea level <b>${kN(N.sl.F)} · ${Math.round(N.sl.isp)} s</b>${N.sl.est?" (est.)":""} &nbsp; Vacuum <b>${kN(N.vac.F)} · ${Math.round(N.vac.isp)} s</b>${N.vac.est?" (est.)":""}`;}
+const FUELN={h2:"Hydrogen",ch4:"Methane",kero:"Kerosene"};
+function numsTxt(N){return`${N.fuel&&FUELN[N.fuel]?FUELN[N.fuel]+" · ":""}Sea level <b>${kN(N.sl.F)} · ${Math.round(N.sl.isp)} s</b>${N.sl.est?" (est.)":""} &nbsp; Vacuum <b>${kN(N.vac.F)} · ${Math.round(N.vac.isp)} s</b>${N.vac.est?" (est.)":""}`;}
 // a tiny picture of a thrust curve: how hard it pushes from lighting (left) to burnout (right)
 function curveSvg(c){if(!c||c.length<2)return"";const mx=Math.max(1.3,...c),pts=c.map((v,i)=>`${(i/(c.length-1)*96+2).toFixed(1)},${(26-v/mx*22).toFixed(1)}`).join(" ");
   return`<svg viewBox="0 0 100 28" width="100" height="28" style="vertical-align:middle;background:#0a0e14;border:1px solid #1e2632;border-radius:3px"><polyline points="2,26 ${pts} 98,26" fill="rgba(255,170,40,.25)" stroke="#ffaa28" stroke-width="1.5"/></svg>`;}

@@ -40,7 +40,7 @@ function vSub(i,alt,T){T=T||vTree();if(alt)return new Set([i]);
   const out=new Set([i]);let grew=true;while(grew){grew=false;vps.forEach((p,j)=>{if(!out.has(j)&&T.par[j]>=0&&out.has(T.par[j])){out.add(j);grew=true;}});}return out;}
 const vById=id=>vps.findIndex(p=>p.id===id);
 // ---------- placing, moving, deleting ----------
-function vPlace(p){const ax=vAxis();let snap=vps.length?snapPart(p,p.x,p.y,vps,34/vv.s*VDS):{x:ax,y:0,f:p.f};
+function vPlace(p){const ax=vAxis();let snap=vps.length?snapPart(p,p.x,p.y,vps,34/vv.s*VDS):{x:ax,y:0,f:p.f};if(p.kit)return vPlaceKit(p,snap);
   if(!snap){p.x=Math.round(p.x/5)*5;p.y=Math.round(p.y/5)*5;if(vps.some(o=>collide(p,o))){vMsg("It overlaps another part.");return false;}}
   else{p.x=snap.x;p.y=snap.y;p.f=snap.f;}
   vPush();vps.push(p);
@@ -65,7 +65,33 @@ function vCarryMove(e){const q=vEvXY(e),w=v2w(q.X,q.Y),p=vcarry.p;p.x=w.x;p.y=w.
   const s=vps.length?snapPart(p,p.x,p.y,vps,34/vv.s*VDS):{x:vAxis(),y:0,f:p.f};vcarry.snap=s;}
 // "lib:<id>" = something from the engine library; the part gets its own copy of the numbers
 function libPart(e){return mkPart(e.kind==="solid"?"srb:lib":"engine:lib",0,0,null,libNums(e));}
-function newPart(t){if(t.startsWith("lib:")){const e=libGet(t.slice(4));return e?libPart(e):mkPart("engine");}return mkPart(t);}
+// ---------- kits: a ready-made group of parts dropped in one go ----------
+// Upper stage: decoupler + Lumen Vac (the vacuum engine) + tank, for the top of a first stage. Booster pair: Thumper solid
+// boosters with cone noses on side decouplers, hung on both sides at once. While carried, a kit is one block that snaps like one
+// tall part; dropped, it becomes ordinary parts you can move, resize or delete one by one.
+const KITS={
+  upper:{name:"Upper stage",desc:"A ready-made second stage: decoupler, Lumen Vac vacuum engine and a fuel tank. Drop it on top of a first stage, then add a probe core (or capsule) and a nose.",
+    build(){const L=[];let y=0;for(const[t,w,h]of[["dec",40],["engine:vac"],["tank",40,110]]){const p=mkPart(t,w,h);p.x=0;p.y=y;y+=p.h;L.push(p);}return L;}},
+  boost:{name:"Booster pair",desc:"Two Thumper solid boosters with nose cones and side decouplers. Drop them beside a fuel tank: they light with the throttle and Space drops them.",radial:true,
+    build(){const s=mkPart("sdec"),b=mkPart("srb:thumper",18,260),n=mkPart("nose",18);n.ns="cone";s.x=0;s.y=60;s.f=1;b.x=s.w/2+b.w/2;b.y=0;n.x=b.x;n.y=b.h;return[s,b,n];}}};
+// the block that stands in for a kit while it's carried: the box around its parts (a radial block for the boosters)
+function kitBlock(key){const parts=KITS[key].build(),x0=Math.min(...parts.map(p=>p.x-p.w/2)),x1=Math.max(...parts.map(p=>p.x+p.w/2)),y1=Math.max(...parts.map(p=>p.y+p.h));
+  return{id:-1,t:KITS[key].radial?"fin":"tank",x:0,y:0,w:x1-x0,h:y1,f:1,tw:0,kit:key,parts,cx:(x0+x1)/2};}
+// the kit's parts where the block is now (s: which side a radial kit hangs on; -1 flips it)
+function kitParts(B,x,y,s){return B.parts.map(p=>{const q=JSON.parse(JSON.stringify(p));q.x=x+s*(p.x-B.cx);q.y=y+p.y;if(q.t==="sdec")q.f=s;else if(B.t==="fin")q.f=s;return q;});}
+// put a side decoupler where it touches both the booster and the core beside it (the snap only lined up the booster)
+function hangSdec(L,O){const sd=L.find(p=>p.t==="sdec"),b=L.find(p=>p.t==="srb");if(!sd||!b)return true;const s=sd.f,edge=b.x-s*b.w/2-s*sd.w;
+  const core=O.filter(o=>!isRad(o)&&Math.abs(o.x+s*o.w/2-edge)<0.6&&o.y<b.y+b.h&&o.y+o.h>b.y).sort((a,c)=>c.y-a.y);
+  for(const o of core.reverse()){const lo=Math.max(b.y,o.y),hi=Math.min(b.y+b.h,o.y+o.h);if(hi-lo>=sd.h){sd.y=lo+(hi-lo-sd.h)*0.3;sd.x=edge+s*sd.w/2;return true;}}
+  return false;}
+function vPlaceKit(B,snap){const ax=vAxis(),s=B.t==="fin"?(snap?snap.f:1):1,x=snap?snap.x:Math.round(B.x/5)*5,y=snap?snap.y:Math.max(0,Math.round(B.y/5)*5);
+  const L=kitParts(B,x,y,s);if(!hangSdec(L,vps)){vMsg("Drop the boosters right beside a fuel tank or the core.");return false;}
+  const hit=(A,O)=>A.some(p=>O.some(o=>collide(p,o)));if(hit(L,vps)){vMsg("It overlaps another part.");return false;}
+  vPush();for(const p of L){p.id=partId++;vps.push(p);}
+  if(vMirror&&Math.abs(x-ax)>0.5){const M=L.map(p=>({...JSON.parse(JSON.stringify(p)),id:partId++,x:2*ax-p.x,f:-p.f}));
+    if(!hit(M,vps)){M.forEach((m,i)=>{m.tw=L[i].id;L[i].tw=m.id;vps.push(m);});}else vMsg("The mirror copy didn't fit, so only one side was placed.");}
+  vsel=null;vChanged();vMsg(KITS[B.kit].name+" added.");return true;}
+function newPart(t){if(t.startsWith("kit:"))return kitBlock(t.slice(4));if(t.startsWith("lib:")){const e=libGet(t.slice(4));return e?libPart(e):mkPart("engine");}return mkPart(t);}
 function startCarry(t,e){if(e)e.preventDefault();vcarry={p:newPart(t),snap:null,fresh:true};vsel=null;vInspUI();if(e&&e.clientX!=null)vCarryMove(e);}
 window.addEventListener("pointermove",e=>{if(!vab.classList.contains("show"))return;if(vcarry){vCarryMove(e);vcarry.inside=overCv(e);}});
 window.addEventListener("pointerup",e=>{if(!vab.classList.contains("show")||!vcarry||!vcarry.fresh)return;vcarry.fresh=false;
@@ -102,7 +128,7 @@ vcv.addEventListener("wheel",e=>{e.preventDefault();const i=vsel?vById(vsel):-1;
   if((e.ctrlKey||e.metaKey)&&i>=0&&canWiden(vps[i])){vWiden(i,e.deltaY<0?2:-2);return;}
   const q=vEvXY(e),k=e.deltaY<0?1.15:1/1.15,s2=Math.max(0.15*VDS,Math.min(12*VDS,vv.s*k)),kk=s2/vv.s;vv.ox=q.X-(q.X-vv.ox)*kk;vv.oy=q.Y-(q.Y-vv.oy)*kk;vv.s=s2;},{passive:false});
 // ---------- keys (while the editor is open, the sandbox doesn't hear them) ----------
-addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT")return;
+addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT"||tg==="TEXTAREA")return;
   const k=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey)&&k==="z"){e.shiftKey?vRedo():vUndo();e.preventDefault();}
   else if((e.ctrlKey||e.metaKey)&&k==="y"){vRedo();e.preventDefault();}
@@ -116,7 +142,10 @@ addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const t
   else if(k==="["||k==="]"){const i=vsel?vById(vsel):-1;if(i>=0&&canWiden(vps[i]))vWiden(i,k==="]"?2:-2);}
   e.stopImmediatePropagation();},true);
 // ---------- panels ----------
-function partIcon(t){const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
+function kitIcon(k){const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),pid=partId,B=kitBlock(k);partId=pid;
+  const L=kitParts(B,0,0,1),x0=Math.min(...L.map(p=>p.x-p.w/2)),x1=Math.max(...L.map(p=>p.x+p.w/2)),sc=Math.min(70/(x1-x0),76/B.h);
+  g.setTransform(sc,0,0,-sc,44-sc*(x0+x1)/2,44+sc*B.h/2);for(const p of L)drawPart(g,p,{legs:false});return c;}
+function partIcon(t){if(t.startsWith("kit:"))return kitIcon(t.slice(4));const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
   if(t==="tank")p.h=90;const sc=Math.min(70/p.w,70/p.h,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*p.h/2);p.x=0;p.y=0;drawPart(g,p,{legs:false});return c;}
 function vPalUI(){const box=$("vParts");box.innerHTML="";
   const item=(t,name,desc,cls)=>{const b=document.createElement("button");b.className="vpart"+cls;b.title=desc;
@@ -124,6 +153,7 @@ function vPalUI(){const box=$("vParts");box.innerHTML="";
     b.addEventListener("pointerdown",e=>{startCarry(t,e);});box.appendChild(b);};
   for(const t of PT_ORDER){const ek=t.startsWith("engine:")?t.slice(7).split(":"):null,en=ek?ENG[ek[0]]:t.startsWith("srb:")?BOOST[t.slice(4)]:null,cl=ek&&ek[1];
     item(t,cl?"Engine cluster":en?en.name:PT[t].name,cl?`${ek[1]} engines side by side under one thrust plate (like SLS). Pick the count and type in its settings.`:en?en.desc:PT[t].desc,en?" veng":"");}
+  for(const k in KITS)item("kit:"+k,KITS[k].name,KITS[k].desc," vkit");
   for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}). Sea level ${(e.sl.F/1000).toFixed(2)} kN, ${Math.round(e.sl.isp)} s.`," vlib");}
 // free width: every part in the stack can be any width in its range. Nose cones, probes and engines keep their shape
 // (height grows with width); tanks, boosters, decouplers and adapters keep their length.
@@ -212,7 +242,10 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   vps.forEach((p,j)=>{const gone=vdrag&&vdrag.dropTwin&&vdrag.tset.has(j);if(gone)c.globalAlpha=0.25;
     drawPart(c,p,{legs:vLegsOut,sel:p.id===vsel,bad:loose[j]||gone||(vdrag&&vdrag.bad&&(vdrag.set.has(j)||vdrag.tset.has(j))),lw:3/s*VDS});c.globalAlpha=1;});
   for(const sh of shroudsOf(vps))drawShroud(c,sh,0.8);
-  if(vcarry&&vcarry.inside!==false){const p={...vcarry.p},sn=vcarry.snap;if(sn){p.x=sn.x;p.y=sn.y;p.f=sn.f;}c.globalAlpha=0.75;
+  if(vcarry&&vcarry.inside!==false&&vcarry.p.kit){const B=vcarry.p,sn=vcarry.snap,L=kitParts(B,sn?sn.x:B.x,sn?sn.y:B.y,B.t==="fin"&&sn?sn.f:1);if(sn)hangSdec(L,vps);c.globalAlpha=0.75;   // a kit: its parts as ghosts
+    for(const p of L)drawPart(c,p,{ghost:!!sn,bad:!sn,legs:vLegsOut,lw:2/s*VDS});
+    if(vMirror&&sn&&Math.abs(sn.x-ax)>0.5){c.globalAlpha=0.4;for(const p of L)drawPart(c,{...p,x:2*ax-p.x,f:-p.f},{ghost:true,lw:2/s*VDS});}c.globalAlpha=1;}
+  else if(vcarry&&vcarry.inside!==false){const p={...vcarry.p},sn=vcarry.snap;if(sn){p.x=sn.x;p.y=sn.y;p.f=sn.f;}c.globalAlpha=0.75;
     const bad=!sn&&vps.some(o=>collide(p,o));drawPart(c,p,{ghost:!bad,bad,legs:vLegsOut,lw:2/s*VDS});
     if(vMirror&&sn&&Math.abs(p.x-ax)>0.5){const t={...p,x:2*ax-p.x,f:-p.f};c.globalAlpha=0.4;drawPart(c,t,{ghost:true,lw:2/s*VDS});}c.globalAlpha=1;}
   if(vCentres&&vps.length)drawCentres(c,centres(vps),1/s,true);   // centre of mass, lift, thrust
@@ -222,3 +255,46 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
 window.__vab={get vps(){return vps;},get sel(){return vsel;},w2c:(x,y)=>{const r=vcv.getBoundingClientRect();return{x:r.left+(vv.ox+x*vv.s)*r.width/VW,y:r.top+(vv.oy-y*vv.s)*r.height/VH};}};
 // fold-away panels in the editor too (phones keep their own strip layout)
 if(!SMALL)foldUI(vab,"vab",[{el:$("vPal"),label:"PARTS",side:"l",open:true,title:"Parts to drag onto the rocket"},{el:document.querySelector(".vstat"),label:"ROCKET",side:"r",open:true,title:"Rocket stats: mass, Δv and thrust per stage"}]);
+// ---------- sharing rockets as a code ----------
+// "Share" turns the rocket into a short line of text (THROAT-R1:...) you can paste into an email or a chat; pasting one in
+// loads that rocket. Only the shape travels (each part's type, size, place and settings), so a code made today still loads
+// after the game changes. Where the browser can, the text is zipped first (deflate), which makes it about a third as long.
+const SHARE_KEYS=["id","t","x","y","w","h","f","tw","e","b","k","w2","ns","sk","n"];
+const b64=u8=>{let s="";for(const c of u8)s+=String.fromCharCode(c);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");};
+const unb64=t=>{const s=atob(t.replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(s,c=>c.charCodeAt(0));};
+async function pipeBytes(u8,how){const st=new Blob([u8]).stream().pipeThrough(how);return new Uint8Array(await new Response(st).arrayBuffer());}
+async function rocketCode(ps,name){
+  const parts=ps.map(p=>{const q={};for(const k of SHARE_KEYS)if(p[k]!=null&&p[k]!==0||k==="x"||k==="y")q[k]=typeof p[k]==="number"?Math.round(p[k]*10)/10:p[k];return q;});
+  const raw=new TextEncoder().encode(JSON.stringify({v:1,name,parts}));
+  if(typeof CompressionStream!=="undefined"){try{return"THROAT-R1z:"+b64(await pipeBytes(raw,new CompressionStream("deflate-raw")));}catch(e){}}
+  return"THROAT-R1:"+b64(raw);}
+async function rocketFromCode(code){
+  const m=/THROAT-R1(z?):([A-Za-z0-9_-]+)/.exec(code.replace(/\s+/g,""));if(!m)throw new Error("That doesn't look like a rocket code (it starts with THROAT-R1).");
+  if(m[1]&&typeof DecompressionStream==="undefined")throw new Error("This browser can't unzip codes: try Chrome.");
+  let d;try{let raw=unb64(m[2]);if(m[1])raw=await pipeBytes(raw,new DecompressionStream("deflate-raw"));d=JSON.parse(new TextDecoder().decode(raw));}
+  catch(e){throw new Error("That code is damaged: make sure you copied all of it.");}if(!d||!Array.isArray(d.parts)||!d.parts.length||d.parts.length>300)throw new Error("The code has no rocket in it.");
+  // check every part before trusting it: known type, sensible numbers; then give the parts fresh ids (twins keep their pairing)
+  const ids=new Map();const ps=d.parts.map(q=>{if(!PT[q.t])throw new Error("Unknown part: "+q.t);const p={};
+    for(const k of SHARE_KEYS)if(q[k]!=null)p[k]=q[k];for(const k of["x","y","w","h"])if(!isFinite(p[k]=+p[k]||0)||Math.abs(p[k])>5000)throw new Error("A part is the wrong size.");
+    if(!(p.w>0&&p.h>0))throw new Error("A part is the wrong size.");p.f=p.f===-1?-1:1;if(p.e&&!ENG[p.e])p.e="stand";if(p.b&&!BOOST[p.b])p.b="stand";
+    const nid=partId++;ids.set(q.id,nid);p.id=nid;return p;});
+  for(const p of ps)p.tw=p.tw?ids.get(p.tw)||0:0;
+  if(oldScale(ps))upscaleOld(ps);
+  return{ps,name:String(d.name||"Shared rocket").slice(0,40)};}
+const shr=document.createElement("div");shr.className="help";shr.innerHTML=`<div class="card"><h2>Share a rocket</h2>
+  <h3>This rocket</h3><p class="tip">Copy this code and send it (email, chat). Whoever pastes it below gets this exact rocket.</p>
+  <textarea id="shOut" class="shcode" readonly rows="3"></textarea><div class="row"><button class="b go" id="shCopy" data-ic="share">Copy code</button><span class="tip" id="shMsg"></span></div>
+  <h3 style="margin-top:12px">Load a rocket from a code</h3><textarea id="shIn" class="shcode" rows="3" placeholder="Paste a THROAT-R1 code here"></textarea>
+  <div class="row"><button class="b go" id="shLoad">Load it</button><span class="tip" id="shErr"></span></div>
+  <p class="tip" style="margin:10px 0 0">A loaded rocket replaces the one in the editor (Undo brings it back). Esc to close.</p></div>`;
+vab.appendChild(shr);shr.querySelectorAll("[data-ic]").forEach(b=>{b.innerHTML=ico(b.dataset.ic)+b.innerHTML;});
+const shClose=()=>shr.classList.remove("show");shr.onclick=e=>{if(e.target===shr)shClose();};
+shr.addEventListener("keydown",e=>{if(e.key==="Escape")shClose();});
+$("vShare").onclick=async()=>{$("shOut").value="…";$("shMsg").textContent="";$("shErr").textContent="";$("shIn").value="";shr.classList.add("show");
+  $("shOut").value=await rocketCode(vps,vName||"My rocket");$("shOut").select();};
+$("shCopy").onclick=async()=>{const t=$("shOut");t.select();let ok=false;try{await navigator.clipboard.writeText(t.value);ok=true;}catch(e){try{ok=document.execCommand("copy");}catch(e2){}}
+  $("shMsg").textContent=ok?"Copied.":"Select the code and copy it (Ctrl+C).";};
+$("shLoad").onclick=async()=>{try{const r=await rocketFromCode($("shIn").value);vPush();vps=r.ps;vName=r.name;$("vName").value=vName;
+    partId=Math.max(partId,...vps.map(p=>p.id+1),1);vsel=null;vChanged();vBarUI();vFitView();shClose();vMsg(`Loaded "${vName}". Save it to keep it.`);}
+  catch(e){$("shErr").textContent=e.message||"That code didn't work.";}};
+window.__share={rocketCode,rocketFromCode};

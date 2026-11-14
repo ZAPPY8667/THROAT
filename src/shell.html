@@ -155,6 +155,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 #vParts{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .vpart{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--well);border:1px solid var(--line);border-radius:4px;color:var(--txt);font:600 10.5px var(--sans);padding:5px 2px 6px;cursor:grab;touch-action:none;user-select:none}
 .vpart:hover{border-color:var(--accline);background:var(--accbg)}.vpart.veng{background:rgba(255,255,255,.03)}.vpart canvas{width:44px;height:44px;pointer-events:none}.vpart span{pointer-events:none;text-align:center;line-height:1.15}
+.vpart.vkit{border-color:rgba(255,255,255,.28);background:linear-gradient(180deg,rgba(255,255,255,.06),transparent)}
 .vpart.vlib{border-color:rgba(255,59,47,.3);background:linear-gradient(180deg,rgba(255,59,47,.08),transparent)}
 .vstat{right:10px;top:10px;width:296px;max-height:calc(100% - 250px);overflow:auto}
 .vinsp{right:10px;bottom:66px;width:296px}.vinsp .ih{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid var(--line)}
@@ -351,6 +352,10 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   .flight .fbt label.sl{flex:1 1 100%;order:-1}.flight .fbt{top:32px}.flight .etabs{top:150px}.fdrawer{top:150px}.tl{margin:0 26px}.flight .fmsg{top:auto;bottom:290px}
   .tl .ev em{display:none}.tl .ev.next em{display:block}.toast{top:150px}}   /* phone: only the next event is labelled, so the names don't overlap */
 .saslist button kbd{display:inline-block!important}
+.demo{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:min(560px,calc(100vw - 24px));z-index:6;background:rgba(0,0,0,.72);border:1px solid var(--line2);border-left:3px solid var(--red);border-radius:var(--r);padding:10px 14px 12px;color:var(--txt);font:500 14px/1.45 var(--sans)}
+.demo p{margin:4px 0 10px}.demo .row{gap:8px}.demo-tag{font:600 10px var(--sans);letter-spacing:.24em;text-transform:uppercase;color:var(--red)}
+@media (max-width:700px){.demo{top:auto;bottom:230px;font-size:12.5px;padding:8px 11px 10px}}
+.shcode{width:100%;box-sizing:border-box;resize:vertical;background:var(--well,#0b0c0e);color:var(--txt);border:1px solid var(--line2);border-radius:4px;padding:7px 9px;font:500 11.5px/1.4 var(--mono);word-break:break-all;margin:4px 0 6px}
 .cdbtn{position:absolute;left:50%;bottom:140px;transform:translateX(-50%);height:44px!important;padding:0 26px!important;font:600 14px var(--sans)!important;letter-spacing:.24em;text-transform:uppercase;border-color:var(--red)!important;background:rgba(255,59,47,.14)!important;color:#fff!important;animation:livePulse 2.2s ease-in-out infinite}
 .cdbtn:hover{background:rgba(255,59,47,.28)!important}
 @media (max-width:700px){.cdbtn{bottom:230px;background:rgba(30,6,6,.88)!important;height:40px!important;padding:0 16px!important;font-size:12px!important;letter-spacing:.16em}}
@@ -411,7 +416,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <button class="b ico" id="bUndo" title="Undo (Ctrl+Z)" data-ic="undo"></button><button class="b ico" id="bRedo" title="Redo (Ctrl+Shift+Z)" data-ic="redo"></button>
       <button class="b" id="bDesigns" title="Save / load your designs" data-ic="folder">Designs</button>
       <button class="b" id="bLib" title="Engine library: save the engines and boosters you tested, then use them on rockets" data-ic="book">Engines</button>
-      <button class="b go" id="bLaunch" title="Build a rocket around your engine and fly it in real time" data-ic="rocket">Rocket</button>
+      <button class="b go" id="bLaunch" title="Build a rocket around your engine and fly it in real time" data-ic="rocket">Rocket</button><button class="b" id="bDemo" title="Sit back and watch the autopilot fly the Super Heavy to orbit and the Moon" data-ic="play">Watch a launch</button>
       <select id="wsize" title="World size (bigger = more room, slower flow). Reloads the page."><option value="160x90">World: S</option><option value="240x135">World: L</option><option value="320x180">World: XL</option></select>
     </div>
     <div class="sep"></div>
@@ -460,7 +465,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <div>Retry / editor<i><kbd>R</kbd> <kbd>B</kbd></i></div><div>Back to the test stand<kbd>Esc</kbd></div>
     </div>
     <p class="tip" style="margin:12px 0 0">Click a valve, igniter or tank with the <b>Select</b> tool to change its settings: which number key runs it, open/closed, start delay, length, direction, gas and pressure. Press <b>H</b> or <b>Esc</b> to close.</p>
-    <div class="row" style="margin-top:12px"><button class="b go" id="bTut" data-ic="play">Start the tutorial</button><button class="b" id="bTut2" data-ic="play">Flight school: abort, chutes, autopilot</button></div>
+    <div class="row" style="margin-top:12px"><button class="b go" id="bTut" data-ic="play">Start the tutorial</button><button class="b" id="bTut2" data-ic="play">Flight school: abort, chutes, autopilot</button><button class="b" id="bDemo2" data-ic="play">Watch a launch</button></div>
   </div></div>
 </div>
 <script>var THROAT_SIZE=(function(){try{var s=JSON.parse(localStorage.getItem("throat.size.v1"));if(s&&s.length===2)return s;}catch(e){}return [240,135];})();</script>
@@ -472,7 +477,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>
   <div class="vpanel vbar">
     <select id="vLoad" aria-label="Load a rocket"></select>
-    <button class="b" id="vSaveB" title="Save under this name" data-ic="save">Save</button><button class="b ico" id="vDelB" title="Delete the saved rocket with this name" data-ic="trash"></button>
+    <button class="b" id="vSaveB" title="Save under this name" data-ic="save">Save</button><button class="b ico" id="vDelB" title="Delete the saved rocket with this name" data-ic="trash"></button><button class="b" id="vShare" title="Share this rocket as a code, or load one someone sent you" data-ic="share">Share</button>
     <button class="b on" id="vMirror" title="Place parts in mirrored pairs (M)"></button><button class="b" id="vLegs" title="Show landing legs folded or deployed"></button><button class="b" id="vCen" title="Show the centre of mass (yellow), lift (blue) and thrust (red) (C)"></button>
     <button class="b ico" id="vUndoB" title="Undo (Ctrl+Z)" data-ic="undo"></button><button class="b ico" id="vRedoB" title="Redo (Ctrl+Shift+Z)" data-ic="redo"></button><button class="b ico" id="vFit" title="Fit the view (F)" data-ic="fit"></button><button class="b" id="vClear" data-ic="trash">Clear</button>
     <button class="b go" id="vGo" style="font-size:13px;padding:0 16px" title="Launch (Enter)" data-ic="rocket">Launch</button><button class="b" id="vBack" data-ic="back">Test stand</button>
