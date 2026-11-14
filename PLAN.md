@@ -90,7 +90,8 @@ Goal: Wyatt can build a rocket with the proportions of SLS (and Falcon 9, Starsh
 Oceans, biomes, mountains, trees, rocks, spaceport buildings, rain/wind (scenery), day/night, warp-to. 1,000 km Earth and the
 bigger Moon from phase 1.5 came with it. See HISTORY.md.
 
-## Phase 2: test stand as an engineering cutaway (v1.18)
+## Phase 2: test stand as an engineering cutaway (v1.23) — done for the test stand. The editor keeps the realistic parts Wyatt
+## asked for on 2026-11-14 (it already has a blueprint grid), instead of white-line parts.
 - Walls render as **crisp white outlines** (contours of the solid regions) on a near-black blue background, instead of pixel steel.
   Tanks, valves, injectors and igniters become line drawings in the same style (red only for active/open state).
 - **Blueprint grid** (faint, 1 cm minor / 10 cm major) and **dimension lines**: auto-measure throat width, exit width and

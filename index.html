@@ -1317,30 +1317,64 @@ function cellColors(){
     if(n>=0){CR[k]=CR[n];CG[k]=CG[n];CB[k]=CB[n];}else{CR[k]=10;CG[k]=13;CB[k]=24;}}
 }
 
-// ---------- wall pixel art ----------
+// ---------- walls as an engineering cutaway (phase 2) ----------
+// Solid metal is drawn the way a technical drawing shows a cut: dark fill with thin 45° section lines, and a crisp white line
+// along every edge that touches gas or the outside, so the engine reads as a clean outline.
 const hash=(x,y)=>{let h=(x*374761393+y*668265263)|0;h=(h^(h>>>13))*1274126177|0;return((h^(h>>>16))&255)/255;};
 function buildWalls(){
   buf.fill(0);
   const solid=j=>j>=0&&j<NC&&wall[j]!==0;
   for(let cy=0;cy<NY;cy++)for(let cx=0;cx<NX;cx++){const k=cy*NX+cx;if(wall[k]!==1)continue;
-    const up=cy>0&&solid(k-NX),dn=cy<NY-1&&solid(k+NX),lf=cx>0&&solid(k-1),rt=cx<NX-1&&solid(k+1),deep=up&&dn&&lf&&rt;
+    const up=cy>0&&solid(k-NX),dn=cy<NY-1&&solid(k+NX),lf=cx>0&&solid(k-1),rt=cx<NX-1&&solid(k+1);
     for(let j=0;j<WCP;j++)for(let i=0;i<WCP;i++){
       const px=cx*WCP+i,py=cy*WCP+j;
       if((!up&&!lf&&i+j<2)||(!up&&!rt&&(WCP-1-i)+j<2)||(!dn&&!lf&&i+(WCP-1-j)<2)||(!dn&&!rt&&(WCP-1-i)+(WCP-1-j)<2))continue;  // rounded outer corners
-      let t=deep?78:92;t+=(hash(px,py)-0.5)*9;                               // brushed steel
-      if(((px+py*3)&15)===0)t+=5;
-      let r=t*0.84,g=t*0.9,b=t*1.08;
-      if(deep&&cx%6===0&&i===0&&lf){r*=0.72;g*=0.72;b*=0.72;}                // panel seams
-      if(deep&&cy%6===0&&j===0&&up){r*=0.72;g*=0.72;b*=0.72;}
-      if(cx%6===3&&cy%6===3&&(i===3||i===4)&&(j===3||j===4)){r=150;g=158;b=176;}   // rivets
-      if(!up&&j===0){r=200;g=208;b=224;}else if(!up&&j===1){r=146;g=154;b=172;}  // lit top edge
-      if(!lf&&i===0){r=Math.max(r,168);g=Math.max(g,176);b=Math.max(b,194);}
-      if(!dn&&j===WCP-1){r=30;g=34;b=46;}else if(!dn&&j===WCP-2){r=48;g=53;b=68;}  // shadowed bottom edge
-      if(!rt&&i===WCP-1){r=Math.min(r,44);g=Math.min(g,49);b=Math.min(b,64);}
-      buf[py*WW+px]=rgb(r|0,g|0,b|0);}}
-  octx.putImageData(img,0,0);wallsDirty=false;
+      let r=14,g=22,b=36;
+      if(((px+py)%6)===0){r=34;g=48;b=70;}                                   // section hatching
+      const edge=(!up&&j<2)||(!dn&&j>WCP-3)||(!lf&&i<2)||(!rt&&i>WCP-3);
+      if(edge){r=232;g=238;b=246;}                                           // the outline
+      buf[py*WW+px]=rgb(r,g,b);}}
+  octx.putImageData(img,0,0);wallsDirty=false;engGeo=findEngine();
 }
 
+// ---------- measuring the engine: dimension lines on the drawing ----------
+// Start at the first injector plate and walk along the flow, measuring the gap between the walls at each step. The narrowest
+// point after the chamber is the throat; where the walls stop is the exit. Works for engines facing any of the four ways.
+let engGeo=null;
+function findEngine(){const o=injs[0];if(!o)return null;
+  const along=o.dir?[0,1]:[1,0],acrossV=o.dir?[1,0]:[0,1],c0=o.dir?o.x+(o.len-1)/2:o.x,r0=o.dir?o.y:o.y+(o.len-1)/2;
+  const cell=(a,b)=>{const x=Math.round(o.dir?r0*0+c0+b:c0+a),y=Math.round(o.dir?r0+a:r0+b);return x>=0&&y>=0&&x<NX&&y<NY?y*NX+x:-1;};
+  const isW=k=>k<0||wall[k]!==0;
+  let best=null;
+  for(const sg of[1,-1]){const cols=[];let open=false;
+    let m=0;   // follow the middle of the gap as it goes (the injector needn't sit on the centre line)
+    for(let i=1;i<NX+NY;i++){const a=sg*i;if(isW(cell(a,m))){break;}
+      let t=0,b=0;while(t<80&&!isW(cell(a,m-(t+1))))t++;while(b<80&&!isW(cell(a,m+b+1)))b++;
+      if(t>=80||b>=80||cell(a,m-(t+1))<0||cell(a,m+b+1)<0){open=true;break;}cols.push({a,t:t-m,b:b+m,g:t+b+1});m=Math.round(m+(b-t)/2);}
+    if(open&&cols.length>4&&(!best||cols.length>best.cols.length))best={sg,cols};}
+  if(!best)return null;const C=best.cols;let im=0;for(let i=0;i<C.length;i++)if(C[i].g>C[im].g*1.02&&i<C.length*0.7)im=i;
+  let it=im;for(let i=im;i<C.length;i++)if(C[i].g<C[it].g)it=i;if(it===im||C[it].g>=C[im].g)return null;
+  let ic=im;while(ic<it&&C[ic+1].g>=C[im].g*0.9)ic++;   // where the walls start closing in: end of the chamber
+  // world point (cell units) for "along a, across b"
+  const P=(a,b)=>o.dir?[c0+b,r0+a]:[c0+a,r0+b];
+  return{o,P,sg:best.sg,C,im,it,ic,ie:C.length-1,vert:!!o.dir};}
+function drawDims(){const G=engGeo;if(!G||S.view===undefined)return;const zz=cam.z/TXT,fs=6.4/zz,lw=0.55/cam.z,ah=2.2/zz,C=G.C,P=(a,b)=>{const[x,y]=G.P(a,b);return[x*CP+2,y*CP+2];};
+  ctx.save();ctx.strokeStyle="rgba(232,238,246,.75)";ctx.fillStyle="rgba(232,238,246,.92)";ctx.lineWidth=lw;ctx.font=`600 ${fs}px ${MONO}`;ctx.textBaseline="middle";
+  const arrow=(x0,y0,x1,y1)=>{const d=Math.hypot(x1-x0,y1-y0)||1,ux=(x1-x0)/d,uy=(y1-y0)/d;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+    for(const[px,py,s]of[[x0,y0,1],[x1,y1,-1]]){ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+s*ux*ah-uy*ah*0.45,py+s*uy*ah+ux*ah*0.45);ctx.lineTo(px+s*ux*ah+uy*ah*0.45,py+s*uy*ah-ux*ah*0.45);ctx.closePath();ctx.fill();}};
+  const label=(x,y,t)=>{const w=ctx.measureText(t).width+3/zz;ctx.fillStyle="rgba(6,10,18,.88)";ctx.fillRect(x-w/2,y-fs*0.7,w,fs*1.4);ctx.fillStyle="rgba(232,238,246,.95)";ctx.textAlign="center";ctx.fillText(t,x,y);ctx.textAlign="left";};
+  const across=(i,name)=>{const c=C[i],[x0,y0]=P(c.a,-c.t-0.5),[x1,y1]=P(c.a,c.b+0.5);arrow(x0,y0,x1,y1);const[lx,ly]=P(c.a,-c.t-6);label(lx,ly,`${name} ${c.g.toFixed(0)} cm`);};
+  across(G.it,"THROAT");across(G.ie,"EXIT");
+  // chamber length: injector face to where the walls start closing in, drawn outside the engine with extension lines
+  {const c=C[G.ic],far=Math.max(...C.slice(0,G.ie+1).map(q=>q.b))+8,[x0,y0]=P(C[0].a-G.sg*1,far),[x1,y1]=P(c.a,far),[e0,e1]=P(C[0].a-G.sg*1,C[0].b+1),[f0,f1]=P(c.a,c.b+1);
+    ctx.setLineDash([1.5/zz,1.2/zz]);ctx.beginPath();ctx.moveTo(e0,e1);ctx.lineTo(x0,y0);ctx.moveTo(f0,f1);ctx.lineTo(x1,y1);ctx.stroke();ctx.setLineDash([]);
+    arrow(x0,y0,x1,y1);label((x0+x1)/2,(y0+y1)/2,`CHAMBER ${Math.abs(c.a-C[0].a)+1} cm`);}
+  // live numbers on the drawing: chamber pressure and temperature, exit Mach and pressure (and the expansion ratio)
+  const at=(a)=>{const c=C.find(q=>q.a===a),[x,y]=G.P(a,c?(c.b-c.t)/2:0),k=Math.round(y)*NX+Math.round(x);if(k<0||k>=NC||wall[k])return null;const w=cellPrim(k);return{p:w.p,T:w.T,M:Math.hypot(w.u,w.v)/Math.sqrt(GAM*w.p/w.r)};};
+  const ch=at(C[Math.floor((G.ic)/2)].a),ex=at(C[G.ie].a);
+  if(ch){const c=C[Math.floor(G.ic/2)],[x,y]=P(c.a,-c.t-6);ctx.fillStyle="#ff3b2f";label(x,y,`P ${(ch.p/PSI_PA).toFixed(0)} psi · ${Math.round(ch.T).toLocaleString()} K`);}
+  if(ex){const c=C[G.ie],[x,y]=P(c.a+G.sg*7,0);label(x,y-fs*0.8,`MACH ${ex.M.toFixed(2)}`);label(x,y+fs*0.8,`${(ex.p/PSI_PA).toFixed(1)} psi · ε ${(c.g/C[G.it].g).toFixed(1)}`);}
+  ctx.restore();}
 // ---------- flow streaks ----------
 const TM=700,tx=new Float32Array(TM),ty=new Float32Array(TM);let TN=0;
 function uvAt(xp,yp){const gx=xp/CP-0.5,gy=yp/CP-0.5,x0=Math.max(0,Math.min(NX-2,gx|0)),y0=Math.max(0,Math.min(NY-2,gy|0)),fx=Math.min(1,Math.max(0,gx-x0)),fy=Math.min(1,Math.max(0,gy-y0));
@@ -1359,33 +1393,24 @@ function tracers(dtSum){
 function rr4(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 function badge(x,y,text,fg,bg){const zz=cam.z/TXT;ctx.font=`700 ${7.5/zz}px ${MONO}`;const w=ctx.measureText(text).width+5/zz,h=9.5/zz;
   rr4(x-w/2,y-h/2,w,h,2/zz);ctx.fillStyle=bg;ctx.fill();ctx.lineWidth=0.6/zz;ctx.strokeStyle=fg;ctx.stroke();ctx.fillStyle=fg;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,x,y+0.3/zz);ctx.textAlign="left";}
-function drawTank(t){
+function drawTank(t){   // a pressure vessel: white outline, faint fill in its gas colour, pressure written in the corner
   const col=gasCol(t.name),x=t.x0*CP,y=t.y0*CP,w=(t.x1-t.x0+1)*CP,h=(t.y1-t.y0+1)*CP,zz=cam.z;
-  ctx.fillStyle=col+"14";ctx.fillRect(x,y,w,h);
-  ctx.strokeStyle=col+"88";ctx.lineWidth=0.8/zz;ctx.strokeRect(x+0.6/zz,y+0.6/zz,w-1.2/zz,h-1.2/zz);
-  for(let i=1;i<4;i++){ctx.strokeStyle=col+"22";ctx.beginPath();ctx.moveTo(x,y+h*i/4);ctx.lineTo(x+w,y+h*i/4);ctx.stroke();}   // level lines
-  const l1=t.name,l2=`${Math.round(t.P/PSI_PA)} psi${t.inf?" ∞":""}`,fs=Math.min(6.2*TXT/zz,5.6);ctx.font=`700 ${fs}px ${MONO}`;
-  const lw=Math.min(w-2,Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+3*fs/6);rr4(x+1,y+1,lw,fs*2.3,1.2);ctx.fillStyle="rgba(8,11,22,.85)";ctx.fill();
-  ctx.save();ctx.beginPath();ctx.rect(x+1,y+1,w-2,fs*2.4);ctx.clip();ctx.fillStyle=col;ctx.textBaseline="top";ctx.fillText(l1,x+1+fs*0.3,y+1+fs*0.15);ctx.fillText(l2,x+1+fs*0.3,y+1+fs*1.15);ctx.restore();
+  ctx.fillStyle=col+"10";ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle="rgba(232,238,246,.85)";ctx.lineWidth=0.8/zz;ctx.strokeRect(x+0.6/zz,y+0.6/zz,w-1.2/zz,h-1.2/zz);
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.strokeStyle="rgba(232,238,246,.10)";ctx.lineWidth=0.5/zz;ctx.beginPath();for(let d=-h;d<w;d+=6){ctx.moveTo(x+d,y+h);ctx.lineTo(x+d+h,y);}ctx.stroke();ctx.restore();
+  const l1=t.name,l2=`${Math.round(t.P/PSI_PA)} psi${t.inf?" ∞":""}`,fs=Math.min(6.2*TXT/zz,5.6);ctx.font=`600 ${fs}px ${MONO}`;
+  const lw=Math.min(w-2,Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+3*fs/6);ctx.fillStyle="rgba(6,10,18,.85)";ctx.fillRect(x+1,y+1,lw,fs*2.3);
+  ctx.save();ctx.beginPath();ctx.rect(x+1,y+1,w-2,fs*2.4);ctx.clip();ctx.textBaseline="top";ctx.fillStyle=col;ctx.fillText(l1,x+1+fs*0.3,y+1+fs*0.15);ctx.fillStyle="#e8eef6";ctx.fillText(l2,x+1+fs*0.3,y+1+fs*1.15);ctx.restore();
 }
-function drawValve(v,ghost){
+function drawValve(v,ghost){   // drawn like a valve on a piping diagram: a bowtie. White when shut, red when open, blinking while it waits
   const zz=cam.z,x=v.x0*CP,y=v.y0*CP,w=(v.x1-v.x0+1)*CP,h=(v.y1-v.y0+1)*CP,dir=v.dir,pend=v.openAt>0,blink=pend&&(performance.now()/180|0)%2;
   ctx.save();if(ghost)ctx.globalAlpha=0.55;
-  const cap=CP*0.9;   // end flanges
-  const fl=(fx,fy)=>{ctx.fillStyle="#8d97ae";ctx.fillRect(fx,fy,dir?cap:w,dir?h:cap);ctx.fillStyle="#c9d1e3";ctx.fillRect(fx,fy,dir?cap:w,0.7/zz);};
-  if(v.open&&!ghost){
-    ctx.strokeStyle="#6fe28f";ctx.lineWidth=0.8/zz;ctx.setLineDash([2/zz,1.6/zz]);ctx.strokeRect(x+0.4/zz,y+0.4/zz,w-0.8/zz,h-0.8/zz);ctx.setLineDash([]);
-    fl(x,y);fl(dir?x+w-cap:x,dir?y:y+h-cap);
-  }else{
-    rr4(x+0.3/zz,y+0.3/zz,w-0.6/zz,h-0.6/zz,1.2/zz);ctx.fillStyle="#232a3d";ctx.fill();
-    const gx=x+(dir?cap:0.9),gy=y+(dir?0.9:cap),gw=dir?w-2*cap:w-1.8,gh=dir?h-1.8:h-2*cap;   // the gate
-    ctx.fillStyle=pend?(blink?"#ffcf7a":"#d68a1c"):"#c4402f";ctx.fillRect(gx,gy,Math.max(0.5,gw),Math.max(0.5,gh));
-    ctx.fillStyle="rgba(255,255,255,.22)";ctx.fillRect(gx,gy,dir?Math.max(0.5,gw):0.8,dir?0.8:Math.max(0.5,gh));
-    fl(x,y);fl(dir?x+w-cap:x,dir?y:y+h-cap);
-  }
-  // handwheel at the middle
-  const mx_=x+w/2,my_=y+h/2;ctx.beginPath();ctx.arc(mx_,my_,1.7,0,6.2832);ctx.fillStyle="#2a3142";ctx.fill();ctx.lineWidth=0.7/zz;ctx.strokeStyle=v.open?"#6fe28f":pend?"#ffaa28":"#ff8a74";ctx.stroke();
-  if(!ghost)badge(dir?x+w/2:x+w/2,dir?y-5/zz:y-5/zz,v.key?String(v.key):"–",v.open?"#9ff0b6":pend?"#ffcf7a":"#ffb4a6","rgba(8,11,22,.9)");
+  const on=v.open&&!ghost,col=on||(pend&&blink)?"#ff3b2f":"#e8eef6";
+  ctx.lineWidth=0.8/zz;ctx.strokeStyle=col;ctx.fillStyle=on?"rgba(255,59,47,.18)":"rgba(6,10,18,.75)";
+  ctx.beginPath();if(dir){ctx.moveTo(x,y);ctx.lineTo(x+w,y+h);ctx.lineTo(x+w,y);ctx.lineTo(x,y+h);}else{ctx.moveTo(x,y);ctx.lineTo(x+w,y+h);ctx.lineTo(x,y+h);ctx.lineTo(x+w,y);}ctx.closePath();
+  ctx.fill();ctx.stroke();
+  ctx.beginPath();if(dir){ctx.moveTo(x,y);ctx.lineTo(x,y+h);ctx.moveTo(x+w,y);ctx.lineTo(x+w,y+h);}else{ctx.moveTo(x,y);ctx.lineTo(x+w,y);ctx.moveTo(x,y+h);ctx.lineTo(x+w,y+h);}ctx.stroke();   // flanges
+  if(!ghost)badge(x+w/2,y-5/zz,v.key?String(v.key):"–",on||pend?"#ff3b2f":"#e8eef6","rgba(6,10,18,.92)");
   ctx.restore();
 }
 function drawPlug(p,ghost){
@@ -1393,42 +1418,41 @@ function drawPlug(p,ghost){
   ctx.save();if(ghost)ctx.globalAlpha=0.55;
   if(lit){const f=p.flash||0.6,r=3.5+3.5*f,g=ctx.createRadialGradient(cx,cy,0,cx,cy,r);
     g.addColorStop(0,"rgba(255,240,190,.95)");g.addColorStop(0.3,"rgba(255,165,60,.6)");g.addColorStop(1,"rgba(255,90,30,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,6.2832);ctx.fill();}
-  rr4(cx-2,cy-2,4,4,1);ctx.fillStyle="#3a3324";ctx.fill();ctx.lineWidth=0.7/zz;ctx.strokeStyle="#e0b25a";ctx.stroke();
-  ctx.beginPath();ctx.arc(cx,cy,1.05,0,6.2832);ctx.fillStyle=lit?"#fff1c2":"#1a1710";ctx.fill();
-  if(!ghost)badge(cx+8/zz,cy,p.key?String(p.key):(p.on?"on":"off"),lit?"#ffd98a":"#a8afc4","rgba(8,11,22,.9)");
+  ctx.beginPath();ctx.arc(cx,cy,2,0,6.2832);ctx.fillStyle="rgba(6,10,18,.85)";ctx.fill();ctx.lineWidth=0.7/zz;ctx.strokeStyle=lit?"#ff3b2f":"#e8eef6";ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-0.4,cy-1.4);ctx.lineTo(cx+0.6,cy-0.1);ctx.lineTo(cx-0.5,cy+0.2);ctx.lineTo(cx+0.4,cy+1.4);ctx.stroke();   // a spark, like the symbol
+  if(!ghost)badge(cx+8/zz,cy,p.key?String(p.key):(p.on?"on":"off"),lit?"#ff3b2f":"#e8eef6","rgba(6,10,18,.92)");
   ctx.restore();
 }
 const INJ_SHORT={straight:"STRAIGHT",impinging:"IMPINGE",angled:"ANGLED",swirl:"SWIRL",pintle:"PINTLE"};
 function drawInj(o,ghost){
   const zz=cam.z,x=o.x0*CP,y=o.y0*CP,w=(o.x1-o.x0+1)*CP,h=(o.y1-o.y0+1)*CP,dir=o.dir;
   ctx.save();if(ghost)ctx.globalAlpha=0.6;
-  rr4(x+0.2/zz,y+0.2/zz,w-0.4/zz,h-0.4/zz,1/zz);const g=ctx.createLinearGradient(x,y,dir?x:x+w,dir?y+h:y);g.addColorStop(0,"#c99a45");g.addColorStop(1,"#7b5a22");ctx.fillStyle=g;ctx.fill();
-  ctx.lineWidth=0.6/zz;ctx.strokeStyle="#f0cf86";ctx.stroke();
+  ctx.fillStyle="rgba(14,22,36,.95)";ctx.fillRect(x,y,w,h);ctx.lineWidth=0.7/zz;ctx.strokeStyle="#e8eef6";ctx.strokeRect(x+0.35/zz,y+0.35/zz,w-0.7/zz,h-0.7/zz);
   const nx=dir?0:1,ny=dir?1:0,holes=injHoles(o),mid=(o.len-1)/2;
   holes.forEach((i,hi)=>{const hx=dir?o.x+i:o.x,hy=dir?o.y:o.y+i,cx=hx*CP+2,cy=hy*CP+2;
-    ctx.fillStyle="#120d06";ctx.fillRect(cx-1.3,cy-1.3,2.6,2.6);
+    ctx.fillStyle="#020407";ctx.fillRect(cx-1.1,cy-1.1,2.2,2.2);
     if(!ghost&&o.type!=="straight"){       // little arrow showing where the jet is steered
       let a=0;if(o.type==="impinging")a=(hi%2?-1:1)*0.7;else if(o.type==="angled")a=(o.flip?-1:1)*0.6;else if(o.type==="swirl")a=(o.flip?-1:1)*0.5;else a=(i<=mid?-1:1)*1.3;
       const ka=(hy-ny)*NX+(hx-nx),kb=(hy+ny)*NX+(hx+nx);let out=1;if(ka>=0&&kb<NC&&!wall[ka]&&!wall[kb])out=pres(ka)<pres(kb)?-1:1;
       const tx=nx*out*Math.cos(a)+(dir?1:0)*Math.sin(a),ty=ny*out*Math.cos(a)+(dir?0:1)*Math.sin(a);
-      ctx.strokeStyle="#ffd98a";ctx.lineWidth=0.7/zz;ctx.beginPath();ctx.moveTo(cx+nx*out*2.5,cy+ny*out*2.5);ctx.lineTo(cx+nx*out*2.5+tx*4,cy+ny*out*2.5+ty*4);ctx.stroke();}});
+      ctx.strokeStyle="#e8eef6";ctx.lineWidth=0.7/zz;ctx.beginPath();ctx.moveTo(cx+nx*out*2.5,cy+ny*out*2.5);ctx.lineTo(cx+nx*out*2.5+tx*4,cy+ny*out*2.5+ty*4);ctx.stroke();}});
   // name tag only when you point at it or it's selected, so plates packed into an injector face don't clutter
   const mxc=mouse.x/CP,myc=mouse.y/CP,near=mouse.in&&mxc>=o.x0-1&&mxc<=o.x1+2&&myc>=o.y0-1&&myc<=o.y1+2;
-  if(!ghost&&(near||(sel&&sel.kind==="inj"&&sel.id===o.id)))badge(dir?x+w/2:x+w+14/zz,dir?y-5/zz:y+h/2,INJ_SHORT[o.type],"#ffd98a","rgba(8,11,22,.92)");
+  if(!ghost&&(near||(sel&&sel.kind==="inj"&&sel.id===o.id)))badge(dir?x+w/2:x+w+14/zz,dir?y-5/zz:y+h/2,INJ_SHORT[o.type],"#e8eef6","rgba(6,10,18,.92)");
   ctx.restore();
 }
 function drawCheck(c,ghost){
   const zz=cam.z,x=c.x0*CP,y=c.y0*CP,w=(c.x1-c.x0+1)*CP,h=(c.y1-c.y0+1)*CP,dir=c.dir,f=c.flow||1;
   ctx.save();if(ghost)ctx.globalAlpha=0.6;
-  if(c.open&&!ghost){ctx.strokeStyle="#6fe28f";ctx.lineWidth=0.8/zz;ctx.setLineDash([2/zz,1.6/zz]);ctx.strokeRect(x+0.4/zz,y+0.4/zz,w-0.8/zz,h-0.8/zz);ctx.setLineDash([]);}
-  else{rr4(x+0.3/zz,y+0.3/zz,w-0.6/zz,h-0.6/zz,1.2/zz);ctx.fillStyle="#26334f";ctx.fill();ctx.lineWidth=0.6/zz;ctx.strokeStyle="#7fa2d8";ctx.stroke();}
+  const op=c.open&&!ghost;if(!op){ctx.fillStyle="rgba(6,10,18,.7)";ctx.fillRect(x+0.4/zz,y+0.4/zz,w-0.8/zz,h-0.8/zz);}
+  ctx.lineWidth=0.7/zz;ctx.strokeStyle=op?"#ff3b2f":"#e8eef6";ctx.setLineDash(op?[2/zz,1.6/zz]:[]);ctx.strokeRect(x+0.4/zz,y+0.4/zz,w-0.8/zz,h-0.8/zz);ctx.setLineDash([]);
   // the arrow: the only way gas may go
   const nx=dir?0:1,ny=dir?1:0,cx=x+w/2,cy=y+h/2,L=3.6;
-  ctx.strokeStyle=c.open&&!ghost?"#9ff0b6":"#cfe0ff";ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=0.9/zz;
+  ctx.strokeStyle=c.open&&!ghost?"#ff3b2f":"#e8eef6";ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=0.9/zz;
   ctx.beginPath();ctx.moveTo(cx-nx*f*L,cy-ny*f*L);ctx.lineTo(cx+nx*f*L,cy+ny*f*L);ctx.stroke();
   ctx.beginPath();ctx.moveTo(cx+nx*f*(L+1.6),cy+ny*f*(L+1.6));ctx.lineTo(cx+nx*f*L-ny*1.6,cy+ny*f*L-nx*1.6);ctx.lineTo(cx+nx*f*L+ny*1.6,cy+ny*f*L+nx*1.6);ctx.closePath();ctx.fill();
   const mxc=mouse.x/CP,myc=mouse.y/CP,near=mouse.in&&mxc>=c.x0-1&&mxc<=c.x1+2&&myc>=c.y0-1&&myc<=c.y1+2;
-  if(!ghost&&(near||(sel&&sel.kind==="check"&&sel.id===c.id)))badge(dir?cx:x+w+12/zz,dir?y-5/zz:cy,"ONE-WAY","#bcd3ff","rgba(8,11,22,.92)");
+  if(!ghost&&(near||(sel&&sel.kind==="check"&&sel.id===c.id)))badge(dir?cx:x+w+12/zz,dir?y-5/zz:cy,"ONE-WAY","#e8eef6","rgba(6,10,18,.92)");
   ctx.restore();
 }
 function objRect(kind,o){if(kind==="tank")return{x0:o.x0-1,y0:o.y0-1,x1:o.x1+1,y1:o.y1+1};if(kind==="plug")return{x0:o.x,y0:o.y,x1:o.x,y1:o.y};return{x0:o.x0,y0:o.y0,x1:o.x1,y1:o.y1};}
@@ -1466,12 +1490,15 @@ function render(){
   if(TN&&S.view!==6){ctx.globalCompositeOperation="lighter";ctx.strokeStyle="rgba(255,236,250,0.2)";ctx.lineWidth=0.7;ctx.beginPath();
     for(let i=0;i<TN;i++){const[u,v]=uvAt(tx[i],ty[i]),sp=Math.hypot(u,v)||1,L=Math.min(8,sp/320);ctx.moveTo(tx[i],ty[i]);ctx.lineTo(tx[i]-u/sp*L,ty[i]-v/sp*L);}
     ctx.stroke();ctx.globalCompositeOperation="source-over";}
-  ctx.strokeStyle="rgba(140,160,220,0.05)";ctx.lineWidth=0.6/zz;ctx.beginPath();     // faint 10-cell grid
+  // blueprint grid: fine every cell (1 cm) once you're zoomed in enough to see it, bolder every 10 cm
+  if(CP*DS*zz>=6){ctx.strokeStyle="rgba(120,170,255,0.045)";ctx.lineWidth=0.5/zz;ctx.beginPath();for(let x=CP;x<W;x+=CP){ctx.moveTo(x,0);ctx.lineTo(x,H);}for(let y=CP;y<H;y+=CP){ctx.moveTo(0,y);ctx.lineTo(W,y);}ctx.stroke();}
+  ctx.strokeStyle="rgba(120,170,255,0.11)";ctx.lineWidth=0.7/zz;ctx.beginPath();
   for(let x=40;x<W;x+=40){ctx.moveTo(x,0);ctx.lineTo(x,H);}for(let y=40;y<H;y+=40){ctx.moveTo(0,y);ctx.lineTo(W,y);}ctx.stroke();
   for(const t of tanks)drawTank(t);
   ctx.setTransform(1,0,0,1,0,0);ctx.imageSmoothingEnabled=false;
   ctx.drawImage(off,cam.x*WS,cam.y*WS,WW/cam.z,WH/cam.z,0,0,CW,CH);
   ctx.setTransform(DS*zz,0,0,DS*zz,-cam.x*DS*zz,-cam.y*DS*zz);
+  drawDims();
   for(const v of valves)drawValve(v,false);
   for(const o of injs)drawInj(o,false);
   for(const c of checks)drawCheck(c,false);
@@ -1497,12 +1524,12 @@ function render(){
   // screen-space banners
   ctx.setTransform(1,0,0,1,0,0);ctx.font=`600 ${13*SS}px ${SANS}`;ctx.textBaseline="top";
   // a banner card like the panels: dark, hairline edge, amber bar on the left
-  const card=(x,y,w,h)=>{ctx.fillStyle="rgba(10,13,19,.92)";rr4(x,y,w,h,5*SS);ctx.fill();ctx.strokeStyle="#2c3746";ctx.lineWidth=1;rr4(x+0.5,y+0.5,w-1,h-1,5*SS);ctx.stroke();ctx.fillStyle="#ff9d2e";ctx.fillRect(x,y+3*SS,3*SS,h-6*SS);};
+  const card=(x,y,w,h)=>{ctx.fillStyle="rgba(10,13,19,.92)";rr4(x,y,w,h,5*SS);ctx.fill();ctx.strokeStyle="#2c3746";ctx.lineWidth=1;rr4(x+0.5,y+0.5,w-1,h-1,5*SS);ctx.stroke();ctx.fillStyle="#ff3b2f";ctx.fillRect(x,y+3*SS,3*SS,h-6*SS);};
   const seq=valves.find(v=>v.openAt>0);
   if(seq){const f=Math.max(0,Math.min(1,1-(seq.openAt-simTime)/seq.delay)),bw=280*SS,bh=10*SS,bx=CW/2-bw/2,by=SMALL?CH-40*SS:CH*0.76;
     const lbl="IGNITER LIT · MAIN VALVES OPENING",w=ctx.measureText(lbl).width;
     card(Math.min(bx,CW/2-w/2)-16*SS,by-30*SS,Math.max(bw,w)+32*SS,50*SS);
-    ctx.fillStyle="#ffffff";ctx.fillText(lbl,CW/2-w/2,by-22*SS);ctx.fillStyle="#0a0e14";ctx.fillRect(bx,by,bw,bh);ctx.strokeStyle="#2c3746";ctx.lineWidth=1;ctx.strokeRect(bx,by,bw,bh);ctx.fillStyle="#ff9d2e";ctx.fillRect(bx,by,bw*f,bh);}
+    ctx.fillStyle="#ffffff";ctx.fillText(lbl,CW/2-w/2,by-22*SS);ctx.fillStyle="#0a0e14";ctx.fillRect(bx,by,bw,bh);ctx.strokeStyle="#2c3746";ctx.lineWidth=1;ctx.strokeRect(bx,by,bw,bh);ctx.fillStyle="#ff3b2f";ctx.fillRect(bx,by,bw*f,bh);}
   else if(hint){const w=ctx.measureText(hint).width,hy=SMALL?CH-34*SS:CH*0.76;card(CW/2-w/2-18*SS,hy-8*SS,w+34*SS,30*SS);ctx.fillStyle="#e7ecf3";ctx.fillText(hint,CW/2-w/2+2*SS,hy);}
   if(cam.z>1){const l=`${cam.z}× zoom · 0 to reset`,w=ctx.measureText(l).width,zy=SMALL?8:66*SS;card(CW/2-w/2-16*SS,zy,w+30*SS,26*SS);ctx.fillStyle="#ffffff";ctx.fillText(l,CW/2-w/2+2*SS,zy+6*SS);}
 }

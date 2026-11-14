@@ -126,6 +126,14 @@ made on the test stand.
 - Land: brake sideways while holding height, then a true suicide burn (start when stopping needs 80% of the thrust), final
   metres at 1.5–2 m/s; sideways speed steered onto the target the whole way. A craft's v.m isn't set before its first step.
 
+## v1.23: test stand as an engineering cutaway (phase 2)
+- Walls: dark section hatching with a crisp white contour; blueprint grid (1 cm when zoomed, 10 cm always); valves drawn as P&ID
+  bowties, igniters as a spark in a circle, injectors and tanks as outlines; red only when open or lit.
+- findEngine walks from the first injector along the flow, following the middle of the gap, to find chamber, throat and exit;
+  drawDims draws the dimension lines plus live chamber P/T and exit Mach/pressure/expansion ratio. Nothing is drawn if no engine
+  shape is found (e.g. the solid booster scenario has no injector).
+- Not done: the editor stays realistic (Wyatt's later request beats the plan's white-line editor).
+
 ## Things that went wrong (don't repeat)
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
   dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.
