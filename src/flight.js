@@ -53,7 +53,10 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
     if(!isRad(p)&&(!top||p.y+p.h>top.y+top.h))top=p;const pm=partMass(p)+(p.fuel||0),dx=(p.x-npx)*UM,dy=(p.y+p.h/2-npy)*UM;I+=pm*(dx*dx+dy*dy+(p.w*p.w+p.h*p.h)*UM*UM/12);}
   v.H=(y1-y0)*UM;v.W=Math.max(0.15,W*UM);v.Wall=(x1-x0)*UM;v.I=Math.max(I,1);v.nose=!!top&&top.t==="nose";
   v.fins=ps.filter(p=>p.t==="fin").length;v.finA=v.fins*ps.filter(p=>p.t==="fin").reduce((a,p)=>a+p.w*p.h*UM*UM*0.5,0)/Math.max(1,v.fins);v.Af=Math.PI*(v.W/2)**2;v.As=v.H*v.W;v.Lr=Math.max(0.3,v.H*0.45);
-  v.wheel=ps.filter(p=>p.t==="probe").reduce((a,p)=>a+1.2e7*A2(p.w,40),0);   // reaction wheels: 12 MN·m for a 4 m probe, more for wider ones (big rockets still turn slower)
+  v.wheel=ps.filter(isBrain).reduce((a,p)=>a+1.2e7*A2(p.w,40),0);   // reaction wheels: 12 MN·m for a 4 m probe, more for wider ones (big rockets still turn slower)
+  // capsule: heat shield works only if nothing hangs below it; escape tower; parachutes
+  {const ci=ps.findIndex(p=>p.t==="capsule"),lo=Math.min(...ps.filter(p=>!isRad(p)).map(p=>p.y));v.hasCap=ci>=0;v.capBottom=ci>=0&&Math.abs(ps[ci].y-lo)<0.5;v.hasLes=ps.some(p=>p.t==="les");
+    v.capW=ci>=0?ps[ci].w*UM:0;}
   v.rcs=ps.filter(p=>p.t==="rcs");for(const p of v.rcs)if(p.mono==null)p.mono=RCS_MONO;
   v.rcsArm=v.rcs.reduce((a,p)=>a+Math.max(0.2,Math.abs(p.y+p.h/2-npy)*UM),0);   // turning: side jets far from the centre of mass turn hardestv.hasLegs=ps.some(p=>p.t==="leg");
   v.cpts=contactPts(ps,false);v.cptsL=contactPts(ps,true);
@@ -127,6 +130,22 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
     n.vx=V0x+om*ry+ux*1.4;n.vy=V0y-om*rx+uy*1.4;n.thr=0;n.landed=false;n.frost=v.frost||0;VS.push(n);}
   const bo=pieces.some(P=>P.some(p=>p.t==="sdec"));mark("sep");callout(bo?"BOOSTER SEPARATION":"STAGE SEPARATION");kickF=Math.max(kickF,0.35);anAV=null;
   if(JX){JX.snd.clunk();JX.goal("stage");}}
+// ---------- splitting off part of a craft (abort, tower jettison): the piece keeps its place and speed, like a stage ----------
+function splitOff(v,idx,name,kick){const c=Math.cos(v.phi),s=Math.sin(v.phi),om=v.om,oldPx=v.px,oldPy=v.py,X0=v.x,Y0=v.y,V0x=v.vx,V0y=v.vy;
+  const P=v.ps.filter((p,i)=>idx.has(i)),R=v.ps.filter((p,i)=>!idx.has(i));v.ps=R;derive(v,true);{const rx=v.x-X0,ry=v.y-Y0;v.vx=V0x+om*ry;v.vy=V0y-om*rx;}
+  const n=mkVessel(P,name,v.body),dx=(n.px-oldPx)*UM,dy=(n.py-oldPy)*UM,rx=dx*c+dy*s,ry=-dx*s+dy*c;n.phi=v.phi;n.om=om;n.x=X0+rx;n.y=Y0+ry;
+  n.vx=V0x+om*ry+s*(kick||0);n.vy=V0y-om*rx+c*(kick||0);n.thr=0;n.landed=false;n.frost=0;VS.push(n);anAV=null;return n;}
+// ABORT: the escape tower fires and pulls the capsule (and anything above it) off the rocket, at any moment, even on the pad
+function abort(){const v=AV;if(!v||v.crashed)return;const ci=v.ps.findIndex(p=>p.t==="capsule");
+  if(ci<0){msg="No crew capsule on this craft: nothing to abort.";msgT=2.5;return;}if(!v.hasLes){msg="The escape tower is gone: abort isn't possible any more.";msgT=2.5;return;}
+  const cp=v.ps[ci],idx=new Set();v.ps.forEach((p,i)=>{if(p.y>=cp.y-0.01&&Math.abs(p.x-cp.x)<cp.w/2+1)idx.add(i);});
+  if(idx.size===v.ps.length){v.lesT=3;}else{const n=splitOff(v,idx,v.name+" capsule");v.thr=0;v.name=v.name+" (aborted)";n.lesT=3;AV=n;}
+  if(CD.s!=="go"){CD={s:"go",t:0};tRel=FT;}msgT=0;AV.clamped=false;AV.landed=false;callout("ABORT","escape tower firing");kickF=1;if(JX){JX.snd.bang(1);JX.snd.say("abort, abort");}}
+function jettisonLes(v,why){const li=v.ps.findIndex(p=>p.t==="les");if(li<0)return;splitOff(v,new Set([li]),"Escape tower",25);if(v===AV)callout("TOWER JETTISON",why||"");}
+function chutes(){const v=AV;if(!v||v.crashed)return;if(!v.hasCap){msg="Parachutes come with the crew capsule.";msgT=2.5;return;}
+  if(v.chute){msg="Parachutes are already out.";msgT=1.5;return;}if(v.body!==0){msg="No air here: parachutes won't work.";msgT=2.5;return;}
+  const sp=Math.hypot(v.vx,v.vy);if(sp>280){msg=`Too fast for parachutes (${fmt(sp)} m/s): they'd tear. Wait until below 280 m/s.`;msgT=3;return;}
+  v.chute=1;v.chuteK=0;callout("PARACHUTES","deployed");}
 function switchV(d){const c=VS.filter(v=>v.ctrl&&!v.crashed);if(c.length<2){msg="Nothing else to fly. Boosters need their own probe core.";msgT=3;return;}
   let i=c.indexOf(AV);i=(i+d+c.length)%c.length;AV=c[i];anAV=null;msg="Now flying: "+AV.name;msgT=2.5;$("fThr").value=Math.round(AV.thr*100);}
 // ---------- physics ----------
@@ -160,6 +179,17 @@ function stepV(v,dt,u){
     tq+=q*sa*v.Lr*(v.As*0.012-v.finA*1.1);                                   // fins win: they swing the nose into the airflow
     tq-=q*(v.finA*1.1+v.As*0.04)*v.Lr*v.Lr*v.om/Math.max(sp,5)*2;}           // and damp the wobble
   else{v.q=0;v.D=0;v.rho=rho;}
+  // launch escape motor: a few seconds of very hard push along the nose, pulling the capsule clear of the rocket
+  if(v.lesT>0){const Fl=m*9.81*9;ax+=Fl/m*s;ay+=Fl/m*c;v.lesT-=dt;if(v.lesT<=0)v.lesDone=v.t;}
+  // parachutes: open over 3 s; sized so the capsule comes down at about 7 m/s at sea level (faster in thin air). They swing the
+  // capsule round to hang heat-shield-down.
+  if(v.chute===1&&rho>0&&sp>0.3){v.chuteK=Math.min(1,(v.chuteK||0)+dt/3);const A=m*9.81*2/(RHO0*49)*v.chuteK*v.chuteK,Dc=0.5*rho*sp*sp*A;ax-=Dc/m*v.vx/sp;ay-=Dc/m*v.vy/sp;
+    const want=Math.atan2(-v.vx,-v.vy);v.phi+=wrapA(want-v.phi)*Math.min(1,dt*1.2*v.chuteK);v.om*=Math.pow(0.2,dt);}
+  // re-entry heating ~ air density × speed³. A capsule coming in heat-shield-first (nose pointing back along its path, nothing below
+  // the shield) takes ten times more. Too much for too long and the craft burns up.
+  if(rho>0&&sp>200){const fl=rho*sp*sp*sp,sh=v.capBottom&&(v.vx*s+v.vy*c)/sp<-0.6,lim=sh?1.2e9:8e7;v.hf=fl;v.shielded=sh;
+    if(fl>lim){v.heat=(v.heat||0)+(fl/lim-1)*dt;if(v.heat>3){crash(v,sp);if(v===AV){msg=`🔥 Burned up at ${fmt(sp)} m/s. Come back heat-shield first (capsule, nose pointing back), and not too steep.`;msgT=1e9;}return;}}
+    else if(v.heat)v.heat=Math.max(0,v.heat-dt*0.4);}else v.hf=0;
   // steering: reaction wheels plus engine gimbal; with no input it holds its attitude (SAS)
   // steering is fly-by-wire: A/D ask for a turn rate; let go and SAS holds the heading (it also cancels air torque, up to what it can push)
   // RCS: when on and there's monopropellant left, the jets add turning power, and I J K L push the rocket along its own axes
@@ -216,9 +246,9 @@ function ground(v,held){
   for(const q of pts){const lx=(q[0]-v.px)*UM,ly=(q[1]-v.py)*UM,wx=v.x+lx*c+ly*s,wy=v.y-lx*s+ly*c,r=Math.hypot(wx,wy),G=groundAt(v.body,wx,wy),d=BOD[v.body].R+G.h-r;
     if(d>pen){pen=d;leg=q[2]===1;water=G.water;}}
   if(pen<=0){if(held&&pen<-0.05)v.landed=false;return;}const rr=Math.hypot(v.x,v.y),push=pen;
-  if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=water?sp<=12:leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
+  if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=water?sp<=12:v.chute===1&&v.hasCap?(sp<=10&&tilt<0.9):leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
     if(!ok){crash(v,sp,water);return;}
-    v.landed=true;v.vx=v.vy=0;v.om=0;v.wet=water;
+    v.landed=true;v.vx=v.vy=0;v.om=0;v.wet=water;if(v.chute===1)v.chute=2;   // chutes cut on touchdown
     if(water&&v===AV){msg=`🌊 Splashdown at ${sp.toFixed(1)} m/s. Floating in the sea.`;msgT=6;v.x+=v.x/rr*push;v.y+=v.y/rr*push;return;}
     if(v===AV&&v.t>3){const pd=padDist(v);if(JX){if(v.body===1)JX.goal("moonland");else if(Math.abs(pd.d)<40&&pd.at)JX.goal("pad");}msg=v.body===1?`🌙 Landed on the Moon at ${sp.toFixed(1)} m/s!`:Math.abs(pd.d)<40?`🎯 Landed on the ${pd.name} at ${sp.toFixed(1)} m/s!`:`✅ Landed at ${sp.toFixed(1)} m/s, ${fmt(Math.abs(pd.d))} m from the ${pd.name}.`;msgT=6;}}
   v.x+=v.x/rr*push;v.y+=v.y/rr*push;}
@@ -235,6 +265,8 @@ addEventListener("keydown",e=>{if(!FLT.on)return;const k=e.key.toLowerCase();key
   else if(k==="["||k==="]")switchV(k==="]"?1:-1);
   else if(k>="1"&&k<="9"&&!e.repeat)setSas(SAS_MODES[+k-1]);
   else if(k==="t"&&!e.repeat)toggleRcs();
+  else if(k==="backspace"&&!e.repeat){abort();e.preventDefault();}
+  else if(k==="p"&&!e.repeat)chutes();
   else if(k==="m"){mapView=!mapView;if(mapView)mapOpen();}
   else if(k==="f"&&mapView)mapFocus();
   else if(k==="r"){startFlight(launchPs,launchName,true);}
@@ -249,7 +281,7 @@ fcv.addEventListener("wheel",e=>{e.preventDefault();if(mapView){mapWheel(e);retu
 $("fThr").oninput=()=>{if(AV&&CD.s==="go")AV.thr=+$("fThr").value/100;};
 for(const[id,d]of[["fL",-1],["fR",1]]){const b=$(id);b.onpointerdown=()=>{rotBtn=d;};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>{rotBtn=0;};}
 $("fMap").onclick=()=>{mapView=!mapView;if(mapView)mapOpen();};$("fWarp2").onclick=()=>{warp=WARPS[(WARPS.indexOf(warp)+1)%WARPS.length];};
-$("fStage").onclick=()=>{if(CD.s==="wait")startCount();else if(CD.s==="count")release(true);else doStage();};$("fCount").onclick=startCount;$("fRcs").onclick=toggleRcs;$("fLegs").onclick=()=>{if(AV&&AV.hasLegs)AV.legs=!AV.legs;};
+$("fAbort").onclick=abort;$("fChute").onclick=chutes;$("fStage").onclick=()=>{if(CD.s==="wait")startCount();else if(CD.s==="count")release(true);else doStage();};$("fCount").onclick=startCount;$("fRcs").onclick=toggleRcs;$("fLegs").onclick=()=>{if(AV&&AV.hasLegs)AV.legs=!AV.legs;};
 $("fBack").onclick=endFlight;$("fRetry").onclick=()=>startFlight(launchPs,launchName,true);$("fBuild").onclick=()=>{endFlight();openVab();};
 // ---------- pad emitters: cold vapour from the tank vents, frost flaking off, steam clouds from the flame trench ----------
 function padEmit(dt){const v=AV;if(!v||v.body!==0||dt<=0)return;const fx=padFx(),rr=Math.hypot(v.x,v.y),hAG=rr-PR-Math.max(0,terrH(Math.atan2(v.x,v.y)*PR));
@@ -274,6 +306,7 @@ function flightFrame(now){
   fitF();const dtR=Math.min(0.05,(now-lastFT)/1000);lastFT=now;
   if(AV){
     countFrame(dtR);padEmit(dtR);
+    for(const v of VS)if(v.hasLes&&!v.crashed&&!(v.lesT>0)&&((v.lesDone!=null&&v.t-v.lesDone>1.2)||(v.body===0&&Math.hypot(v.x,v.y)-PR>ATM_TOP*0.85)))jettisonLes(v,v.lesDone!=null?"":"not needed above the air");
     if(!AV.crashed&&CD.s==="go"){if(keys.has("shift")||keys.has("w"))AV.thr=Math.min(1,AV.thr+0.9*dtR);
       if(keys.has("control")||keys.has("s"))AV.thr=Math.max(0,AV.thr-0.9*dtR);}
     AV.tin=[(keys.has("l")?1:0)-(keys.has("j")?1:0),(keys.has("i")?1:0)-(keys.has("k")?1:0)];
@@ -341,9 +374,13 @@ function drawVessel(c,v,bright,plumesOnly){
   c.save();c.translate(v.x,v.y);c.rotate(-v.phi);
   if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))*UM);boom(c,v);c.restore();return;}
   c.scale(UM,UM);c.translate(-v.px,-v.py);
-  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8),v.thr,v.a,bright,k==="vac");}});
+  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}const g=clusterGeo(p),pf=(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8);if(g.k>1){for(const[ex,row]of g.xs)if(!row)plume(c,p.x+ex,p.y,g.ew*pf,v.thr,v.a,bright,k==="vac");return;}plume(c,p.x,p.y,p.w*pf,v.thr,v.a,bright,k==="vac");}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
+  for(const p of v.ps)if(p.t==="les"&&v.lesT>0)for(const sd of[-1,1]){c.save();c.translate(p.x+sd*p.w*0.42,p.y+p.h*0.5);c.rotate(sd*2.4);srbPlume(c,0,0,p.w*0.35,v.a,bright);c.restore();}
   if(plumesOnly){c.restore();return;}
+  if(v.chute===1&&v.chuteK>0){const cp=v.ps.find(p=>p.t==="capsule");if(cp){const top=cp.y+cp.h,k=v.chuteK,L=cp.w*3.2*k,R2=cp.w*1.5*k;   // three main canopies on long lines
+    for(const[ox,oy]of[[-R2*1.25,L*0.92],[0,L],[R2*1.25,L*0.92]]){c.strokeStyle="rgba(220,220,220,.7)";c.lineWidth=0.5;c.beginPath();c.moveTo(cp.x,top);c.lineTo(cp.x+ox-R2,top+oy);c.moveTo(cp.x,top);c.lineTo(cp.x+ox+R2,top+oy);c.stroke();
+      c.beginPath();c.ellipse(cp.x+ox,top+oy,R2,R2*0.6,0,0,Math.PI);c.closePath();const gg=c.createLinearGradient(cp.x+ox-R2,0,cp.x+ox+R2,0);gg.addColorStop(0,"#d9472f");gg.addColorStop(0.33,"#d9472f");gg.addColorStop(0.34,"#f2f2f2");gg.addColorStop(0.66,"#f2f2f2");gg.addColorStop(0.67,"#d9472f");c.fillStyle=gg;c.fill();}}}
   for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
   c.restore();}
@@ -417,6 +454,11 @@ function renderFlight(dt){
       const[wx,wy]=loc(v,(p.x-v.px)*UM,(p.y-v.py)*UM),sp=25+Math.random()*25;
       smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w*UM*0.8,r1:((sol?10:6)+Math.random()*10)*Math.max(1,p.w*UM/2),o:v.a*(sol?1.6:1)});});}
     drawVessel(c,v,bright);}
+  // re-entry glow: the air in front of the craft heats to plasma: an orange-pink glow on the leading side, streaming behind
+  for(const v of VS){if(v.body!==r.body||!(v.hf>2e7)||v.crashed)continue;const sp=Math.hypot(v.vx,v.vy),ux=v.vx/sp,uy=v.vy/sp,k=Math.min(1,(v.hf-2e7)/2e8),L=Math.max(v.H,v.W)*0.5;
+    c.save();c.globalCompositeOperation="lighter";const fxp=v.x+ux*L,fyp=v.y+uy*L,R=v.W*1.2+k*L*1.5,gg=c.createRadialGradient(fxp,fyp,0,fxp,fyp,R);gg.addColorStop(0,`rgba(255,235,210,${0.8*k})`);gg.addColorStop(0.4,`rgba(255,120,60,${0.5*k})`);gg.addColorStop(1,"rgba(255,60,120,0)");
+    c.fillStyle=gg;c.beginPath();c.arc(fxp,fyp,R,0,6.2832);c.fill();const tl=L*(3+6*k);c.beginPath();c.moveTo(fxp-uy*R*0.7,fyp+ux*R*0.7);c.lineTo(v.x-ux*tl,v.y-uy*tl);c.lineTo(fxp+uy*R*0.7,fyp-ux*R*0.7);c.closePath();
+    const g2=c.createLinearGradient(fxp,fyp,v.x-ux*tl,v.y-uy*tl);g2.addColorStop(0,`rgba(255,140,90,${0.45*k})`);g2.addColorStop(1,"rgba(255,80,160,0)");c.fillStyle=g2;c.fill();c.restore();}
   // exhaust steam clouds: big soft billows, lit orange from below while the flame is close
   if(steam.length&&r.body===0){const lx=AV.F>0&&hAGc<400?Math.max(0,1-hAGc/400):0,[nx,ny]=loc(r,0,-(r.py-Math.min(...r.cpts.map(q=>q[1])))*UM);
     for(const q of steam){const k=q.t/q.life,rad=q.r0+q.r1*Math.sqrt(k),al=0.55*(1-k)*Math.min(1,q.t*3),d=Math.hypot(q.x-nx,q.y-ny),lit=lx*Math.max(0,1-d/150);
@@ -469,7 +511,7 @@ function buildRows(){
   mk("fOrbit",[["oAp","Apoapsis","Highest point of the orbit, above the ground"],["oPe","Periapsis","Lowest point of the orbit, above the ground"],["oTAp","Time to Ap"],["oTPe","Time to Pe"],
     ["-","Shape"],["oPer","Period","Time for one lap"],["oE","Eccentricity","0 = a perfect circle, 1 or more = escaping"],["oA","Semi-major axis","Half the long width of the orbit, from the planet's centre"],["oV","Orbital speed"],["oSoi","Gravity of","Which body's gravity you're in (sphere of influence)"]]);
   mk("fSurf",[["sAlt","Altitude","Height above the ground (or the sea) right below"],["sBio","Below","What's under you"],["sGnd","Ground height","Height of the ground below above sea level"],["sVs","Vertical speed"],["sHs","Horizontal speed"],["sSp","Surface speed","Speed over the ground (the planets here don't spin, so it equals orbital speed)"],
-    ["-","Air"],["sQ","Dynamic pressure","q: how hard the air pushes on the rocket. Rockets throttle down around the peak, Max-Q"],["sMq","Max-Q"],["sDrag","Drag"],["sRho","Air density"],
+    ["-","Air"],["sQ","Dynamic pressure","q: how hard the air pushes on the rocket. Rockets throttle down around the peak, Max-Q"],["sMq","Max-Q"],["sDrag","Drag"],["sRho","Air density"],["sHeat","Heating","How hot the air gets in front of you: air density × speed³. Over ~8×10⁷ for long burns a craft up; a capsule heat-shield-first takes 15× more"],
     ["-","Ground"],["sPad","To launch pad"],["sLz","To landing zone"]]);
   mk("fVesP",[["vM","Mass (wet)","With the fuel that's left"],["vDry","Mass (dry)","Empty tanks"],["vTwr","TWR now","Thrust ÷ weight right now. Above 1 = climbing"],["vTwrM","TWR max","At full throttle"],
     ["vLit","Engines lit"],["vRcs","RCS fuel","Monopropellant for the RCS jets (T turns them on)"],["vSrb","Booster burn left"],["vDvT","Total Δv","Speed change left in all stages"]]);
@@ -528,7 +570,7 @@ function hudFlight(dt){
   if(open("fpOrbit")){const tt=orbTimes(r,o,B);rv("oAp",o.esc?null:o.ap,kmF);if(o.esc)set("oAp",r.body?"leaving":"escaping");rv("oPe",o.pe,kmF);
     set("oTAp",tt?tfm(tt.ap):"–");set("oTPe",tt?tfm(tt.pe):"–");set("oPer",tt?tfm(tt.per):"–");rv("oE",o.e,x=>x.toFixed(3));rv("oA",o.esc?null:o.a,kmF);rv("oV",sp,ms);set("oSoi",B.name);}
   if(open("fpSurf")){const gh=r.body===0?terrH(psi*PR):0;rv("sAlt",h-Math.max(0,gh),kmF);set("sBio",r.body?"Moon":gh<0?"Ocean":biomeAt(psi*PR)[2]);set("sGnd",r.body?"–":gh<0?"sea, "+km(-gh)+" deep":km(gh));rv("sVs",vv,sms);rv("sHs",Math.abs(vh),ms);rv("sSp",sp,ms);rv("sQ",r.q||0,x=>x>=1000?(x/1000).toFixed(2)+" kPa":Math.round(x)+" Pa");
-    set("sMq",qMax>0?(qMax/1000).toFixed(2)+" kPa":"–");rv("sDrag",r.D||0,x=>x>=1000?(x/1000).toFixed(2)+" kN":Math.round(x)+" N");rv("sRho",r.rho||0,x=>x.toFixed(x>0.01?3:5)+" kg/m³");
+    set("sMq",qMax>0?(qMax/1000).toFixed(2)+" kPa":"–");rv("sDrag",r.D||0,x=>x>=1000?(x/1000).toFixed(2)+" kN":Math.round(x)+" N");rv("sRho",r.rho||0,x=>x.toFixed(x>0.01?3:5)+" kg/m³");set("sHeat",r.hf>1e6?(r.hf/(r.shielded?1.2e9:8e7)*100).toFixed(0)+"% of the limit"+(r.shielded?" (shield)":""):"–");
     const ang=r.body===0?Math.atan2(r.x,r.y)*PR:null,arw=d=>d>0.5?" ←":d<-0.5?" →":" ✓";
     set("sPad",ang==null?"–":km(Math.abs(ang))+arw(ang));set("sLz",ang==null?"–":km(Math.abs(ang-PAD2))+arw(ang-PAD2));}
   if(open("fpTime")){const hr=hourAt(psi,FT),until=x=>((x-hr+24)%24)*DAY/24,tt=orbTimes(r,o,B);
@@ -544,7 +586,7 @@ function hudFlight(dt){
     set("vSrb",bl>0?tfm(bl):"–");rv("vDvT",anAV.total,ms);
     const hs=anAV.stages.map((q,k)=>`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b>${fmt(q.dv)}</b></span><span>${Math.round(q.burn)} s</span><i>TWR ${q.twr.toFixed(2)} · ${q.eng} engine${q.eng===1?"":"s"}</i></div>`).join("");
     if(hs!==stgSig){stgSig=hs;$("fStg").innerHTML=hs;}}
-  $("fStage").disabled=CD.s==="go"&&!st.dropKind;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
+  $("fStage").disabled=CD.s==="go"&&!st.dropKind;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fAbort").style.display=r.hasLes&&!r.crashed?"":"none";$("fChute").style.display=r.hasCap&&!r.chute&&!r.crashed&&r.body===0?"":"none";$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
   msgT-=dt;const mb=$("fMsg");mb.style.display=msgT>0?"":"none";if(msgT>0)set("fMsg",msg);
   $("fRetry").style.display=r.crashed?"":"none";$("fMapBar").style.display=mapView?"":"none";}
 // fold-away panels in flight: INFO panels on the left, the small numbers and SAS on the right

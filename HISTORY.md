@@ -111,7 +111,16 @@ made on the test stand.
 - Steam clouds roll out of both ends of the trench, lit orange by the flame; the flame lights the ground; heat shimmer; frost
   flakes off on the way up (gone by ~10 km). The headless tests run without the countdown (no JX); clamps have their own test.
 
+## v1.20: the rest of phase 1.5
+- Engine clusters are an engine part with a count `p.k` (thrust and mass × k, each engine sized to fit, two rows above 3).
+- Capsule = a probe with a heat shield and parachutes; escape tower = ABORT that splits everything from the capsule up off the
+  rocket and pushes 9 g for 3 s, then drops itself; it also drops by itself above ~34 km.
+- Heating = ρ·v³: ascent peaks ~5e7, LEO re-entry nose-first goes past 1e8 (burns up), heat-shield-first is allowed 15× more.
+- The old test autopilot can't fly the SLS (its fixed gravity turn and "coast when Ap > 70 km" don't suit a heavy rocket).
+
 ## Things that went wrong (don't repeat)
+- A new palette id with an extra field ("engine:stand:4") broke the editor palette (ENG lookup by the whole suffix): check
+  every place that parses part ids.
 - The flight bundle is one closure: map.js already has `tfmt`/`kmf`, so a second `const` with those names breaks the whole page.
 - Wyatt shared a schlieren reference image with no text; Claude assumed what he wanted and changed things. He said
   "no" — ask what a reference image is for before acting on it.

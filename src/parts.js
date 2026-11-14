@@ -19,6 +19,13 @@ const srbCap=(w,h)=>RHO_S*Math.PI*(w*UM/2)**2*(Math.max(0,h-SRB_NZ)*UM);
 const capOf=p=>p.t==="tank"?tankCap(p.w,p.h):p.t==="srb"?srbCap(p.w,p.h):0;
 const hasProp=p=>p.t==="tank"||p.t==="srb";
 const isEng=p=>p.t==="engine"||p.t==="srb";
+const isBrain=p=>p.t==="probe"||p.t==="capsule";   // a capsule is a probe core with a heat shield, parachutes and a crew
+// engine clusters: an engine part can hold k engines side by side under one thrust plate (like SLS 4, New Glenn 7, Falcon 9 9).
+// Up to 3 sit in one row; more go in two rows (the back row is drawn behind, a little higher). Each engine is ew wide.
+function clusterGeo(p){const k=Math.max(1,p.k||1),E=ENG[engKey(p)],rows=k<=3?1:2,front=Math.ceil(k/rows),ew=k===1?p.w:Math.min(p.w*0.96/front,E.w*1.15),plate=k>1?5:0;
+  const xs=[];for(let i=0;i<front;i++)xs.push([(i-(front-1)/2)*ew*1.02,0]);for(let i=0;i<k-front;i++)xs.push([(i-(k-front-1)/2)*ew*1.02,1]);
+  return{k,ew,plate,eh:Math.round(E.h*ew/E.w),xs};}
+const engH=p=>{const g=clusterGeo(p);return g.plate+g.eh;};
 // thrust in readable units: kN up to 1 MN, then MN
 // masses in readable units: kg up to 10 t, then tonnes
 const fM=m=>m>=1e4?Math.round(m/1000).toLocaleString()+" t":Math.round(m).toLocaleString()+" kg";
@@ -36,6 +43,8 @@ const PT={
   sdec:   {name:"Side decoupler", ws:[3],               h:()=>40, m:()=>1.5*MK, radial:1, desc:"Hang boosters on the side, almost touching the core. Space drops them (it goes with the booster)."},
   fin:    {name:"Fin",            ws:[30],              h:()=>50, m:()=>1.2*MK, radial:1, desc:"Keeps the rocket pointing where it's going while in the air."},
   rcs:    {name:"RCS thrusters",  ws:[10],              h:()=>20, m:()=>0.8*MK+RCS_MONO, radial:1, desc:"Little gas jets. T turns RCS on: they help the rocket turn (in space too), and I J K L nudge it forward, back and sideways. Own fuel."},
+  capsule:{name:"Crew capsule",   ws:[50], wr:[16,120], h:w=>Math.round(w*0.66), m:w=>9*MK*A2(w,50), desc:"Orion-style capsule: the brain (like a probe core) with a heat shield underneath and parachutes (P). Come home heat-shield first."},
+  les:    {name:"Escape tower",   ws:[14], wr:[6,60],  h:w=>Math.round(w*4.4), m:w=>6*MK*A2(w,14), desc:"Launch escape tower: goes on top of the capsule. ABORT (Backspace) fires it and pulls the capsule away from the rocket. It drops off by itself in space."},
   leg:    {name:"Landing leg",    ws:[30],              h:()=>90, m:()=>2.5*MK, radial:1, desc:"G deploys. Lets you land at up to 9 m/s instead of about 3."},
 };
 // engines: your own (numbers from the test stand) and four ready-made ones, at their default size (w × h units).
@@ -62,16 +71,16 @@ function scaleStat(E,k){const o=Object.assign({},E);o.sl=Object.assign({},E.sl,{
 function curveAt(c,u){if(!c||c.length<2)return 1;const x=Math.max(0,Math.min(1,u))*(c.length-1),i=Math.min(c.length-2,Math.floor(x));return c[i]+(c[i+1]-c[i])*(x-i);}
 const ENG_ORDER=["stand","wren","mule","bison","vac"];
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
-function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],MK*A2(p.w,ENG[k].w));}
-const PT_ORDER=["probe","nose","tank","adapter","engine:stand","engine:wren","engine:mule","engine:bison","engine:vac","srb:stand","srb:thumper","dec","sdec","fin","rcs","leg"];
+function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],MK*A2(clusterGeo(p).ew,ENG[k].w)*(p.k||1));}
+const PT_ORDER=["probe","nose","tank","adapter","engine:stand","engine:wren","engine:mule","engine:bison","engine:vac","engine:stand:4","srb:stand","srb:thumper","dec","sdec","fin","rcs","leg","capsule","les"];
 let partId=1;
 // t can carry a model: "engine:mule", "srb:thumper"; n = a saved library entry's numbers to copy onto the part
-function mkPart(t,w,h,e,n){let b;if(t.startsWith("engine:")){e=t.slice(7);t="engine";}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}const d=PT[t];
-  if(t==="engine"){e=e||"stand";const E=ENG[e];w=w||E.w;h=h||Math.round(E.h*w/E.w);}w=w||d.ws[0];const p={id:partId++,t,x:0,y:0,w,h:h||d.h(w),f:1,tw:0};if(e)p.e=e;if(t==="srb")p.b=b||"stand";
-  if(t==="adapter")p.w2=Math.round(w*0.48);
+function mkPart(t,w,h,e,n){let b,k=1;if(t.startsWith("engine:")){e=t.slice(7);t="engine";if(e.includes(":")){k=+e.split(":")[1];e=e.split(":")[0];}}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}const d=PT[t];
+  if(t==="engine"){e=e||"stand";const E=ENG[e];w=w||(k>1?Math.round(E.w*(k<=3?k:Math.ceil(k/2))*1.05):E.w);if(!h){h=engH({t,e,w,k});}}w=w||d.ws[0];const p={id:partId++,t,x:0,y:0,w,h:h||d.h(w),f:1,tw:0};if(e)p.e=e;if(t==="srb")p.b=b||"stand";
+  if(t==="adapter")p.w2=Math.round(w*0.48);if(k>1)p.k=k;
   if(n)p.n=JSON.parse(JSON.stringify(n));return p;}
-const partMass=p=>p.t==="engine"?ENG[engKey(p)].m*MK*A2(p.w,ENG[engKey(p)].w):PT[p.t].m(p.w,p.h);
-const partName=p=>p.t==="engine"?(engKey(p)==="lib"&&p.n?p.n.name:ENG[engKey(p)].name):p.t==="srb"?(boostKey(p)==="lib"&&p.n?p.n.name:BOOST[boostKey(p)].name):PT[p.t].name;
+const partMass=p=>p.t==="engine"?ENG[engKey(p)].m*MK*A2(clusterGeo(p).ew,ENG[engKey(p)].w)*(p.k||1)+(p.k>1?0.6*MK*A2(p.w,40):0):PT[p.t].m(p.w,p.h);
+const partName=p=>p.t==="engine"?(engKey(p)==="lib"&&p.n?p.n.name:ENG[engKey(p)].name)+(p.k>1?" ×"+p.k:""):p.t==="srb"?(boostKey(p)==="lib"&&p.n?p.n.name:BOOST[boostKey(p)].name):PT[p.t].name;
 // a decoupler under an engine gets a shroud (interstage) that covers the engine until it separates
 function shroudsOf(ps){const out=[];ps.forEach((d,i)=>{if(d.t!=="dec"||d.shed)return;let top=-1e9;
   for(const e of ps)if(e.t==="engine"&&near(e.y,d.y+d.h)&&ovl(e.x-e.w/2,e.x+e.w/2,d.x-d.w/2,d.x+d.w/2)>0.5)top=Math.max(top,e.y+e.h);
@@ -80,7 +89,7 @@ function drawShroud(c,s,al){c.save();c.globalAlpha=al==null?1:al;const L=s.x-s.w
   c.fillStyle=cyl(c,L,R,[42,44,50]);c.fillRect(L,s.y0,s.w,s.y1-s.y0);c.fillStyle="rgba(255,255,255,.045)";for(let yy=s.y0+3;yy<s.y1;yy+=3)c.fillRect(L,yy,s.w,0.6);
   c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,s.y1-1.2,s.w,1.2);c.fillStyle="rgba(0,0,0,.4)";c.fillRect(s.x-0.5,s.y0,1,s.y1-s.y0);c.restore();}
 const isRad=p=>!!PT[p.t].radial;
-const topW=p=>p.t==="nose"?0:p.t==="adapter"?(p.w2||Math.round(p.w*0.48)):p.w;
+const topW=p=>p.t==="nose"||p.t==="les"?0:p.t==="capsule"?Math.round(p.w*0.34):p.t==="adapter"?(p.w2||Math.round(p.w*0.48)):p.w;
 const ovl=(a0,a1,b0,b1)=>Math.min(a1,b1)-Math.max(a0,b0);
 const near=(a,b)=>Math.abs(a-b)<0.01;
 function touching(a,b){
@@ -90,7 +99,7 @@ function touching(a,b){
   return false;}
 const collide=(a,b)=>ovl(a.x-a.w/2,a.x+a.w/2,b.x-b.w/2,b.x+b.w/2)>0.5&&ovl(a.y,a.y+a.h,b.y,b.y+b.h)>0.5;
 function adjOf(ps){const adj=ps.map(()=>[]);for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++)if(touching(ps[i],ps[j])){adj[i].push(j);adj[j].push(i);}return adj;}
-function rootIdx(ps){let r=-1;ps.forEach((p,i)=>{if(p.t==="probe"&&(r<0||p.y>ps[r].y))r=i;});return r;}
+function rootIdx(ps){let r=-1;ps.forEach((p,i)=>{if(isBrain(p)&&(r<0||p.y>ps[r].y))r=i;});return r;}
 function bfs(adj,start,allow){const seen=new Set([start]),q=[start];while(q.length){const i=q.pop();for(const j of adj[i])if(!seen.has(j)&&allow(j)){seen.add(j);q.push(j);}}return seen;}
 // an engine sitting on a stack decoupler waits for it to fire
 function engOn(ps,adj,i,inSet){const e=ps[i];for(const j of adj[i]){const d=ps[j];if(inSet&&!inSet.has(j))continue;if(d.t==="dec"&&near(d.y+d.h,e.y))return false;}return true;}
@@ -226,8 +235,8 @@ function drawPart(c,p,o={}){
       c.fillStyle="rgba(255,255,255,.14)";c.fillRect(L,y,w,1.2);c.fillRect(L,T-1.2,w,1.2);
       c.strokeStyle="rgba(255,255,255,.22)";c.lineWidth=0.8;c.strokeRect(x+w*0.08,y+h*0.25,w*0.22,h*0.5);
       c.fillStyle="rgba(0,0,0,.4)";for(const q of[-0.32,-0.24])c.fillRect(x+w*q,y+h*0.62,2.5,2);break;}   // two vent holes
-    case"nose":{   // payload fairing: a smooth white ogive with the split line down the middle
-      c.beginPath();c.moveTo(L,y);c.bezierCurveTo(L,y+h*0.42,x-w*0.22,y+h*0.86,x-w*0.03,T-0.6);c.quadraticCurveTo(x,T+0.3,x+w*0.03,T-0.6);c.bezierCurveTo(x+w*0.22,y+h*0.86,R,y+h*0.42,R,y);c.closePath();
+    case"nose":{   // payload fairing: a smooth white ogive with the split line down the middle (or a straight cone: SLS booster tips)
+      c.beginPath();if(p.ns==="cone"){c.moveTo(L,y);c.lineTo(x-w*0.04,T-1.5);c.quadraticCurveTo(x,T+0.5,x+w*0.04,T-1.5);c.lineTo(R,y);c.closePath();}else{c.moveTo(L,y);c.bezierCurveTo(L,y+h*0.42,x-w*0.22,y+h*0.86,x-w*0.03,T-0.6);c.quadraticCurveTo(x,T+0.3,x+w*0.03,T-0.6);c.bezierCurveTo(x+w*0.22,y+h*0.86,R,y+h*0.42,R,y);c.closePath();}
       c.fillStyle=cyl(c,L,R,[240,241,244]);c.fill();c.save();c.clip();
       c.fillStyle="rgba(0,0,0,.18)";c.fillRect(x-0.5,y,1,h);c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,y,w,2);
       c.fillStyle="rgba(0,0,0,.05)";c.fillRect(L,y+h*0.3,w,0.8);c.restore();break;}
@@ -235,7 +244,20 @@ function drawPart(c,p,o={}){
       const tw2=topW(p)/2;c.beginPath();c.moveTo(L,y);c.lineTo(x-tw2,T);c.lineTo(x+tw2,T);c.lineTo(R,y);c.closePath();c.fillStyle=cyl(c,L,R,[46,48,54]);c.fill();
       c.save();c.clip();c.fillStyle="rgba(255,255,255,.05)";for(let yy=y+3;yy<T;yy+=3)c.fillRect(L,yy,w,0.6);c.restore();
       c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,y,w,1.2);c.fillRect(x-tw2,T-1.2,tw2*2,1.2);break;}
-    case"engine":drawEngine(c,x,y,w,h,engKey(p));break;
+    case"engine":{const g=clusterGeo(p);if(g.k===1){drawEngine(c,x,y,w,h,engKey(p));break;}
+      for(const[ex,row]of g.xs.slice().sort((a,b)=>b[1]-a[1])){c.save();if(row){c.globalAlpha=0.75;}drawEngine(c,x+ex+(row?g.ew*0.51:0),y+(row?2:0),g.ew,g.eh,engKey(p));c.restore();}
+      c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,T-g.plate,w,g.plate);c.fillStyle="rgba(0,0,0,.35)";c.fillRect(L,T-g.plate,w,0.8);break;}   // thrust plate on top
+    case"capsule":{   // Orion-style: a blunt cone of white panels, dark heat shield underneath, two windows, docking ring on top
+      const tw=topW(p)/2;c.beginPath();c.moveTo(L,y+2);c.lineTo(x-tw,T-2);c.lineTo(x+tw,T-2);c.lineTo(R,y+2);c.closePath();c.fillStyle=cyl(c,L,R,[226,228,232]);c.fill();
+      c.save();c.clip();c.strokeStyle="rgba(0,0,0,.12)";c.lineWidth=0.5;for(let yy=y+6;yy<T;yy+=5){c.beginPath();c.moveTo(L,yy);c.lineTo(R,yy);c.stroke();}c.restore();
+      c.fillStyle="#2b2723";c.beginPath();c.moveTo(L-0.5,y);c.lineTo(R+0.5,y);c.lineTo(R,y+2.5);c.lineTo(L,y+2.5);c.closePath();c.fill();   // heat shield
+      c.fillStyle="#1d2128";for(const q of[-0.18,0.05]){const wx=x+q*w,wy=y+h*0.55;c.beginPath();c.moveTo(wx,wy);c.lineTo(wx+w*0.09,wy);c.lineTo(wx+w*0.08,wy+h*0.13);c.lineTo(wx+w*0.01,wy+h*0.13);c.closePath();c.fill();}
+      c.fillStyle=cyl(c,x-tw,x+tw,[150,154,162]);c.fillRect(x-tw,T-2.4,tw*2,2.4);break;}
+    case"les":{   // launch escape tower: a nose spike, the abort motor with four angled nozzles, the jettison motor and a truss
+      const mw=w*0.5;c.fillStyle=cyl(c,L,R,[200,202,206]);c.beginPath();c.moveTo(L,y);c.lineTo(x-mw*0.6,y+h*0.25);c.lineTo(x+mw*0.6,y+h*0.25);c.lineTo(R,y);c.closePath();c.fill();
+      c.strokeStyle="#9aa0a8";c.lineWidth=0.6;c.beginPath();c.moveTo(x-mw*0.6,y+h*0.25);c.lineTo(x+mw*0.6,y+h*0.32);c.moveTo(x+mw*0.6,y+h*0.25);c.lineTo(x-mw*0.6,y+h*0.32);c.stroke();
+      c.fillStyle=cyl(c,x-mw/2,x+mw/2,[232,233,236]);c.fillRect(x-mw/2,y+h*0.32,mw,h*0.5);c.fillStyle="#2a2d33";for(const sd of[-1,1]){c.beginPath();c.moveTo(x+sd*mw/2,y+h*0.52);c.lineTo(x+sd*mw*0.85,y+h*0.47);c.lineTo(x+sd*mw/2,y+h*0.6);c.fill();}
+      c.fillStyle="#c23b2e";c.fillRect(x-mw/2,y+h*0.74,mw,1.2);c.fillStyle="#d8dade";c.beginPath();c.moveTo(x-mw/2,y+h*0.82);c.lineTo(x,T);c.lineTo(x+mw/2,y+h*0.82);c.fill();break;}
     case"srb":{const cy=y+SRB_NZ;   // SLS-style solid booster: white steel segments, an aft skirt, and a gimballed nozzle
       bell(c,x,cy-2,y,w*0.12,w*0.36,[60,62,68],[92,88,84]);
       c.fillStyle=cyl(c,L,R,[236,237,240]);c.fillRect(L,cy,w,T-cy);
@@ -294,11 +316,11 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
     const bw=18,bx=W/2+3+bw/2;pair("sdec",W/2+1.5,60);pair("srb:thumper",bx,0,bw,260);pair("nose",bx,260,bw);pair("fin",bx+bw/2+15,0);}
   else if(name==="lander"){const y=stack(0,[["engine:bison",56],["tank",84,160],["adapter",84],["dec",W],["engine:wren",22],["tank",W,90],["probe",W],["nose",W]]);
     pair("leg",W/2+15,A.find(p=>p.t==="engine"&&p.e==="wren").y+32);pair("fin",84/2+15,70);}
-  else if(name==="sls"){   // SLS proportions: an 8.4 m orange core with 4 engines, two slim 3.7 m solid boosters flush to its sides,
-    // a small upper stage with a vacuum engine, and a capsule-shaped top. About 98 m tall.
-    const C=84;let y=0;for(const x of[-31.5,-10.5,10.5,31.5])add("engine:mule",x,0,21);y=mkPart("engine:mule",21).h;
-    const core=add("tank",0,y,C,620);core.sk="foam";y+=620;
-    const ad=add("adapter",0,y,C,60);ad.w2=50;y+=60;
-    stack(y,[["dec",50],["engine:vac",28],["tank",50,70],["probe",50],["nose",50,150]]);
-    const bw=37,bx=C/2+3+bw/2;pair("sdec",C/2+1.5,200);pair("srb:thumper",bx,0,bw,540);pair("nose",bx,540,bw,70);}
+  else if(name==="sls"){   // SLS proportions: an 8.4 m orange core with a 4-engine cluster, two slim 3.7 m solid boosters flush to its
+    // sides with pointed noses, an upper stage with a vacuum engine, a service module, and an Orion-style capsule with its escape tower
+    const C=84,eng=add("engine:stand:4",0,0,C);let y=eng.h;
+    const core=add("tank",0,y,C,600);core.sk="foam";y+=600;
+    const ad=add("adapter",0,y,C,50);ad.w2=50;y+=50;
+    y=stack(y,[["dec",50],["engine:vac",28],["tank",50,80],["dec",50],["engine:wren",22],["tank",50,36],["capsule",50],["les",14]]);
+    const bw=37,bx=C/2+3+bw/2;pair("sdec",C/2+1.5,200);pair("srb:thumper",bx,0,bw,540);pair("nose",bx,540,bw,80);for(const p of A)if(p.t==="nose"&&p.w===bw)p.ns="cone";}
   return A;}

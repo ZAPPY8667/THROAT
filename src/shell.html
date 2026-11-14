@@ -450,7 +450,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <div>Editor: mirror pairs<kbd>M</kbd></div><div>Editor: remove part<i><kbd>Del</kbd> or drag to the parts list</i></div>
       <div>Throttle up / down<i><kbd>Shift</kbd> <kbd>Ctrl</kbd> or <kbd>W</kbd> <kbd>S</kbd></i></div><div>Full / cut<i><kbd>Z</kbd> <kbd>X</kbd></i></div>
       <div>Steer<i><kbd>A</kbd> <kbd>D</kbd></i></div><div>Countdown, then next stage<kbd>Space</kbd></div>
-      <div>Landing legs<kbd>G</kbd></div><div>RCS on / off<kbd>T</kbd></div><div>RCS nudge<i><kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd></i></div><div>SAS holds<i><kbd>1</kbd>–<kbd>9</kbd></i></div><div></div><div>Fly another craft<i><kbd>[</kbd> <kbd>]</kbd></i></div>
+      <div>Landing legs<kbd>G</kbd></div><div>RCS on / off<kbd>T</kbd></div><div>Parachutes (capsule)<kbd>P</kbd></div><div>ABORT (escape tower)<kbd>Backspace</kbd></div><div>RCS nudge<i><kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd></i></div><div>SAS holds<i><kbd>1</kbd>–<kbd>9</kbd></i></div><div></div><div>Fly another craft<i><kbd>[</kbd> <kbd>]</kbd></i></div>
       <div>Map<kbd>M</kbd></div><div>Time / weather / warp to<i>TIME tab</i></div><div>Time warp<i><kbd>.</kbd> <kbd>,</kbd></i></div>
       <div>Retry / editor<i><kbd>R</kbd> <kbd>B</kbd></i></div><div>Back to the test stand<kbd>Esc</kbd></div>
     </div>
@@ -489,7 +489,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="fpanel fbt">
     <button class="b ico" id="fL" title="Turn left (A)" data-ic="rotl"></button><button class="b ico" id="fR" title="Turn right (D)" data-ic="rotr"></button>
     <label class="sl">THR<input id="fThr" type="range" min="0" max="100" value="0"><output id="fThrO">0%</output></label>
-    <button class="b" id="fStage" title="Next stage (Space)" data-ic="stage">Stage</button><button class="b" id="fLegs" title="Landing legs (G)" data-ic="legs">Legs</button><button class="b" id="fRcs" title="RCS jets (T). I J K L to nudge" data-ic="rcs">RCS</button>
+    <button class="b" id="fStage" title="Next stage (Space)" data-ic="stage">Stage</button><button class="b" id="fLegs" title="Landing legs (G)" data-ic="legs">Legs</button><button class="b" id="fChute" title="Parachutes (P)" data-ic="chute" style="display:none">Chutes</button><button class="b danger" id="fAbort" title="ABORT: the escape tower pulls the capsule away (Backspace)" data-ic="abort" style="display:none">Abort</button><button class="b" id="fRcs" title="RCS jets (T). I J K L to nudge" data-ic="rcs">RCS</button>
     <button class="b ico" id="fSnd" title="Sound (U)"></button><button class="b ico" id="fMap" title="Map (M)" data-ic="map"></button><button class="b ico" id="fWarp2" title="Time warp (. and ,)" data-ic="warp"></button>
     <button class="b on" id="fRetry" title="Try again (R)" style="display:none" data-ic="reload">Retry</button>
     <button class="b ico" id="fBuild" title="Back to the rocket editor (B)" data-ic="build"></button><button class="b ico" id="fBack" title="Back to the test stand (Esc)" data-ic="back"></button>
