@@ -31,12 +31,19 @@ function terrH(s){s=wrapS(s);const k=s/1000;let i=0;while(i<TK.length-2&&TK[i+1]
 function roughAt(s){const k=wrapS(s)/1000;let r=0;for(const b of BIOMES){if(!b[5])continue;const d=Math.min(k-b[0],b[1]-k);if(d>-15)r=Math.max(r,b[5]*Math.max(0,Math.min(1,(d+15)/30)));}
   const nearPad=Math.min(k,6283.185-k);if(nearPad<8)r*=Math.max(0,(nearPad-3)/5);return r;}
 // what a craft touching the ground at world point (x, y) stands on: height of the surface there, and whether it's water
-function groundAt(body,x,y){if(body!==0)return{h:0,water:false};const th=terrH(Math.atan2(x,y)*PR);return{h:Math.max(0,th),water:th<0};}
+// what a craft touches at a point: the terrain, the sea (water: true), or a building's roof (bld: that building)
+function groundAt(body,x,y){if(body!==0)return{h:0,water:false};const sp=Math.atan2(x,y)*PR,th=terrH(sp),b=bldAt(sp);
+  if(b)return{h:Math.max(0,th,b.h),water:false,bld:b};return{h:Math.max(0,th),water:th<0};}
 // --- the spaceport: buildings at s (m, west is negative), width and height (m) ---
 const PAD2=-2000;   // the landing zone: on land, 2 km west of the launch pad (the ocean is east)
 const BLD=[{t:"mast",s:-95,w:3,h:120},{t:"mast",s:95,w:3,h:120},{t:"water",s:-300,w:22,h:55},{t:"tanks",s:-470,w:80,h:22},
   {t:"lcc",s:-1250,w:90,h:28},{t:"road",s:-3600,w:3500,h:0},{t:"hangar",s:-2160,w:70,h:30},{t:"vab",s:-3300,w:190,h:160},
   {t:"light",s:640,w:8,h:34},{t:"fuel",s:-160,w:30,h:14}];
+// buildings are solid (v1.32): you can land on a roof, and flying into a wall is a crash. The road is flat; the launch tower and
+// pad are part of the launch itself and stay out of it. Buildings stand on the flat spaceport (drawn at height 0).
+const SOLID=BLD.filter(b=>b.h>0&&b.t!=="road");
+const BNAME={mast:"lightning mast",water:"water tower",tanks:"fuel farm",lcc:"launch control centre",hangar:"hangar",vab:"assembly building",light:"lighthouse",fuel:"fuel tanks"};
+function bldAt(sp){for(const b of SOLID)if(Math.abs(sp-b.s)<b.w/2)return b;return null;}
 // --- time of day: one day lasts 20 minutes of game time, and the clock starts at 9:00 in the morning ---
 const DAY=1200,CLK0=9;
 // the sun's direction (angle like the craft's position angle: 0 = straight up from the pad) at game time t

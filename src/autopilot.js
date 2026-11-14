@@ -97,7 +97,7 @@ function apNode(v,dt){const n=AP.node;if(!n){apOff("no burn planned");return;}co
 // first stop the sideways motion so the craft falls toward the target (the landing zone, or straight down here), then the suicide
 // burn: wait until the engines only just have room to stop, then slow down hard, aiming for under 3 m/s at touchdown.
 function apLand(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),ux=v.x/rr,uy=v.y/rr,up=angOf(v.x,v.y),G=B.mu/(rr*rr),
-  gh=v.body===0?Math.max(0,terrH(up*PR)):0,cpts=v.legs||v.hasLegs?v.cptsL:v.cpts,foot=-Math.min(...cpts.map(q=>(q[1]-v.py)*UM)),hAG=rr-B.R-gh-foot,
+  gh=groundAt(v.body,v.x,v.y).h,cpts=v.legs||v.hasLegs?v.cptsL:v.cpts,foot=-Math.min(...cpts.map(q=>(q[1]-v.py)*UM)),hAG=rr-B.R-gh-foot,
   vv=v.vx*ux+v.vy*uy,vh=v.vx*uy-v.vy*ux;
   if(v.landed){v.thr=0;apOff("done");return;}
   if(v.hasLegs&&!v.legs&&hAG<3000)v.legs=true;

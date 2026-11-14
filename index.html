@@ -2698,12 +2698,19 @@ function terrH(s){s=wrapS(s);const k=s/1000;let i=0;while(i<TK.length-2&&TK[i+1]
 function roughAt(s){const k=wrapS(s)/1000;let r=0;for(const b of BIOMES){if(!b[5])continue;const d=Math.min(k-b[0],b[1]-k);if(d>-15)r=Math.max(r,b[5]*Math.max(0,Math.min(1,(d+15)/30)));}
   const nearPad=Math.min(k,6283.185-k);if(nearPad<8)r*=Math.max(0,(nearPad-3)/5);return r;}
 // what a craft touching the ground at world point (x, y) stands on: height of the surface there, and whether it's water
-function groundAt(body,x,y){if(body!==0)return{h:0,water:false};const th=terrH(Math.atan2(x,y)*PR);return{h:Math.max(0,th),water:th<0};}
+// what a craft touches at a point: the terrain, the sea (water: true), or a building's roof (bld: that building)
+function groundAt(body,x,y){if(body!==0)return{h:0,water:false};const sp=Math.atan2(x,y)*PR,th=terrH(sp),b=bldAt(sp);
+  if(b)return{h:Math.max(0,th,b.h),water:false,bld:b};return{h:Math.max(0,th),water:th<0};}
 // --- the spaceport: buildings at s (m, west is negative), width and height (m) ---
 const PAD2=-2000;   // the landing zone: on land, 2 km west of the launch pad (the ocean is east)
 const BLD=[{t:"mast",s:-95,w:3,h:120},{t:"mast",s:95,w:3,h:120},{t:"water",s:-300,w:22,h:55},{t:"tanks",s:-470,w:80,h:22},
   {t:"lcc",s:-1250,w:90,h:28},{t:"road",s:-3600,w:3500,h:0},{t:"hangar",s:-2160,w:70,h:30},{t:"vab",s:-3300,w:190,h:160},
   {t:"light",s:640,w:8,h:34},{t:"fuel",s:-160,w:30,h:14}];
+// buildings are solid (v1.32): you can land on a roof, and flying into a wall is a crash. The road is flat; the launch tower and
+// pad are part of the launch itself and stay out of it. Buildings stand on the flat spaceport (drawn at height 0).
+const SOLID=BLD.filter(b=>b.h>0&&b.t!=="road");
+const BNAME={mast:"lightning mast",water:"water tower",tanks:"fuel farm",lcc:"launch control centre",hangar:"hangar",vab:"assembly building",light:"lighthouse",fuel:"fuel tanks"};
+function bldAt(sp){for(const b of SOLID)if(Math.abs(sp-b.s)<b.w/2)return b;return null;}
 // --- time of day: one day lasts 20 minutes of game time, and the clock starts at 9:00 in the morning ---
 const DAY=1200,CLK0=9;
 // the sun's direction (angle like the craft's position angle: 0 = straight up from the pad) at game time t
@@ -3401,10 +3408,12 @@ function railStep(v,T){let left=T,guard=0;
 function ground(v,held){
   const pts=v.legs?v.cptsL:v.cpts,c=Math.cos(v.phi),s=Math.sin(v.phi);let mn=1e18,leg=false;
   // the lowest point of the craft below the ground (or the sea) right under it decides: real hills, mountains and water count
-  let pen=-1e18,water=false;
+  let pen=-1e18,water=false,wall=null;
   for(const q of pts){const lx=(q[0]-v.px)*UM,ly=(q[1]-v.py)*UM,wx=v.x+lx*c+ly*s,wy=v.y-lx*s+ly*c,r=Math.hypot(wx,wy),G=groundAt(v.body,wx,wy),d=BOD[v.body].R+G.h-r;
-    if(d>pen){pen=d;leg=q[2]===1;water=G.water;}}
+    if(d>pen){pen=d;leg=q[2]===1;water=G.water;wall=G.bld&&d>3?G.bld:null;}}
   if(pen<=0){if(held&&pen<-0.05)v.landed=false;return;}const rr=Math.hypot(v.x,v.y),push=pen;
+  // more than a few metres below a roof means the craft came in from the side: it hit the wall
+  if(wall&&!v.landed){crash(v,Math.max(15,Math.hypot(v.vx,v.vy)));if(v===AV){msg=`💥 Flew into the ${BNAME[wall.t]||"building"}. R to try again.`;msgT=1e9;}return;}
   if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=water?sp<=12:v.chute===1&&v.hasCap?(sp<=10&&tilt<0.9):leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
     if(!ok){crash(v,sp,water);return;}
     v.landed=true;v.vx=v.vy=0;v.om=0;v.wet=water;if(v.chute===1)v.chute=2;   // chutes cut on touchdown
@@ -3916,7 +3925,7 @@ function apNode(v,dt){const n=AP.node;if(!n){apOff("no burn planned");return;}co
 // first stop the sideways motion so the craft falls toward the target (the landing zone, or straight down here), then the suicide
 // burn: wait until the engines only just have room to stop, then slow down hard, aiming for under 3 m/s at touchdown.
 function apLand(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),ux=v.x/rr,uy=v.y/rr,up=angOf(v.x,v.y),G=B.mu/(rr*rr),
-  gh=v.body===0?Math.max(0,terrH(up*PR)):0,cpts=v.legs||v.hasLegs?v.cptsL:v.cpts,foot=-Math.min(...cpts.map(q=>(q[1]-v.py)*UM)),hAG=rr-B.R-gh-foot,
+  gh=groundAt(v.body,v.x,v.y).h,cpts=v.legs||v.hasLegs?v.cptsL:v.cpts,foot=-Math.min(...cpts.map(q=>(q[1]-v.py)*UM)),hAG=rr-B.R-gh-foot,
   vv=v.vx*ux+v.vy*uy,vh=v.vx*uy-v.vy*ux;
   if(v.landed){v.thr=0;apOff("done");return;}
   if(v.hasLegs&&!v.legs&&hAG<3000)v.legs=true;

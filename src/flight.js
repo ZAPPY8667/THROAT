@@ -246,10 +246,12 @@ function railStep(v,T){let left=T,guard=0;
 function ground(v,held){
   const pts=v.legs?v.cptsL:v.cpts,c=Math.cos(v.phi),s=Math.sin(v.phi);let mn=1e18,leg=false;
   // the lowest point of the craft below the ground (or the sea) right under it decides: real hills, mountains and water count
-  let pen=-1e18,water=false;
+  let pen=-1e18,water=false,wall=null;
   for(const q of pts){const lx=(q[0]-v.px)*UM,ly=(q[1]-v.py)*UM,wx=v.x+lx*c+ly*s,wy=v.y-lx*s+ly*c,r=Math.hypot(wx,wy),G=groundAt(v.body,wx,wy),d=BOD[v.body].R+G.h-r;
-    if(d>pen){pen=d;leg=q[2]===1;water=G.water;}}
+    if(d>pen){pen=d;leg=q[2]===1;water=G.water;wall=G.bld&&d>3?G.bld:null;}}
   if(pen<=0){if(held&&pen<-0.05)v.landed=false;return;}const rr=Math.hypot(v.x,v.y),push=pen;
+  // more than a few metres below a roof means the craft came in from the side: it hit the wall
+  if(wall&&!v.landed){crash(v,Math.max(15,Math.hypot(v.vx,v.vy)));if(v===AV){msg=`💥 Flew into the ${BNAME[wall.t]||"building"}. R to try again.`;msgT=1e9;}return;}
   if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=water?sp<=12:v.chute===1&&v.hasCap?(sp<=10&&tilt<0.9):leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
     if(!ok){crash(v,sp,water);return;}
     v.landed=true;v.vx=v.vy=0;v.om=0;v.wet=water;if(v.chute===1)v.chute=2;   // chutes cut on touchdown

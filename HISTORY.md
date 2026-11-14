@@ -191,6 +191,12 @@ made on the test stand.
 - tests/flight/old_rockets.js: the v1.15 ready-made rockets (old_rockets.json, built by v1.15's own tpl) are spotted, rebuilt
   with no overlaps or loose parts, reach orbit on the ascent autopilot; today's rockets are never taken for old ones.
 
+## v1.32: solid buildings
+- `groundAt` (world.js) now includes the spaceport buildings (`SOLID` = `BLD` minus the road; `bldAt`): their roofs are ground
+  (land on the assembly building), and a contact point more than 3 m below a roof means the craft came in from the side: crash
+  ("Flew into the hangar", names in `BNAME`). The LAND autopilot uses `groundAt` too, so it sets down on a roof correctly.
+  Launch tower and pad stay out of it. Trees stay scenery (forests everywhere would make every landing there a crash).
+
 ## Things that went wrong (don't repeat)
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
   dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.
