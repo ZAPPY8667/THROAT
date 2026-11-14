@@ -134,6 +134,22 @@ made on the test stand.
   shape is found (e.g. the solid booster scenario has no injector).
 - Not done: the editor stays realistic (Wyatt's later request beats the plan's white-line editor).
 
+## v1.25: playtest pass, flight school, font
+- Live site checked: GitHub Pages serves main's index.html (repo public, Pages on). The cloud session needed
+  zappy8667.github.io added to its network allowlist to see it.
+- Flight school (tut.js `TUT2`, Controls → "Flight school", `__tut.school()`): loads the Super Heavy (the only ready-made rocket
+  with a capsule), countdown → ABORT → parachutes → touchdown → R → ASCENT autopilot. The first tutorial's last card points to it.
+- Goals 11–17: abort, chutes (land under chutes), splash (any splashdown), ap_ascent / ap_node / ap_land (an autopilot reports
+  "done"; hooked in `apOff`). The landing-zone hint said "east"; it's 2 km west.
+- Camera: a small craft (< 15 m) in the air no longer shrinks to a marker while the camera pulls back (the aborted capsule was a
+  dot at 1.6 km). Big rockets keep the old pull-back.
+- Pe below the ground reads "below ground" (was "−1000 km", the planet's centre).
+- Phone: solid countdown button lower down, pad hint moved off the DATA panel, timeline labels only on the next event (they
+  overlapped), toasts below the toolbar; touch devices are told to tap rather than press Space.
+- Font: Rajdhani 400/600 latin (SIL OFL, from the @fontsource npm package; GitHub raw was blocked), embedded by build.py from
+  src/fonts as base64 woff2 (+40 KB).
+- Not fixed: on a phone the test stand draws the engine tiny (whole world fits the narrow canvas); SLS still ~14 min to orbit.
+
 ## Things that went wrong (don't repeat)
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
   dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.

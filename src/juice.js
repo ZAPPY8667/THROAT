@@ -74,9 +74,15 @@ const JUICE=(()=>{
     ["stage","Drop a stage","Space throws away the empty stage."],
     ["space","Reach space","Get above 40 km, where the air ends."],
     ["orbit","Get into orbit","Lean east as you climb, then burn sideways at the top until the periapsis is above 40 km."],
-    ["pad","Land on the landing zone","It's 2 km east of the launch pad. Legs down (G), touch down slower than 9 m/s."],
+    ["pad","Land on the landing zone","It's 2 km west of the launch pad (or use the LAND autopilot). Legs down (G), touch down slower than 9 m/s."],
     ["moonsoi","Reach the Moon","From orbit, burn prograde until the map shows a Moon encounter."],
-    ["moonland","Land on the Moon","Kill your sideways speed, legs down, come in gently."]];
+    ["moonland","Land on the Moon","Kill your sideways speed, legs down, come in gently."],
+    ["abort","Abort!","Launch the Super Heavy (it has a crew capsule), then press Backspace: the escape tower pulls the capsule away."],
+    ["chutes","Come home under parachutes","Capsule falling below 280 m/s in the air: press P, then touch down slower than 10 m/s."],
+    ["splash","Splash down","Come down in the sea slower than 12 m/s (the ocean starts just east of the pad)."],
+    ["ap_ascent","Autopilot to orbit","Flight: open the ASCENT tab on the left and press Engage. It even starts the countdown."],
+    ["ap_node","Fly a planned burn","In orbit: NODE tab → pick a burn (e.g. To the Moon) → Execute."],
+    ["ap_land","Autopilot landing","LAND tab → Engage while falling toward the ground (needs legs and some fuel)."]];
   let toasts=[],toastEl=null;
   function toast(html){toasts.push(html);if(!toastEl)nextToast();}
   function nextToast(){const h=toasts.shift();if(!h){toastEl=null;return;}

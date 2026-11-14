@@ -75,7 +75,7 @@ function startFlight(ps,name,keepWx){
   const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)*UM);v.x=0;v.y=PR+terrH(0)-lo+0.005;v.landed=true;launchW=v.Wall;launchH=v.H;
   v.frost=1;if(JX){CD={s:"wait",t:10};v.clamped=true;}else CD={s:"go",t:0};tRel=0;steam=[];
   VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
-  msg=JX?"On the pad. Press Space (or Start countdown) to count down from 10.":"";msgT=JX?8:0;
+  msg=JX?(matchMedia("(pointer:coarse)").matches?"On the pad. Tap Start countdown to count down from 10.":"On the pad. Press Space (or Start countdown) to count down from 10."):"";msgT=JX?8:0;
   // weather for this launch: a new one each time you launch from the editor, the same one when you retry (R)
   if(!keepWx){launchSeed=(launchSeed*16807+12345)%2147483647||7;}pickWeather(launchSeed%9973);
   clouds=makeClouds(launchSeed);   // three layers by altitude (world.js)
@@ -142,7 +142,7 @@ function abort(){const v=AV;if(!v||v.crashed)return;const ci=v.ps.findIndex(p=>p
   if(ci<0){msg="No crew capsule on this craft: nothing to abort.";msgT=2.5;return;}if(!v.hasLes){msg="The escape tower is gone: abort isn't possible any more.";msgT=2.5;return;}
   const cp=v.ps[ci],idx=new Set();v.ps.forEach((p,i)=>{if(p.y>=cp.y-0.01&&Math.abs(p.x-cp.x)<cp.w/2+1)idx.add(i);});
   if(idx.size===v.ps.length){v.lesT=3;}else{const n=splitOff(v,idx,v.name+" capsule");v.thr=0;v.name=v.name+" (aborted)";n.lesT=3;AV=n;}
-  if(CD.s!=="go"){CD={s:"go",t:0};tRel=FT;}msgT=0;AV.clamped=false;AV.landed=false;callout("ABORT","escape tower firing");kickF=1;if(JX){JX.snd.bang(1);JX.snd.say("abort, abort");}}
+  if(CD.s!=="go"){CD={s:"go",t:0};tRel=FT;}msgT=0;AV.clamped=false;AV.landed=false;callout("ABORT","escape tower firing");kickF=1;if(JX){JX.goal("abort");JX.snd.bang(1);JX.snd.say("abort, abort");}}
 function jettisonLes(v,why){const li=v.ps.findIndex(p=>p.t==="les");if(li<0)return;splitOff(v,new Set([li]),"Escape tower",25);if(v===AV)callout("TOWER JETTISON",why||"");}
 function chutes(){const v=AV;if(!v||v.crashed)return;if(!v.hasCap){msg="Parachutes come with the crew capsule.";msgT=2.5;return;}
   if(v.chute){msg="Parachutes are already out.";msgT=1.5;return;}if(v.body!==0){msg="No air here: parachutes won't work.";msgT=2.5;return;}
@@ -251,6 +251,7 @@ function ground(v,held){
   if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=water?sp<=12:v.chute===1&&v.hasCap?(sp<=10&&tilt<0.9):leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
     if(!ok){crash(v,sp,water);return;}
     v.landed=true;v.vx=v.vy=0;v.om=0;v.wet=water;if(v.chute===1)v.chute=2;   // chutes cut on touchdown
+    if(v===AV&&JX){if(water)JX.goal("splash");if(v.chute===2&&v.hasCap)JX.goal("chutes");}
     if(water&&v===AV){msg=`🌊 Splashdown at ${sp.toFixed(1)} m/s. Floating in the sea.`;msgT=6;v.x+=v.x/rr*push;v.y+=v.y/rr*push;return;}
     if(v===AV&&v.t>3){const pd=padDist(v);if(JX){if(v.body===1)JX.goal("moonland");else if(Math.abs(pd.d)<40&&pd.at)JX.goal("pad");}msg=v.body===1?`🌙 Landed on the Moon at ${sp.toFixed(1)} m/s!`:Math.abs(pd.d)<40?`🎯 Landed on the ${pd.name} at ${sp.toFixed(1)} m/s!`:`✅ Landed at ${sp.toFixed(1)} m/s, ${fmt(Math.abs(pd.d))} m from the ${pd.name}.`;msgT=6;}}
   v.x+=v.x/rr*push;v.y+=v.y/rr*push;}
@@ -418,7 +419,9 @@ function renderFlight(dt){
   // camera like a tracking shot: close on the rocket at first, then pulling back as it climbs so the ground stays in the bottom of
   // the frame (and the whole planet shows from orbit). The mouse wheel zooms on top of that.
   const hAGc=h-(r.body===0?Math.max(0,terrH(psi*PR)):0),hAG=Math.max(1,hAGc),sBase=FH/(Math.max(2.4,r.H)*3.4),sFol=FH*0.42/hAG;
-  const s=Math.max(1e-7,Math.min(sBase,sFol)*zoomF);
+  // ...but never so far that a small craft in the air (an aborted capsule under its parachutes) shrinks to a dot: keep it ~40 px tall
+  const sMin=r.body===0&&hAGc<ATM_TOP&&r.H<15?40/Math.max(2.4,r.H):0;   // only small craft: big rockets still pull back to show the ground
+  const s=Math.max(1e-7,Math.max(Math.min(sBase,sFol),sMin)*zoomF);
   // live camera: a slow drift like a handheld long lens, plus shake from thrust, from the air pushing on the rocket,
   // and a jolt when an engine lights or a stage goes. All of it is off for players who asked their system for less motion.
   camT+=dt;kickF=Math.max(0,kickF-dt*1.5);flashF=Math.max(0,flashF-dt*2);
@@ -499,7 +502,7 @@ const tfm=t=>{if(!isFinite(t))return"–";t=Math.max(0,t);const h=Math.floor(t/3
 const clk=t=>{t=Math.max(0,t);return[Math.floor(t/3600),Math.floor(t%3600/60),Math.floor(t%60)].map(x=>String(x).padStart(2,"0")).join(":");};
 // every number goes through the rolling-number helper (ui.js); the headless tests have no page, so fall back to plain text
 const RL=typeof roll!=="undefined"?roll:(k,el,v,f)=>{if(el)el.textContent=v==null?"–":f(v);};
-const rv=(id,v,f)=>RL(id,$(id),v,f),kmF=x=>km(x),ms=x=>fmt(x)+" m/s",sms=x=>(x>=0?"+":"")+fmt(x)+" m/s";
+const rv=(id,v,f)=>RL(id,$(id),v,f),kmF=x=>km(x),peF=x=>x<-1000?"below ground":km(x),ms=x=>fmt(x)+" m/s",sms=x=>(x>=0?"+":"")+fmt(x)+" m/s";
 // SAS: [mode, button text, name, what it does]
 const SAS_INFO=[["stab","STB","Stability","hold the heading you're on"],["pro","PRO","Prograde","nose along your path (speed up)"],["retro","RET","Retrograde","nose against your path (slow down)"],
   ["radout","R+","Radial out","square to your path, away from the planet"],["radin","R−","Radial in","square to your path, toward the planet"],
@@ -581,9 +584,9 @@ function hudFlight(dt){
   const st=anAV.stages[0]||{dv:0};let sf=0,sc=0;const seen=new Set();r.feeds.forEach(f=>f.forEach(j=>{if(!seen.has(j)){seen.add(j);sf+=r.ps[j].fuel;sc+=capOf(r.ps[j]);}}));
   const g=B.mu/(rr*rr),Fn=r.est.reduce((q,E)=>q+E.vac.F-(E.vac.F-E.sl.F)*r.a,0),twrMax=Fn/((r.m||1)*g),twr=(r.F||0)/((r.m||1)*g);
   set("fThrO",Math.round(r.thr*100)+"%");
-  if(open("fpData")){rv("dAp",o.esc?null:o.ap,kmF);rv("dPe",o.pe,kmF);rv("dTwr",twrMax,x=>x.toFixed(2));rv("dDv",st.dv,ms);rv("dFuel",sf,fM);
+  if(open("fpData")){rv("dAp",o.esc?null:o.ap,kmF);rv("dPe",o.pe,peF);rv("dTwr",twrMax,x=>x.toFixed(2));rv("dDv",st.dv,ms);rv("dFuel",sf,fM);
     $("fFuelBar").style.width=(sc?100*sf/sc:0)+"%";const nd=st.dropKind;set("dNext",nd?(nd==="boosters"?"drop boosters":"drop stage"):"–");if(o.esc)set("dAp",r.body?"leaving":"escaping");}
-  if(open("fpOrbit")){const tt=orbTimes(r,o,B);rv("oAp",o.esc?null:o.ap,kmF);if(o.esc)set("oAp",r.body?"leaving":"escaping");rv("oPe",o.pe,kmF);
+  if(open("fpOrbit")){const tt=orbTimes(r,o,B);rv("oAp",o.esc?null:o.ap,kmF);if(o.esc)set("oAp",r.body?"leaving":"escaping");rv("oPe",o.pe,peF);
     set("oTAp",tt?tfm(tt.ap):"–");set("oTPe",tt?tfm(tt.pe):"–");set("oPer",tt?tfm(tt.per):"–");rv("oE",o.e,x=>x.toFixed(3));rv("oA",o.esc?null:o.a,kmF);rv("oV",sp,ms);set("oSoi",B.name);}
   if(open("fpSurf")){const gh=r.body===0?terrH(psi*PR):0;rv("sAlt",h-Math.max(0,gh),kmF);set("sBio",r.body?"Moon":gh<0?"Ocean":biomeAt(psi*PR)[2]);set("sGnd",r.body?"–":gh<0?"sea, "+km(-gh)+" deep":km(gh));rv("sVs",vv,sms);rv("sHs",Math.abs(vh),ms);rv("sSp",sp,ms);rv("sQ",r.q||0,x=>x>=1000?(x/1000).toFixed(2)+" kPa":Math.round(x)+" Pa");
     set("sMq",qMax>0?(qMax/1000).toFixed(2)+" kPa":"–");rv("sDrag",r.D||0,x=>x>=1000?(x/1000).toFixed(2)+" kN":Math.round(x)+" N");rv("sRho",r.rho||0,x=>x.toFixed(x>0.01?3:5)+" kg/m³");set("sHeat",r.hf>1e6?(r.hf/(r.shielded?1.2e9:8e7)*100).toFixed(0)+"% of the limit"+(r.shielded?" (shield)":""):"–");

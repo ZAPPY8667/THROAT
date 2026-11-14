@@ -13,7 +13,8 @@ const mOf=v=>v.m||v.ps.reduce((s,p)=>s+partMass(p)+(p.fuel||0),0);
 function apThrust(v){let liq=0,srb=0;v.eng.forEach((i,n)=>{const P=v.ps[i];let av=0;for(const j of v.feeds[n])av+=v.ps[j].fuel;if(!(av>1e-6))return;
   const E=v.est[n],F=E.vac.F-(E.vac.F-E.sl.F)*(v.a==null?1:v.a);if(P.t==="srb"){if(P.ign)srb+=F*curveAt(E.curve,1-av/capOf(P));}else liq+=F;});return{liq,srb,all:liq+srb};}
 function apOff(why){if(!AP.mode)return;const m=AP.mode;AP.mode=null;AP.ph="";if(AV){if(AV.sas==="ap")AV.sas="stab";AV.hold=AV.phi;if(why!=="done")AV.thr=0;}
-  AP.msg=why==="done"?"Done.":why||"Off.";if(typeof callout==="function"&&why&&why!=="done")callout("AUTOPILOT OFF",why);if(why==="done"&&typeof callout==="function")callout(m.toUpperCase()+" COMPLETE");}
+  AP.msg=why==="done"?"Done.":why||"Off.";if(typeof callout==="function"&&why&&why!=="done")callout("AUTOPILOT OFF",why);if(why==="done"&&typeof callout==="function")callout(m.toUpperCase()+" COMPLETE");
+  if(why==="done"&&typeof JX!=="undefined"&&JX)JX.goal("ap_"+m);}
 function apEngage(mode,opts){const v=AV;if(!v||v.crashed){return false;}if(!v.ctrl){AP.msg="This craft has no probe core or capsule to steer it.";return false;}
   if(opts)Object.assign(mode==="land"?AP.land:AP.o,opts);AP.mode=mode;AP.ph="start";AP.stT=0;AP.msg="";v.sas="ap";v.hold=v.phi;
   if(mode==="ascent"&&typeof CD!=="undefined"&&CD.s==="wait")startCount();

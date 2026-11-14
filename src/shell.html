@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>THROAT</title>
 <style>
+/*FONTS*/
 /* ===== THROAT · mission-control look =====
    One screen: the world fills the window; instrument panels float on it. Phones stack instead. Single dark theme.
    System fonts only (the game must work offline): a clean sans for words, a monospace for every number. One amber accent;
@@ -19,7 +20,7 @@
   --good:#38d987;--goodbg:rgba(56,217,135,.11);--goodline:rgba(56,217,135,.5);
   --warn:#ff3b2f;--warnbg:rgba(255,59,47,.11);--warnline:rgba(255,59,47,.5);
   --violet:#c9c2ff;--h2:#53c7f0;--o2:#6f93ff;
-  /* D-DIN or Rajdhani when built in (see HISTORY.md); Bahnschrift is Windows' own DIN, so it looks right there already */
+  /* Rajdhani is built in (src/fonts, SIL OFL, embedded by build.py), so every computer gets the same look (see HISTORY.md); Bahnschrift is Windows' own DIN, so it looks right there already */
   --sans:"D-DIN","Rajdhani","Bahnschrift","DIN Alternate","DIN Next","Barlow","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Roboto,Arial,sans-serif;
   --mono:ui-monospace,"Cascadia Mono","SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
   --body:var(--sans);--display:var(--sans);
@@ -207,7 +208,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 @media (max-width:1120px){.tool span{display:none}}
 @media (max-width:600px){.tool span{display:none}}
 /* goal toasts and the goals card: fixed to the window so they show over flight and the editor too */
-.toast{position:fixed;left:50%;top:12px;transform:translate(-50%,-150%);z-index:60;background:var(--panel2);border:1px solid var(--line2);border-left:3px solid var(--acc);border-radius:var(--r);padding:9px 18px 10px 14px;
+.toast{position:fixed;left:50%;top:64px;transform:translate(-50%,-150%);z-index:60;background:var(--panel2);border:1px solid var(--line2);border-left:3px solid var(--acc);border-radius:var(--r);padding:9px 18px 10px 14px;
   color:var(--txt);font:650 14px var(--sans);box-shadow:0 14px 36px rgba(0,0,0,.65);transition:transform .35s cubic-bezier(.2,1.3,.4,1);pointer-events:none;max-width:92vw}
 .toast.in{transform:translate(-50%,0)}.toast small{display:block;font:650 9.5px var(--sans);color:var(--acc2);letter-spacing:.16em;text-transform:uppercase;margin-bottom:3px}
 .topb{display:flex;gap:6px}
@@ -347,11 +348,12 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   .flight .fbt{top:auto;bottom:auto;top:34px;left:6px;right:6px;transform:none;width:auto;max-width:none}.flight .fbt label.sl{grid-template-columns:auto 1fr 34px;flex:1}
   .live{top:8px;left:8px}.flight .etabs{top:120px}.fdrawer{top:120px;bottom:200px;width:auto}.fdrawer.l{left:30px;right:30px}.fdrawer.r{right:30px;left:30px;bottom:200px}
   .call b{font-size:24px;letter-spacing:.24em}.fmapbar{top:auto;bottom:200px}
-  .flight .fbt label.sl{flex:1 1 100%;order:-1}.flight .fbt{top:32px}.flight .etabs{top:150px}.fdrawer{top:150px}.tl{margin:0 26px}.flight .fmsg{top:150px}}
+  .flight .fbt label.sl{flex:1 1 100%;order:-1}.flight .fbt{top:32px}.flight .etabs{top:150px}.fdrawer{top:150px}.tl{margin:0 26px}.flight .fmsg{top:auto;bottom:290px}
+  .tl .ev em{display:none}.tl .ev.next em{display:block}.toast{top:150px}}   /* phone: only the next event is labelled, so the names don't overlap */
 .saslist button kbd{display:inline-block!important}
 .cdbtn{position:absolute;left:50%;bottom:140px;transform:translateX(-50%);height:44px!important;padding:0 26px!important;font:600 14px var(--sans)!important;letter-spacing:.24em;text-transform:uppercase;border-color:var(--red)!important;background:rgba(255,59,47,.14)!important;color:#fff!important;animation:livePulse 2.2s ease-in-out infinite}
 .cdbtn:hover{background:rgba(255,59,47,.28)!important}
-@media (max-width:700px){.cdbtn{bottom:auto;top:38%;height:40px!important;padding:0 16px!important;font-size:12px!important;letter-spacing:.16em}}
+@media (max-width:700px){.cdbtn{bottom:230px;background:rgba(30,6,6,.88)!important;height:40px!important;padding:0 16px!important;font-size:12px!important;letter-spacing:.16em}}
 .apf{display:grid;gap:5px;margin-bottom:8px}.apf label{display:grid;grid-template-columns:1fr 70px 28px;align-items:center;gap:6px;font-size:11.5px;color:var(--dim)}.apf input[type=number]{height:24px;background:var(--well);border:1px solid var(--line2);border-radius:2px;color:#fff;font:600 12px var(--mono);padding:0 5px;width:100%}.apf i{font-style:normal;font:600 10px var(--mono);color:var(--faint)}
 .fdrawer{overflow-x:hidden}.fp .wto button.b{white-space:normal;line-height:1.1;height:auto;min-height:28px;padding:3px 4px}
 .apb{gap:5px;margin:6px 0}.apb button.b{height:28px;flex:1}.apst{font-size:11.5px;color:var(--dim);line-height:1.45;min-height:32px}.apst.on{color:#fff}
@@ -458,7 +460,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <div>Retry / editor<i><kbd>R</kbd> <kbd>B</kbd></i></div><div>Back to the test stand<kbd>Esc</kbd></div>
     </div>
     <p class="tip" style="margin:12px 0 0">Click a valve, igniter or tank with the <b>Select</b> tool to change its settings: which number key runs it, open/closed, start delay, length, direction, gas and pressure. Press <b>H</b> or <b>Esc</b> to close.</p>
-    <div class="row" style="margin-top:12px"><button class="b go" id="bTut" data-ic="play">Start the tutorial</button></div>
+    <div class="row" style="margin-top:12px"><button class="b go" id="bTut" data-ic="play">Start the tutorial</button><button class="b" id="bTut2" data-ic="play">Flight school: abort, chutes, autopilot</button></div>
   </div></div>
 </div>
 <script>var THROAT_SIZE=(function(){try{var s=JSON.parse(localStorage.getItem("throat.size.v1"));if(s&&s.length===2)return s;}catch(e){}return [240,135];})();</script>
