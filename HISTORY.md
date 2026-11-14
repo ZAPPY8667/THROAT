@@ -150,6 +150,13 @@ made on the test stand.
   src/fonts as base64 woff2 (+40 KB).
 - Not fixed: on a phone the test stand draws the engine tiny (whole world fits the narrow canvas); SLS still ~14 min to orbit.
 
+## v1.26: touch controls + warp down
+- Wyatt: on a phone two-finger pan/zoom didn't work well, and time warp could only go up (the button wrapped 100000× → 1×).
+- Test stand: two fingers pinch-zoom (snapped to the stand's zoom steps) and pan; capture-phase listeners on the canvas's parent
+  swallow the second finger so it doesn't paint or move parts. Editor pinch now also pans with the fingers' midpoint.
+  Flight view: pinch zooms the camera (it had no touch zoom). Map: two fingers also pan while pinching.
+- Warp: a slower button (,) next to the faster one (.); faster stops at the top instead of wrapping.
+
 ## Things that went wrong (don't repeat)
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
   dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.

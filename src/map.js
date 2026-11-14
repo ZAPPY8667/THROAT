@@ -20,16 +20,26 @@ function zoomAt(X,Y,k){const F=focusPos(),s=mapCam.s,wx=F.x+mapCam.dx+(X-FW/2)/s
   const s2=Math.max(Math.min(FW,FH)/(DM*8),Math.min(Math.min(FW,FH)/20,s*k));mapCam.s=s2;mapCam.dx=wx-F.x-(X-FW/2)/s2;mapCam.dy=wy-F.y+(Y-FH/2)/s2;}
 const evXY=e=>{const r=fcv.getBoundingClientRect();return{X:(e.clientX-r.left)*FW/r.width,Y:(e.clientY-r.top)*FH/r.height};};
 fcv.addEventListener("pointerdown",e=>{if(!mapView)return;fcv.setPointerCapture(e.pointerId);const q=evXY(e);mapPtr.set(e.pointerId,q);
-  if(mapPtr.size===2){const[a,b]=[...mapPtr.values()];mapPinch={d:Math.hypot(a.X-b.X,a.Y-b.Y),s:mapCam.s};mapDown=null;return;}
+  if(mapPtr.size===2){const[a,b]=[...mapPtr.values()];mapPinch={d:Math.hypot(a.X-b.X,a.Y-b.Y),s:mapCam.s,X:(a.X+b.X)/2,Y:(a.Y+b.Y)/2};mapDown=null;return;}
   mapDown={X:q.X,Y:q.Y,dx:mapCam.dx,dy:mapCam.dy,moved:false};});
 fcv.addEventListener("pointermove",e=>{if(!mapView||!mapPtr.has(e.pointerId))return;const q=evXY(e);mapPtr.set(e.pointerId,q);
-  if(mapPinch&&mapPtr.size===2){const[a,b]=[...mapPtr.values()],d=Math.hypot(a.X-b.X,a.Y-b.Y);zoomAt((a.X+b.X)/2,(a.Y+b.Y)/2,mapPinch.s*(d/mapPinch.d)/mapCam.s);return;}
+  if(mapPinch&&mapPtr.size===2){const[a,b]=[...mapPtr.values()],d=Math.hypot(a.X-b.X,a.Y-b.Y),X=(a.X+b.X)/2,Y=(a.Y+b.Y)/2;
+    mapCam.dx-=(X-mapPinch.X)/mapCam.s;mapCam.dy+=(Y-mapPinch.Y)/mapCam.s;mapPinch.X=X;mapPinch.Y=Y;   // two fingers moving together pan
+    zoomAt(X,Y,mapPinch.s*(d/mapPinch.d)/mapCam.s);return;}
   if(!mapDown)return;if(Math.hypot(q.X-mapDown.X,q.Y-mapDown.Y)>4*FDS)mapDown.moved=true;
   if(mapDown.moved){mapCam.dx=mapDown.dx-(q.X-mapDown.X)/mapCam.s;mapCam.dy=mapDown.dy+(q.Y-mapDown.Y)/mapCam.s;}});
 function mapUp(e){if(!mapView)return;mapPtr.delete(e.pointerId);if(mapPtr.size<2)mapPinch=null;const d=mapDown;mapDown=null;
   if(d&&!d.moved){const q=evXY(e),F=focusPos(),s=mapCam.s;   // click a craft to fly it
     let best=null,bd=16*FDS;for(const v of VS){if(!v.ctrl||v.crashed)continue;const p=pfPos(v),X=FW/2+(p.x-F.x-mapCam.dx)*s,Y=FH/2-(p.y-F.y-mapCam.dy)*s,dd=Math.hypot(X-q.X,Y-q.Y);if(dd<bd){bd=dd;best=v;}}
     if(best&&best!==AV){AV=best;anAV=null;mapCam.vid=AV.id;msg="Now flying: "+AV.name;msgT=2.5;refreshPred();}}}
+// flight view: two fingers pinch the camera zoom (one finger does nothing here, so steering buttons stay the only controls)
+const flyPtr=new Map();let flyPinch=null;
+fcv.addEventListener("pointerdown",e=>{if(mapView)return;fcv.setPointerCapture(e.pointerId);flyPtr.set(e.pointerId,evXY(e));
+  if(flyPtr.size===2){const[a,b]=[...flyPtr.values()];flyPinch={d:Math.hypot(a.X-b.X,a.Y-b.Y)||1,z:zoomF};}});
+fcv.addEventListener("pointermove",e=>{if(mapView||!flyPtr.has(e.pointerId))return;flyPtr.set(e.pointerId,evXY(e));
+  if(flyPinch&&flyPtr.size===2){const[a,b]=[...flyPtr.values()];zoomF=Math.max(0.05,Math.min(20000,flyPinch.z*Math.hypot(a.X-b.X,a.Y-b.Y)/flyPinch.d));}});
+const flyUp=e=>{flyPtr.delete(e.pointerId);if(flyPtr.size<2)flyPinch=null;};
+fcv.addEventListener("pointerup",flyUp);fcv.addEventListener("pointercancel",flyUp);
 fcv.addEventListener("pointerup",mapUp);fcv.addEventListener("pointercancel",mapUp);
 const tfmt=t=>{t=Math.max(0,t);if(t<60)return Math.round(t)+" s";const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=Math.floor(t%60);
   if(h>=24)return Math.floor(h/24)+"d "+(h%24)+"h";return h?`${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${m}:${String(s).padStart(2,"0")}`;};

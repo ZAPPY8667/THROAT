@@ -15,7 +15,7 @@ const ICP={
   mirror:["M12 3v18","M8 7 3 12l5 5z","M16 7l5 5-5 5z"],legs:["M12 4v8","M12 12l-6 8","M12 12l6 8","M3.5 20h5","M15.5 20h5"],fit:["M4 9V4h5","M20 9V4h-5","M4 15v5h5","M20 15v5h-5"],
   stage:["M12 4l7 8H5z","M5 17h14"],centre:["o 12 12 7","M12 5v14","M5 12h14"],chute:["M4 11a8 8 0 0 1 16 0z","M4 11l8 9 8-9","M12 11v9"],abort:["M12 3l10 18H2z","M12 10v5","M12 18v.1"],rcs:["o 12 12 3","M12 2v5","M12 17v5","M2 12h5","M17 12h5"],warp:["M3 6l8 6-8 6z","M12 6l8 6-8 6z"],map:["M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z","M9 4v14","M15 6v14"],
   build:["M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"],back:["M19 12H5","M11 6l-6 6 6 6"],
-  rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
+  warpdn:["M21 6l-8 6 8 6z","M12 6l-8 6 8 6z"],rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
 function ico(n){return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${(ICP[n]||[]).map(d=>d[0]==="o"?(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}"/>`)(d.slice(2).split(" ")):`<path d="${d}"/>`).join("")}</svg>`;}
 const SANS='"Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
 const MONO='ui-monospace,"Cascadia Mono","SF Mono","JetBrains Mono",Menlo,Consolas,monospace';   // numbers drawn on canvases
@@ -445,6 +445,19 @@ function clampCam(){cam.x=Math.max(0,Math.min(W-W/cam.z,cam.x));cam.y=Math.max(0
 function zoomStep(d,sx,sy){let i=ZL.indexOf(cam.z);i=Math.max(0,Math.min(ZL.length-1,(i<0?0:i)+d));sx=sx===undefined?W/2:sx;sy=sy===undefined?H/2:sy;
   const wx=cam.x+sx/cam.z,wy=cam.y+sy/cam.z;cam.z=ZL[i];cam.x=wx-sx/cam.z;cam.y=wy-sy/cam.z;clampCam();}
 cv.addEventListener("contextmenu",e=>e.preventDefault());
+// phones: two fingers pinch to zoom and drag to pan. These listeners sit on the canvas's parent in the capture phase, so they
+// see every touch before the tools do and can swallow the second finger (otherwise it would paint or move things).
+const touches=new Map();let pinch=null;
+function pinchMid(){const[a,b]=[...touches.values()];return{x:(a[0]+b[0])/2,y:(a[1]+b[1])/2,d:Math.hypot(a[0]-b[0],a[1]-b[1])||1};}
+cv.parentElement.addEventListener("pointerdown",e=>{if(e.target!==cv||e.pointerType!=="touch")return;touches.set(e.pointerId,screenXY(e));
+  if(touches.size===2){const m=pinchMid();pinch={...m,z:cam.z,wx:cam.x+m.x/cam.z,wy:cam.y+m.y/cam.z};   // the world point under the fingers stays under them
+    mouse.down=false;grab=null;drag=null;e.stopImmediatePropagation();}},true);
+cv.parentElement.addEventListener("pointermove",e=>{if(!touches.has(e.pointerId))return;touches.set(e.pointerId,screenXY(e));
+  if(!pinch)return;e.stopImmediatePropagation();if(touches.size<2)return;const m=pinchMid(),want=pinch.z*m.d/pinch.d;
+  let z=ZL[0];for(const q of ZL)if(Math.abs(Math.log(q/want))<Math.abs(Math.log(z/want)))z=q;   // snap to the zoom steps the renderer knows
+  cam.z=z;cam.x=pinch.wx-m.x/z;cam.y=pinch.wy-m.y/z;clampCam();},true);
+const touchEnd=e=>{if(!touches.delete(e.pointerId))return;if(pinch){e.stopImmediatePropagation();mouse.down=false;if(!touches.size)pinch=null;}};
+cv.parentElement.addEventListener("pointerup",touchEnd,true);cv.parentElement.addEventListener("pointercancel",touchEnd,true);
 cv.addEventListener("wheel",e=>{e.preventDefault();const d=e.deltaY||e.deltaX;if(!d)return;const up=d<0;
   if(e.shiftKey){
     if(S.tool==="select"&&resizeSel(up?1:-1))return;

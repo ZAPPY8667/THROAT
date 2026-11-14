@@ -284,7 +284,7 @@ addEventListener("keyup",e=>{if(FLT.on)keys.delete(e.key.toLowerCase());},true);
 fcv.addEventListener("wheel",e=>{e.preventDefault();if(mapView){mapWheel(e);return;}zoomF=Math.max(0.05,Math.min(20000,zoomF*(e.deltaY<0?1.15:1/1.15)));},{passive:false});
 $("fThr").oninput=()=>{if(AV&&CD.s==="go")AV.thr=+$("fThr").value/100;};
 for(const[id,d]of[["fL",-1],["fR",1]]){const b=$(id);b.onpointerdown=()=>{rotBtn=d;};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>{rotBtn=0;};}
-$("fMap").onclick=()=>{mapView=!mapView;if(mapView)mapOpen();};$("fWarp2").onclick=()=>{warp=WARPS[(WARPS.indexOf(warp)+1)%WARPS.length];};
+$("fMap").onclick=()=>{mapView=!mapView;if(mapView)mapOpen();};$("fWarp2").onclick=()=>{warpTo=null;warp=WARPS[Math.min(WARPS.length-1,WARPS.indexOf(warp)+1)];};$("fWarp1").onclick=()=>{warpTo=null;warp=WARPS[Math.max(0,WARPS.indexOf(warp)-1)];};
 $("fAbort").onclick=abort;$("fChute").onclick=chutes;$("fStage").onclick=()=>{if(CD.s==="wait")startCount();else if(CD.s==="count")release(true);else doStage();};$("fCount").onclick=startCount;$("fRcs").onclick=toggleRcs;$("fLegs").onclick=()=>{if(AV&&AV.hasLegs)AV.legs=!AV.legs;};
 $("fBack").onclick=endFlight;$("fRetry").onclick=()=>startFlight(launchPs,launchName,true);$("fBuild").onclick=()=>{endFlight();openVab();};
 // ---------- pad emitters: cold vapour from the tank vents, frost flaking off, steam clouds from the flame trench ----------

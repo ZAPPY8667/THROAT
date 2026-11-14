@@ -78,7 +78,7 @@ vcv.addEventListener("pointerdown",e=>{e.preventDefault();vcv.setPointerCapture(
   const tset=ti>=0&&!set.has(ti)?vSub(ti,e.altKey,T):new Set();
   vdrag={i,set,tset,w0:w,start:vps.map(o=>[o.x,o.y,o.f]),moved:false,before:vSnap(),bad:false};});
 vcv.addEventListener("pointermove",e=>{const q=vEvXY(e);vptr=q;if(vTouch.has(e.pointerId))vTouch.set(e.pointerId,q);
-  if(vPinch&&vTouch.size===2){const[a,b]=[...vTouch.values()],d=Math.hypot(a.X-b.X,a.Y-b.Y),k=Math.max(0.2,Math.min(8,d/vPinch.d));vv.s=vPinch.s*k;vv.ox=vPinch.cx-(vPinch.cx-vPinch.ox)*k;vv.oy=vPinch.cy-(vPinch.cy-vPinch.oy)*k;return;}
+  if(vPinch&&vTouch.size===2){const[a,b]=[...vTouch.values()],d=Math.hypot(a.X-b.X,a.Y-b.Y),k=Math.max(0.2,Math.min(8,d/vPinch.d));vv.s=vPinch.s*k;const mx=(a.X+b.X)/2,my=(a.Y+b.Y)/2;vv.ox=mx-(vPinch.cx-vPinch.ox)*k;vv.oy=my-(vPinch.cy-vPinch.oy)*k;return;}   // follow the fingers: pinch zooms, moving both pans
   if(vpan){vv.ox=vpan.ox+q.X-vpan.X;vv.oy=vpan.oy+q.Y-vpan.Y;return;}
   if(!vdrag)return;const w=v2w(q.X,q.Y);if(!vdrag.moved&&Math.hypot(w.x-vdrag.w0.x,w.y-vdrag.w0.y)*vv.s<5*VDS)return;vdrag.moved=true;
   const{i,set,tset,start}=vdrag,p=vps[i],O=vps.filter((o,j)=>!set.has(j)&&!tset.has(j));

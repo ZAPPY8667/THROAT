@@ -497,7 +497,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
     <button class="b ico" id="fL" title="Turn left (A)" data-ic="rotl"></button><button class="b ico" id="fR" title="Turn right (D)" data-ic="rotr"></button>
     <label class="sl">THR<input id="fThr" type="range" min="0" max="100" value="0"><output id="fThrO">0%</output></label>
     <button class="b" id="fStage" title="Next stage (Space)" data-ic="stage">Stage</button><button class="b" id="fLegs" title="Landing legs (G)" data-ic="legs">Legs</button><button class="b" id="fChute" title="Parachutes (P)" data-ic="chute" style="display:none">Chutes</button><button class="b danger" id="fAbort" title="ABORT: the escape tower pulls the capsule away (Backspace)" data-ic="abort" style="display:none">Abort</button><button class="b" id="fRcs" title="RCS jets (T). I J K L to nudge" data-ic="rcs">RCS</button>
-    <button class="b ico" id="fSnd" title="Sound (U)"></button><button class="b ico" id="fMap" title="Map (M)" data-ic="map"></button><button class="b ico" id="fWarp2" title="Time warp (. and ,)" data-ic="warp"></button>
+    <button class="b ico" id="fSnd" title="Sound (U)"></button><button class="b ico" id="fMap" title="Map (M)" data-ic="map"></button><button class="b ico" id="fWarp1" title="Slower time warp (,)" data-ic="warpdn"></button><button class="b ico" id="fWarp2" title="Faster time warp (.)" data-ic="warp"></button>
     <button class="b on" id="fRetry" title="Try again (R)" style="display:none" data-ic="reload">Retry</button>
     <button class="b ico" id="fBuild" title="Back to the rocket editor (B)" data-ic="build"></button><button class="b ico" id="fBack" title="Back to the test stand (Esc)" data-ic="back"></button>
   </div>
@@ -1214,7 +1214,7 @@ const ICP={
   mirror:["M12 3v18","M8 7 3 12l5 5z","M16 7l5 5-5 5z"],legs:["M12 4v8","M12 12l-6 8","M12 12l6 8","M3.5 20h5","M15.5 20h5"],fit:["M4 9V4h5","M20 9V4h-5","M4 15v5h5","M20 15v5h-5"],
   stage:["M12 4l7 8H5z","M5 17h14"],centre:["o 12 12 7","M12 5v14","M5 12h14"],chute:["M4 11a8 8 0 0 1 16 0z","M4 11l8 9 8-9","M12 11v9"],abort:["M12 3l10 18H2z","M12 10v5","M12 18v.1"],rcs:["o 12 12 3","M12 2v5","M12 17v5","M2 12h5","M17 12h5"],warp:["M3 6l8 6-8 6z","M12 6l8 6-8 6z"],map:["M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z","M9 4v14","M15 6v14"],
   build:["M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"],back:["M19 12H5","M11 6l-6 6 6 6"],
-  rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
+  warpdn:["M21 6l-8 6 8 6z","M12 6l-8 6 8 6z"],rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
 function ico(n){return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${(ICP[n]||[]).map(d=>d[0]==="o"?(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}"/>`)(d.slice(2).split(" ")):`<path d="${d}"/>`).join("")}</svg>`;}
 const SANS='"Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
 const MONO='ui-monospace,"Cascadia Mono","SF Mono","JetBrains Mono",Menlo,Consolas,monospace';   // numbers drawn on canvases
@@ -1644,6 +1644,19 @@ function clampCam(){cam.x=Math.max(0,Math.min(W-W/cam.z,cam.x));cam.y=Math.max(0
 function zoomStep(d,sx,sy){let i=ZL.indexOf(cam.z);i=Math.max(0,Math.min(ZL.length-1,(i<0?0:i)+d));sx=sx===undefined?W/2:sx;sy=sy===undefined?H/2:sy;
   const wx=cam.x+sx/cam.z,wy=cam.y+sy/cam.z;cam.z=ZL[i];cam.x=wx-sx/cam.z;cam.y=wy-sy/cam.z;clampCam();}
 cv.addEventListener("contextmenu",e=>e.preventDefault());
+// phones: two fingers pinch to zoom and drag to pan. These listeners sit on the canvas's parent in the capture phase, so they
+// see every touch before the tools do and can swallow the second finger (otherwise it would paint or move things).
+const touches=new Map();let pinch=null;
+function pinchMid(){const[a,b]=[...touches.values()];return{x:(a[0]+b[0])/2,y:(a[1]+b[1])/2,d:Math.hypot(a[0]-b[0],a[1]-b[1])||1};}
+cv.parentElement.addEventListener("pointerdown",e=>{if(e.target!==cv||e.pointerType!=="touch")return;touches.set(e.pointerId,screenXY(e));
+  if(touches.size===2){const m=pinchMid();pinch={...m,z:cam.z,wx:cam.x+m.x/cam.z,wy:cam.y+m.y/cam.z};   // the world point under the fingers stays under them
+    mouse.down=false;grab=null;drag=null;e.stopImmediatePropagation();}},true);
+cv.parentElement.addEventListener("pointermove",e=>{if(!touches.has(e.pointerId))return;touches.set(e.pointerId,screenXY(e));
+  if(!pinch)return;e.stopImmediatePropagation();if(touches.size<2)return;const m=pinchMid(),want=pinch.z*m.d/pinch.d;
+  let z=ZL[0];for(const q of ZL)if(Math.abs(Math.log(q/want))<Math.abs(Math.log(z/want)))z=q;   // snap to the zoom steps the renderer knows
+  cam.z=z;cam.x=pinch.wx-m.x/z;cam.y=pinch.wy-m.y/z;clampCam();},true);
+const touchEnd=e=>{if(!touches.delete(e.pointerId))return;if(pinch){e.stopImmediatePropagation();mouse.down=false;if(!touches.size)pinch=null;}};
+cv.parentElement.addEventListener("pointerup",touchEnd,true);cv.parentElement.addEventListener("pointercancel",touchEnd,true);
 cv.addEventListener("wheel",e=>{e.preventDefault();const d=e.deltaY||e.deltaX;if(!d)return;const up=d<0;
   if(e.shiftKey){
     if(S.tool==="select"&&resizeSel(up?1:-1))return;
@@ -2929,7 +2942,7 @@ vcv.addEventListener("pointerdown",e=>{e.preventDefault();vcv.setPointerCapture(
   const tset=ti>=0&&!set.has(ti)?vSub(ti,e.altKey,T):new Set();
   vdrag={i,set,tset,w0:w,start:vps.map(o=>[o.x,o.y,o.f]),moved:false,before:vSnap(),bad:false};});
 vcv.addEventListener("pointermove",e=>{const q=vEvXY(e);vptr=q;if(vTouch.has(e.pointerId))vTouch.set(e.pointerId,q);
-  if(vPinch&&vTouch.size===2){const[a,b]=[...vTouch.values()],d=Math.hypot(a.X-b.X,a.Y-b.Y),k=Math.max(0.2,Math.min(8,d/vPinch.d));vv.s=vPinch.s*k;vv.ox=vPinch.cx-(vPinch.cx-vPinch.ox)*k;vv.oy=vPinch.cy-(vPinch.cy-vPinch.oy)*k;return;}
+  if(vPinch&&vTouch.size===2){const[a,b]=[...vTouch.values()],d=Math.hypot(a.X-b.X,a.Y-b.Y),k=Math.max(0.2,Math.min(8,d/vPinch.d));vv.s=vPinch.s*k;const mx=(a.X+b.X)/2,my=(a.Y+b.Y)/2;vv.ox=mx-(vPinch.cx-vPinch.ox)*k;vv.oy=my-(vPinch.cy-vPinch.oy)*k;return;}   // follow the fingers: pinch zooms, moving both pans
   if(vpan){vv.ox=vpan.ox+q.X-vpan.X;vv.oy=vpan.oy+q.Y-vpan.Y;return;}
   if(!vdrag)return;const w=v2w(q.X,q.Y);if(!vdrag.moved&&Math.hypot(w.x-vdrag.w0.x,w.y-vdrag.w0.y)*vv.s<5*VDS)return;vdrag.moved=true;
   const{i,set,tset,start}=vdrag,p=vps[i],O=vps.filter((o,j)=>!set.has(j)&&!tset.has(j));
@@ -3354,7 +3367,7 @@ addEventListener("keyup",e=>{if(FLT.on)keys.delete(e.key.toLowerCase());},true);
 fcv.addEventListener("wheel",e=>{e.preventDefault();if(mapView){mapWheel(e);return;}zoomF=Math.max(0.05,Math.min(20000,zoomF*(e.deltaY<0?1.15:1/1.15)));},{passive:false});
 $("fThr").oninput=()=>{if(AV&&CD.s==="go")AV.thr=+$("fThr").value/100;};
 for(const[id,d]of[["fL",-1],["fR",1]]){const b=$(id);b.onpointerdown=()=>{rotBtn=d;};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>{rotBtn=0;};}
-$("fMap").onclick=()=>{mapView=!mapView;if(mapView)mapOpen();};$("fWarp2").onclick=()=>{warp=WARPS[(WARPS.indexOf(warp)+1)%WARPS.length];};
+$("fMap").onclick=()=>{mapView=!mapView;if(mapView)mapOpen();};$("fWarp2").onclick=()=>{warpTo=null;warp=WARPS[Math.min(WARPS.length-1,WARPS.indexOf(warp)+1)];};$("fWarp1").onclick=()=>{warpTo=null;warp=WARPS[Math.max(0,WARPS.indexOf(warp)-1)];};
 $("fAbort").onclick=abort;$("fChute").onclick=chutes;$("fStage").onclick=()=>{if(CD.s==="wait")startCount();else if(CD.s==="count")release(true);else doStage();};$("fCount").onclick=startCount;$("fRcs").onclick=toggleRcs;$("fLegs").onclick=()=>{if(AV&&AV.hasLegs)AV.legs=!AV.legs;};
 $("fBack").onclick=endFlight;$("fRetry").onclick=()=>startFlight(launchPs,launchName,true);$("fBuild").onclick=()=>{endFlight();openVab();};
 // ---------- pad emitters: cold vapour from the tank vents, frost flaking off, steam clouds from the flame trench ----------
@@ -3853,16 +3866,26 @@ function zoomAt(X,Y,k){const F=focusPos(),s=mapCam.s,wx=F.x+mapCam.dx+(X-FW/2)/s
   const s2=Math.max(Math.min(FW,FH)/(DM*8),Math.min(Math.min(FW,FH)/20,s*k));mapCam.s=s2;mapCam.dx=wx-F.x-(X-FW/2)/s2;mapCam.dy=wy-F.y+(Y-FH/2)/s2;}
 const evXY=e=>{const r=fcv.getBoundingClientRect();return{X:(e.clientX-r.left)*FW/r.width,Y:(e.clientY-r.top)*FH/r.height};};
 fcv.addEventListener("pointerdown",e=>{if(!mapView)return;fcv.setPointerCapture(e.pointerId);const q=evXY(e);mapPtr.set(e.pointerId,q);
-  if(mapPtr.size===2){const[a,b]=[...mapPtr.values()];mapPinch={d:Math.hypot(a.X-b.X,a.Y-b.Y),s:mapCam.s};mapDown=null;return;}
+  if(mapPtr.size===2){const[a,b]=[...mapPtr.values()];mapPinch={d:Math.hypot(a.X-b.X,a.Y-b.Y),s:mapCam.s,X:(a.X+b.X)/2,Y:(a.Y+b.Y)/2};mapDown=null;return;}
   mapDown={X:q.X,Y:q.Y,dx:mapCam.dx,dy:mapCam.dy,moved:false};});
 fcv.addEventListener("pointermove",e=>{if(!mapView||!mapPtr.has(e.pointerId))return;const q=evXY(e);mapPtr.set(e.pointerId,q);
-  if(mapPinch&&mapPtr.size===2){const[a,b]=[...mapPtr.values()],d=Math.hypot(a.X-b.X,a.Y-b.Y);zoomAt((a.X+b.X)/2,(a.Y+b.Y)/2,mapPinch.s*(d/mapPinch.d)/mapCam.s);return;}
+  if(mapPinch&&mapPtr.size===2){const[a,b]=[...mapPtr.values()],d=Math.hypot(a.X-b.X,a.Y-b.Y),X=(a.X+b.X)/2,Y=(a.Y+b.Y)/2;
+    mapCam.dx-=(X-mapPinch.X)/mapCam.s;mapCam.dy+=(Y-mapPinch.Y)/mapCam.s;mapPinch.X=X;mapPinch.Y=Y;   // two fingers moving together pan
+    zoomAt(X,Y,mapPinch.s*(d/mapPinch.d)/mapCam.s);return;}
   if(!mapDown)return;if(Math.hypot(q.X-mapDown.X,q.Y-mapDown.Y)>4*FDS)mapDown.moved=true;
   if(mapDown.moved){mapCam.dx=mapDown.dx-(q.X-mapDown.X)/mapCam.s;mapCam.dy=mapDown.dy+(q.Y-mapDown.Y)/mapCam.s;}});
 function mapUp(e){if(!mapView)return;mapPtr.delete(e.pointerId);if(mapPtr.size<2)mapPinch=null;const d=mapDown;mapDown=null;
   if(d&&!d.moved){const q=evXY(e),F=focusPos(),s=mapCam.s;   // click a craft to fly it
     let best=null,bd=16*FDS;for(const v of VS){if(!v.ctrl||v.crashed)continue;const p=pfPos(v),X=FW/2+(p.x-F.x-mapCam.dx)*s,Y=FH/2-(p.y-F.y-mapCam.dy)*s,dd=Math.hypot(X-q.X,Y-q.Y);if(dd<bd){bd=dd;best=v;}}
     if(best&&best!==AV){AV=best;anAV=null;mapCam.vid=AV.id;msg="Now flying: "+AV.name;msgT=2.5;refreshPred();}}}
+// flight view: two fingers pinch the camera zoom (one finger does nothing here, so steering buttons stay the only controls)
+const flyPtr=new Map();let flyPinch=null;
+fcv.addEventListener("pointerdown",e=>{if(mapView)return;fcv.setPointerCapture(e.pointerId);flyPtr.set(e.pointerId,evXY(e));
+  if(flyPtr.size===2){const[a,b]=[...flyPtr.values()];flyPinch={d:Math.hypot(a.X-b.X,a.Y-b.Y)||1,z:zoomF};}});
+fcv.addEventListener("pointermove",e=>{if(mapView||!flyPtr.has(e.pointerId))return;flyPtr.set(e.pointerId,evXY(e));
+  if(flyPinch&&flyPtr.size===2){const[a,b]=[...flyPtr.values()];zoomF=Math.max(0.05,Math.min(20000,flyPinch.z*Math.hypot(a.X-b.X,a.Y-b.Y)/flyPinch.d));}});
+const flyUp=e=>{flyPtr.delete(e.pointerId);if(flyPtr.size<2)flyPinch=null;};
+fcv.addEventListener("pointerup",flyUp);fcv.addEventListener("pointercancel",flyUp);
 fcv.addEventListener("pointerup",mapUp);fcv.addEventListener("pointercancel",mapUp);
 const tfmt=t=>{t=Math.max(0,t);if(t<60)return Math.round(t)+" s";const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=Math.floor(t%60);
   if(h>=24)return Math.floor(h/24)+"d "+(h%24)+"h";return h?`${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${m}:${String(s).padStart(2,"0")}`;};
