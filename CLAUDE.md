@@ -5,7 +5,7 @@ rockets from parts and fly them in real time to orbit and the Moon. Made by Wyat
 (judged by his dad), so it has to be easy for a newcomer to understand and fun to show off.
 
 ## Build, run, deploy
-- `python3 build.py` → writes `index.html` (the whole game in one self-contained file, ~225 KB). Always rebuild after editing `src/`.
+- `python3 build.py` → writes `index.html` (the whole game in one self-contained file, ~400 KB). Always rebuild after editing `src/`.
 - Run it: open `index.html` in Chrome (works from `file://`; physics runs in a Web Worker made from a blob URL).
 - Live: https://zappy8667.github.io/THROAT/ (GitHub Pages, public repo, serves `index.html` from the root of `main`).
   Deploy = rebuild, commit, push to `main`; the site updates about a minute later.
