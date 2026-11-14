@@ -203,6 +203,8 @@ function stepV(v,dt,u){
     else{if(v.sas&&v.sas!=="stab"){const tg=sasTarget(v);if(tg!=null)v.hold=tg;}
       if(v.hold==null&&Math.abs(v.om)<0.05)v.hold=v.phi;want=v.hold==null?-v.om*v.I*12:v.I*(-8*wrapA(v.phi-v.hold)-6*v.om);want-=tq;}
     const ap=Math.max(-mx,Math.min(mx,want));tq+=ap;
+    // the engines swivel (gimbal) to make part of that turn; remember how far, so the nozzle and flame can be drawn swung over
+    {const gs=F>0?Math.max(-1,Math.min(1,ap/mx))*(F*0.105*v.Lr/mx):0;v.gim=(v.gim||0)+(gs-(v.gim||0))*Math.min(1,dt*8);}
     if(rT>0){const base=mx-rT,extra=Math.max(0,Math.abs(ap)-base);if(extra>1e-3){rcsUse+=extra/v.rcsArm;v.puffR=Math.sign(ap);}else v.puffR=0;}else v.puffR=0;}
   if(rcsUse>0){let need=rcsUse/(RCS_ISP*G0)*dt;for(const p of v.rcs){const d=Math.min(p.mono,need*p.mono/mono);p.mono-=d;}}
   if(v.landed){if(v.clamped||ax*ux+ay*uy<=0){v.vx=v.vy=0;v.om=0;const tilt=wrapA(v.phi-Math.atan2(v.x,v.y));if(Math.abs(tilt)<0.6)v.phi-=tilt*Math.min(1,dt*2);ground(v,true);v.t+=dt;return;}v.landed=false;}
@@ -346,9 +348,13 @@ function flightFrame(now){
   requestAnimationFrame(flightFrame);}
 // ---------- drawing ----------
 const lerp=(a,b,t)=>a+(b-a)*t,col=(c,a)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
-function plume(ctx,x0,y0,w,thr,a,bright,vacEng){   // in the rocket's frame (y up); exhaust goes down; all sizes scale with the bell width w
-  if(thr<=0.01)return;const fl=vacEng&&a>0.3?0.6+Math.random()*0.5:0.93+Math.random()*0.14,vac=1-a,L=w*(5+12*thr)*(1+0.5*vac)*fl*(vacEng?1-0.55*a:1),ang=lerp(0.03,0.32,Math.pow(vac,0.6)),spread=Math.tan(ang)*L;
+function plume(ctx,x0,y0,w,thr,a,bright,vacEng,bd){   // in the rocket's frame (y up); exhaust goes down; all sizes scale with the bell width w
+  // bend: swung over by the gimbal, then curving away (cx = sideways shift at depth d below the nozzle)
+  if(thr<=0.01)return;const g0=bd?bd.g:0;let kb=bd?bd.k:0;const cx=d=>kb*d*d;
+  const fl=vacEng&&a>0.3?0.6+Math.random()*0.5:0.93+Math.random()*0.14,vac=1-a,L=w*(5+12*thr)*(1+0.5*vac)*fl*(vacEng?1-0.55*a:1),ang=lerp(0.03,0.32,Math.pow(vac,0.6)),spread=Math.tan(ang)*L;kb=Math.max(-0.35/L,Math.min(0.35/L,kb));   // the tail never swings out more than about a third of the flame's length
+  
   ctx.save();ctx.globalCompositeOperation=bright>0.5?"source-over":"lighter";     // against a bright sky, glow can't add up to white
+  ctx.translate(x0,y0);ctx.rotate(g0);ctx.translate(-x0,-y0);   // the whole flame leaves the nozzle along the gimballed direction
   if(a>0.25){ctx.beginPath();ctx.moveTo(x0-w*0.6,y0);ctx.lineTo(x0-w*0.9-spread-w*0.5,y0-L*1.15);ctx.lineTo(x0+w*0.9+spread+w*0.5,y0-L*1.15);ctx.lineTo(x0+w*0.6,y0);ctx.closePath();
     const g=ctx.createLinearGradient(0,y0,0,y0-L*1.15);g.addColorStop(0,col([255,135,50],0.5*a*thr));g.addColorStop(1,col([255,90,30],0));ctx.fillStyle=g;ctx.fill();}   // warm fringe in air
   if(vac>0.3){const k=(vac-0.3)/0.7;   // vacuum: the exhaust balloons out into a soft, wide fan
@@ -356,14 +362,14 @@ function plume(ctx,x0,y0,w,thr,a,bright,vacEng){   // in the rocket's frame (y u
       g.addColorStop(0,col([235,120,255],al*k*thr));g.addColorStop(0.45,col([170,90,255],al*0.45*k*thr));g.addColorStop(1,col([110,70,255],0));
       ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x0,y0);ctx.arc(x0,y0,LL,-Math.PI/2-an,-Math.PI/2+an);ctx.closePath();ctx.fill();}}
   ctx.beginPath();ctx.moveTo(x0-w*0.48,y0);
-  const N=18;for(let i=1;i<=N;i++){const t=i/N,yy=y0-L*t,pinch=a>0.2?1-0.22*a*Math.abs(Math.sin(t*Math.PI*5)):1;ctx.lineTo(x0-(w*0.48+spread*t)*pinch,yy);}
-  for(let i=N;i>=1;i--){const t=i/N,yy=y0-L*t,pinch=a>0.2?1-0.22*a*Math.abs(Math.sin(t*Math.PI*5)):1;ctx.lineTo(x0+(w*0.48+spread*t)*pinch,yy);}
+  const N=18;for(let i=1;i<=N;i++){const t=i/N,yy=y0-L*t,pinch=a>0.2?1-0.22*a*Math.abs(Math.sin(t*Math.PI*5)):1;ctx.lineTo(x0+cx(L*t)-(w*0.48+spread*t)*pinch,yy);}
+  for(let i=N;i>=1;i--){const t=i/N,yy=y0-L*t,pinch=a>0.2?1-0.22*a*Math.abs(Math.sin(t*Math.PI*5)):1;ctx.lineTo(x0+cx(L*t)+(w*0.48+spread*t)*pinch,yy);}
   ctx.lineTo(x0+w*0.48,y0);ctx.closePath();
   const g=ctx.createLinearGradient(0,y0,0,y0-L);const al=(0.55+0.45*a)*thr;
   g.addColorStop(0,col([255,120,215],0.95*al));g.addColorStop(0.35,col([225,75,215],0.75*al));g.addColorStop(1,col([150,70,255],0));ctx.fillStyle=g;ctx.fill();
-  ctx.beginPath();ctx.moveTo(x0-w*0.45,y0);ctx.lineTo(x0,y0-w*1.3*(1+vac));ctx.lineTo(x0+w*0.45,y0);ctx.closePath();ctx.fillStyle=col([95,120,255],0.85*thr);ctx.fill();   // blue core
-  if(a>0.12)for(let k=0;k<5;k++){const yy=y0-w*(1.25+1.3*k)*(1+0.4*vac),rr=w*(0.42-0.05*k),gg=ctx.createRadialGradient(x0,yy,0,x0,yy,rr);   // Mach diamonds
-    gg.addColorStop(0,col([255,250,255],Math.min(1,1.1*a*thr*(1-0.17*k))));gg.addColorStop(1,col([255,150,230],0));ctx.fillStyle=gg;ctx.beginPath();ctx.arc(x0,yy,rr,0,6.2832);ctx.fill();}
+  ctx.beginPath();ctx.moveTo(x0-w*0.45,y0);ctx.lineTo(x0+cx(w*1.3*(1+vac)),y0-w*1.3*(1+vac));ctx.lineTo(x0+w*0.45,y0);ctx.closePath();ctx.fillStyle=col([95,120,255],0.85*thr);ctx.fill();   // blue core
+  if(a>0.12)for(let k=0;k<5;k++){const yy=y0-w*(1.25+1.3*k)*(1+0.4*vac),rr=w*(0.42-0.05*k),dx=x0+cx(y0-yy),gg=ctx.createRadialGradient(dx,yy,0,dx,yy,rr);   // Mach diamonds
+    gg.addColorStop(0,col([255,250,255],Math.min(1,1.1*a*thr*(1-0.17*k))));gg.addColorStop(1,col([255,150,230],0));ctx.fillStyle=gg;ctx.beginPath();ctx.arc(dx,yy,rr,0,6.2832);ctx.fill();}
   ctx.restore();}
 function srbPlume(ctx,x0,y0,w,a,bright){   // solid exhaust, like SLS boosters at lift-off: a long white-hot column, yellow then orange at the tail, wider in vacuum
   const vac=1-a,fl=0.9+Math.random()*0.2,L=w*(16+6*vac)*fl,spread=Math.tan(lerp(0.04,0.42,Math.pow(vac,0.6)))*L;
@@ -379,7 +385,11 @@ function drawVessel(c,v,bright,plumesOnly){
   c.save();c.translate(v.x,v.y);c.rotate(-v.phi);
   if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))*UM);boom(c,v);c.restore();return;}
   c.scale(UM,UM);c.translate(-v.px,-v.py);
-  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}const g=clusterGeo(p),pf=(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8);if(g.k>1){for(const[ex,row]of g.xs)if(!row)plume(c,p.x+ex,p.y,g.ew*pf,v.thr,v.a,bright,k==="vac");return;}plume(c,p.x,p.y,p.w*pf,v.thr,v.a,bright,k==="vac");}});
+  // how the flame bends. Exhaust that left a while ago went out along where the rocket pointed then, so a turning rocket leaves a
+  // curved flame behind it; in air a sideways wind blows the far end back. Real exhaust is fast (~3 km/s) and would barely curve,
+  // so the flame is drawn as if it were ~60 m/s: you can see the rocket steer. g is the nozzle swivel (up to ~8°).
+  const lat=v.vx*Math.cos(v.phi)-v.vy*Math.sin(v.phi),bd={g:(v.gim||0)*0.14,k:Math.max(-0.0015,Math.min(0.0015,(v.om||0)/600-lat*v.a/36000))};
+  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}const g=clusterGeo(p),pf=(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8);if(g.k>1){for(const[ex,row]of g.xs)if(!row)plume(c,p.x+ex,p.y,g.ew*pf,v.thr,v.a,bright,k==="vac",bd);return;}plume(c,p.x,p.y,p.w*pf,v.thr,v.a,bright,k==="vac",bd);}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
   for(const p of v.ps)if(p.t==="les"&&v.lesT>0)for(const sd of[-1,1]){c.save();c.translate(p.x+sd*p.w*0.42,p.y+p.h*0.5);c.rotate(sd*2.4);srbPlume(c,0,0,p.w*0.35,v.a,bright);c.restore();}
   if(plumesOnly){c.restore();return;}

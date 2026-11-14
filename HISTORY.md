@@ -157,6 +157,14 @@ made on the test stand.
   Flight view: pinch zooms the camera (it had no touch zoom). Map: two fingers also pan while pinching.
 - Warp: a slower button (,) next to the faster one (.); faster stops at the top instead of wrapping.
 
+## v1.27: the flame follows the gimbal
+- Wyatt: make the plume curve with the engine's gimbal; simulate it rather than a fixed picture.
+- `v.gim` (flight.js steering) = the share of the turning torque the engines' gimbal gives, smoothed. `plume(..., bd)` rotates the
+  whole flame by the gimbal angle (up to ~8°) at the nozzle and bends the body, core and Mach diamonds by k·d² (d = depth below
+  the nozzle): k from the turn rate (exhaust drawn as if ~60 m/s, so old exhaust visibly lags) and the sideways air (blows the
+  tail back). Capped at a third of the flame's length. Solid boosters are unchanged.
+- The "comment on a long line" trap bit again ("spread is not defined"): new code + comment go on their own lines.
+
 ## Things that went wrong (don't repeat)
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
   dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.
