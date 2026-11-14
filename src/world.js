@@ -170,6 +170,7 @@ function drawTower(c,rw,rh,up,lo){   // up: how far the upper arms have swung aw
   c.fillStyle="#8b8f95";c.fillRect(xL-12,-4,(rw/2+gap+W+12)*2,4);c.fillStyle="#6e7278";c.fillRect(xL-12,-0.6,(rw/2+gap+W+12)*2,0.6);
   c.fillStyle="#1d1f23";c.fillRect(-rw*0.45,-4,rw*0.9,3.2);
   c.fillStyle=dark;for(const x of[-rw/2-1.2,rw/2+0.2])c.fillRect(x,0,1,2.2);
+  c.save();c.globalAlpha=0.5;   // v1.36: the tower stands further back, hazy, so the rocket in front is what you look at
   // corner columns (thick), with a light edge so they read as steel
   for(const x of[xL,xR-2.2]){c.fillStyle=steel;c.fillRect(x,0,2.2,H);c.fillStyle=lite;c.fillRect(x,0,0.5,H);c.fillStyle=dark;c.fillRect(x+1.7,0,0.5,H);}
   // bays: horizontal beams and X-bracing
@@ -193,7 +194,8 @@ function drawTower(c,rw,rh,up,lo){   // up: how far the upper arms have swung aw
     if(crew){c.fillStyle="#e9ebee";c.fillRect(L-2.2,-0.5,2.2,2.6);c.fillStyle="#1f2329";c.fillRect(L-1.6,0.2,1,1.2);}
     else if(retract<0.05){c.strokeStyle="#1c1e22";c.lineWidth=0.55;for(const k of[0.15,0.4,0.65]){c.beginPath();c.moveTo(L*k,-0.9);c.quadraticCurveTo((L*k+L)/2,-4.5-k*2,L,-1.4);c.stroke();}
       c.fillStyle="#2a2d33";c.fillRect(L-0.6,-1.6,0.6,1.2);}
-    c.restore();}}
+    c.restore();}
+  c.restore();}
 // ================= the globe: what the planet looks like from far away =================
 // The game is a slice through the planet, so only the rim is "real ground". From orbit and on the map you look at the whole
 // disc, so it gets a painted globe: continents with natural coastlines (fractal noise, warped so they don't look like blobs),
@@ -251,7 +253,7 @@ function drawShimmer(c,rw,k,now){if(k<=0.01)return;c.save();c.strokeStyle=`rgba(
 // deflector) that splits it in two, and runs through tunnels to vents on both sides, well away from the rocket and the tower.
 // The ground is drawn cut open so you can see it. Pad frame, metres: x = 0 the rocket's centre line, y = 0 the deck, y up.
 function trenchGeo(rw,rh){const W=Math.max(13,Math.min(24,rh*0.17)),gap=Math.max(7,rw*0.3),tw=Math.max(3,rw*0.9),th=Math.max(5,rw*0.45);
-  return{tw,th,D:4+Math.max(12,rw*1.1)+th,X:rw/2+gap+W+16};}   // tw: slot width, th: tunnel height, D: depth, X: where the vents come up
+  return{tw,th,D:4+Math.max(30,rw*2.4)+th,X:rw/2+gap+W+16};}   // tw: slot width, th: tunnel height, D: depth, X: where the vents come up
 // the inside of the trench as one outline; top: where the slot starts. open: leave out the edges across openings (for the lining)
 function trenchPath(c,g,top,open){const{tw,th,D,X}=g,L=open?(x,y)=>c.moveTo(x,y):(x,y)=>c.lineTo(x,y);
   c.moveTo(-tw/2,top);L(tw/2,top);c.lineTo(tw/2,-D+th);c.lineTo(X-th,-D+th);c.quadraticCurveTo(X,-D+th,X,0);L(X+th,0);c.quadraticCurveTo(X+th,-D,X-th,-D);
@@ -259,9 +261,10 @@ function trenchPath(c,g,top,open){const{tw,th,D,X}=g,L=open?(x,y)=>c.moveTo(x,y)
   c.lineTo(-(X-th),-D);c.quadraticCurveTo(-(X+th),-D,-(X+th),0);L(-X,0);c.quadraticCurveTo(-X,-D+th,-(X-th),-D+th);c.lineTo(-tw/2,-D+th);c.lineTo(-tw/2,top);}
 // k: how hard the exhaust is roaring through it (0..1). fireOnly: just the glowing gas (the night pass puts the glow back on top)
 function drawTrench(c,rw,rh,k,now,fireOnly){const g=trenchGeo(rw,rh),{tw,th,D,X}=g;c.save();
-  if(!fireOnly){c.beginPath();trenchPath(c,g,0);c.fillStyle="#131417";c.fill();
-    c.beginPath();trenchPath(c,g,0,true);c.strokeStyle="#8b8f95";c.lineWidth=1.1;c.stroke();   // concrete lining
-    c.fillStyle="#6b7179";c.beginPath();c.moveTo(-tw/2,-D);c.lineTo(0,-D+th*0.8);c.lineTo(tw/2,-D);c.closePath();c.fill();   // the deflector wedge
+  if(!fireOnly){c.beginPath();trenchPath(c,g,0);const gi=c.createLinearGradient(0,0,0,-D);gi.addColorStop(0,"#26282c");gi.addColorStop(1,"#0b0c0e");c.fillStyle=gi;c.fill();
+    c.beginPath();trenchPath(c,g,0,true);c.strokeStyle="#5a5e64";c.lineWidth=3.2;c.stroke();c.strokeStyle="#b4b8be";c.lineWidth=1.4;c.stroke();   // thick concrete lining
+    c.strokeStyle="rgba(255,190,60,.55)";c.lineWidth=0.5;c.setLineDash([2,2]);c.beginPath();for(const sd of[-1,1]){c.moveTo(sd*tw/2,-1);c.lineTo(sd*tw/2,-D+th);}c.stroke();c.setLineDash([]);   // hazard stripes down the slot
+    c.fillStyle="#8a9098";c.strokeStyle="#c9ccd1";c.lineWidth=0.8;c.beginPath();c.moveTo(-tw/2,-D);c.lineTo(0,-D+th*0.8);c.lineTo(tw/2,-D);c.closePath();c.fill();c.stroke();   // the steel deflector wedge
     c.fillStyle="#9a9ea4";for(const sd of[-1,1])c.fillRect(sd>0?X+th:-X-th-2.5,-0.8,2.5,0.8);}   // concrete lips round the vents
   if(k>0.01){c.save();c.beginPath();trenchPath(c,g,0);c.clip();
     let gr=c.createLinearGradient(0,0,0,-D);gr.addColorStop(0,`rgba(255,244,210,${0.95*k})`);gr.addColorStop(1,`rgba(255,160,60,${0.85*k})`);c.fillStyle=gr;c.fillRect(-tw/2,-D,tw,D);   // white-hot down the slot

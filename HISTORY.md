@@ -254,6 +254,8 @@ made on the test stand.
   orange along the tunnels, with fire blasting out of the vents; the steam clouds now billow from the vents. Near the pad the
   rocket's own flame is clipped (`underPad`, evenodd clip) so below the deck it only shows inside the trench, not through rock.
   At night the trench fire is put back in the glow pass.
+  Made deeper and bolder after Wyatt's first look (depth 30 m+, thick lining, hazard stripes down the slot).
+- **Tower in the background**: the launch tower is drawn at half strength (hazy), so the rocket stands out in front; the deck stays solid.
 - **Clean view**: a button in the top-right corner (or V) hides every display (`#flight.clean`) so only the rocket shows.
 - **More fold-away tabs** on the right: GAUGES (speed/altitude dials), TIMELINE (clock + events), STEER (heading ring + SAS
   buttons) join DATA/TIME/SAS. Only GAUGES starts open now (DATA used to). `free:true` tabs don't count in the phones'
