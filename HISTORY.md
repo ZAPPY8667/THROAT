@@ -165,6 +165,14 @@ made on the test stand.
   tail back). Capped at a third of the flame's length. Solid boosters are unchanged.
 - The "comment on a long line" trap bit again ("spread is not defined"): new code + comment go on their own lines.
 
+## v1.28: realer flames
+- Wyatt: "make the plumes themselves look realer". One renderer `flame()` (flight.js) with palettes `PAL` by propellant:
+  hydrolox (your engine, Lumen Vac, saved engines): pale blue-violet, nearly see-through, orange-white shock diamonds;
+  kerosene (Wren, Mule, Bison, via `fireKind`): white-hot core, yellow-orange body, dark soot in the tail; solid boosters:
+  white-hot column, white smoke tail. Five nested layers (wide+faint → narrow+bright) make a soft edge; each edge boils with
+  three sine waves running down the flame. Vacuum: one squashed radial glow (the old 7 wedges showed hard edges), outer layers
+  fade, only the core stays bright. Nozzle glow lights the rocket's base. Gimbal bend from v1.27 kept for all, boosters included.
+
 ## Things that went wrong (don't repeat)
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
   dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.
