@@ -319,6 +319,64 @@ function contactPts(ps,legs){const pts=[];
     if(p.t==="fin"||p.t==="leg")continue;
     pts.push([p.x-p.w/2,p.y,0],[p.x+p.w/2,p.y,0],[p.x-p.w/2,p.y+p.h,0],[p.x+p.w/2,p.y+p.h,0]);}
   return pts;}
+// ---------- rockets saved before v1.16 ----------
+// Back then parts were small and chunky: engines and tanks 60 units wide, decouplers 15 tall, fins 45 wide. Loaded today those
+// numbers make engines ~4× too strong for tanks that hold a fraction of the fuel, so an old rocket flies wrong. oldScale spots
+// one by a part only the old catalogue made; upscaleOld rebuilds it with today's parts: same layout, each part swapped for its
+// modern size (tanks 2/3 as wide and 2.4× as long, standard-size engines, thin decouplers), stacks re-stacked from the bottom
+// up, side parts re-hung on whatever they were hanging on.
+const OLD_ENG={stand:[60,60],wren:[60,45],mule:[60,60],bison:[120,90],vac:[60,105],lib:[60,60]};
+function oldScale(ps){return Array.isArray(ps)&&ps.some(p=>p.t==="dec"&&p.h===15||p.t==="sdec"&&p.w===15||p.t==="fin"&&p.w===45||
+  p.t==="engine"&&!p.k&&OLD_ENG[p.e||"stand"]&&p.w===OLD_ENG[p.e||"stand"][0]&&p.h===OLD_ENG[p.e||"stand"][1]);}
+function upscaleOld(ps){
+  const r=Math.round,clampW=(t,w)=>PT[t].wr?Math.max(PT[t].wr[0],Math.min(PT[t].wr[1],w)):w;
+  const size=p=>{const t=p.t;let w,h;
+    if(t==="tank"){w=clampW(t,r(p.w*2/3));h=r(p.h*2.4);}
+    else if(t==="srb"){w=clampW(t,r(p.w*0.3));h=r(p.h*1.73);}   // the old 60×150 booster becomes the Sparrow's 18×260
+    else if(t==="engine"){const e=p.e||"stand",o=OLD_ENG[e]||[60,60];w=clampW(t,r(ENG[e].w*p.w/o[0]));h=engH({t,e,w,k:1});}
+    else if(PT[t].radial){w=PT[t].ws[0];h=PT[t].h(w);}
+    else{w=clampW(t,r(p.w*2/3));h=PT[t].h(w);}
+    return{w,h};};
+  const q=ps.map(p=>({p,o:{x:p.x,y:p.y,w:p.w,h:p.h},n:size(p),nx:null,ny:null}));
+  const touchY=(a,b)=>Math.abs(b.o.y-(a.o.y+a.o.h))<0.6&&Math.abs(a.o.x-b.o.x)<(a.o.w+b.o.w)/2-0.5;   // b sits on a
+  const stack=q.filter(e=>!PT[e.p.t].radial).sort((a,b)=>a.o.y-b.o.y);
+  const centre=()=>stack.filter(e=>Math.abs(e.o.x)<0.5&&e.ny!=null);
+  for(const e of stack){
+    const below=stack.filter(a=>a!==e&&a.ny!=null&&touchY(a,e));
+    if(below.length){e.ny=Math.max(...below.map(a=>a.ny+a.n.h));
+      if(e.p.t==="nose"&&below.length===1){e.n.w=Math.min(e.n.w,below[0].n.w);e.n.h=PT.nose.h(e.n.w);}   // a nose no wider than what it caps
+      continue;}
+    // nothing under it: the bottom of the rocket (y 0), or a side booster hung from a decoupler: same height on the core as before
+    const c=centre().find(a=>e.o.y>=a.o.y-0.5&&e.o.y<=a.o.y+a.o.h+0.5);
+    e.ny=e.o.y<0.5||!c?0:c.ny+(e.o.y-c.o.y)/c.o.h*c.n.h;
+  }
+  // side columns (boosters): every part in one keeps one centre line, set so the column's widest point sits flush against the
+  // core beside it, with a thin decoupler's width between them if there was a gap for one before
+  const cols=new Map();for(const e of stack)if(Math.abs(e.o.x)>=0.5){const k=Math.round(e.o.x*2);if(!cols.has(k))cols.set(k,[]);cols.get(k).push(e);}
+  for(const e of stack)if(Math.abs(e.o.x)<0.5)e.nx=0;
+  for(const col of cols.values()){const sd=Math.sign(col[0].o.x);let x=0;
+    for(const e of col){const old=centre().filter(a=>a.o.y<e.o.y+e.o.h&&a.o.y+a.o.h>e.o.y),cw=old.length?Math.max(...old.map(a=>a.o.w)):0,
+        now=centre().filter(a=>a.ny<e.ny+e.n.h-0.5&&a.ny+a.n.h>e.ny+0.5),ncw=now.length?Math.max(...now.map(a=>a.n.w)):0,
+        gap=Math.abs(e.o.x)-e.o.w/2-cw/2;
+      x=Math.max(x,ncw/2+(gap>1?PT.sdec.ws[0]:0)+e.n.w/2);}
+    for(const e of col)e.nx=sd*x;}
+  // side parts (fins, legs, side decouplers): find what they hung on, then put them at the same place on its new shape
+  for(const e of q){if(!PT[e.p.t].radial)continue;
+    // a side decoupler must touch both: hang it on the booster's inner edge, at a height where the core beside it is widest
+    if(e.p.t==="sdec"){const bo=stack.find(a=>Math.abs(a.o.x)>Math.abs(e.o.x)&&Math.abs(Math.abs(a.o.x-e.o.x)-(a.o.w/2+e.o.w/2))<1.5&&e.o.y<a.o.y+a.o.h&&e.o.y+e.o.h>a.o.y);
+      const near=bo&&centre().filter(a=>a.ny<bo.ny+bo.n.h&&a.ny+a.n.h>bo.ny).sort((a,b)=>b.n.w-a.n.w)[0];
+      if(bo&&near){const sd=Math.sign(e.o.x),lo=Math.max(bo.ny,near.ny),hi=Math.min(bo.ny+bo.n.h,near.ny+near.n.h);
+        e.ny=Math.max(lo,Math.min(hi-e.n.h,lo+(hi-lo-e.n.h)*0.3));e.nx=bo.nx-sd*(bo.n.w/2+e.n.w/2);continue;}}
+    const hosts=stack.filter(a=>Math.abs(Math.abs(e.o.x-a.o.x)-(a.o.w/2+e.o.w/2))<1.5&&e.o.y<a.o.y+a.o.h&&e.o.y+e.o.h>a.o.y);
+    const h=hosts.sort((a,b)=>Math.abs(a.o.x)-Math.abs(b.o.x))[0];
+    if(!h){e.nx=e.o.x*2/3;e.ny=e.o.y;continue;}
+    const sd=Math.sign(e.o.x-h.o.x)||1;e.ny=h.ny+Math.max(0,Math.min(1,(e.o.y-h.o.y)/h.o.h))*h.n.h;
+    if(e.ny+e.n.h>h.ny+h.n.h)e.ny=Math.max(h.ny,h.ny+h.n.h-e.n.h);
+    // against the widest part of that stack beside it (an engine below a tank is narrower: hung on it, it would float off the tank)
+    const side=stack.filter(a=>Math.abs(a.nx-h.nx)<0.5&&a.ny<e.ny+e.n.h-0.5&&a.ny+a.n.h>e.ny+0.5),hw=Math.max(h.n.w,...side.map(a=>a.n.w));
+    e.nx=h.nx+sd*(hw/2+e.n.w/2);}
+  for(const e of q){const p=e.p;p.w=e.n.w;p.h=e.n.h;p.x=e.nx;p.y=e.ny;if(p.t==="adapter")p.w2=r(p.w*0.5);}
+  return ps;}
 // ready-made rockets
 function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.x=x;p.y=y;p.f=f||1;A.push(p);return p;};
   const pair=(t,x,y,w,h)=>{const a=add(t,x,y,w,h,1),b=add(t,-x,y,w,h,-1);a.tw=b.id;b.tw=a.id;};

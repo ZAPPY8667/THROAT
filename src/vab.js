@@ -3,7 +3,10 @@ const VKEY="throat.vab.v1",VLIB="throat.vehicles.v1";
 const vab=$("vab"),vcv=$("vcv"),vx=vcv.getContext("2d");
 let VW=1280,VH=720,VDS=1,vps=store.get(VKEY,null),vsel=null,vMirror=store.get("throat.vmirror",true),vU=[],vR=[],vv={s:1,ox:0,oy:0};
 let vLegsOut=false,vdrag=null,vcarry=null,vptr={X:0,Y:0},vpan=null,vAn=null,vMsgT=0,vName=store.get("throat.vname","Orbiter"),vTouch=new Map(),vPinch=null;
-if(!Array.isArray(vps)||!vps.length)vps=tpl("orbiter");partId=Math.max(partId,...vps.map(p=>p.id+1));
+if(!Array.isArray(vps)||!vps.length)vps=tpl("orbiter");
+// a rocket left in the editor before v1.16 is in the old small parts: rebuild it with today's (see upscaleOld in parts.js)
+let vOldNote=oldScale(vps);if(vOldNote)upscaleOld(vps);
+partId=Math.max(partId,...vps.map(p=>p.id+1));
 const vSave=()=>{store.set(VKEY,vps);store.set("throat.vname",vName);};
 function vFitC(){const r=vcv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);VW=Math.max(320,Math.round(r.width*d));VH=Math.max(240,Math.round(r.height*d));if(vcv.width!==VW||vcv.height!==VH){vcv.width=VW;vcv.height=VH;}VDS=d;}
 function vBox(ps){let a=1e9,b=-1e9,c=1e9,d=-1e9;for(const p of ps){a=Math.min(a,p.x-p.w/2);b=Math.max(b,p.x+p.w/2);c=Math.min(c,p.y);d=Math.max(d,p.y+p.h);}return ps.length?{x0:a,x1:b,y0:c,y1:d}:{x0:-60,x1:60,y0:0,y1:300};}
@@ -175,8 +178,11 @@ function vBarUI(){$("vCen").classList.toggle("on",vCentres);icoBtn($("vCen"),"ce
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
   sel.innerHTML=h;$("vName").value=vName;}
 $("vLoad").onchange=()=>{const v=$("vLoad").value;$("vLoad").value="";if(!v)return;vPush();
-  if(v.startsWith("t:")){vps=tpl(v.slice(2));vName=v.slice(2)[0].toUpperCase()+v.slice(3);}else{const lib=store.get(VLIB,{});vps=JSON.parse(JSON.stringify(lib[v.slice(2)]||[]));vName=v.slice(2);}
-  partId=Math.max(partId,...vps.map(p=>p.id+1),1);vsel=null;vChanged();vBarUI();vFitView();};
+  if(v.startsWith("t:")){vps=tpl(v.slice(2));vName=v.slice(2)[0].toUpperCase()+v.slice(3);}else{const lib=store.get(VLIB,{});vps=JSON.parse(JSON.stringify(lib[v.slice(2)]||[]));vName=v.slice(2);
+    if(oldScale(vps)){upscaleOld(vps);vOldNote=true;}}
+  partId=Math.max(partId,...vps.map(p=>p.id+1),1);vsel=null;vChanged();vBarUI();vFitView();vOldMsg();};
+// say so once, the next time the editor is on screen: the rocket looks different and should be checked (and saved again)
+function vOldMsg(){if(!vOldNote)return;vOldNote=false;vMsg("This rocket was built with the old small parts. It's been rebuilt with today's full-size parts: check it, then Save.");vMsgT=performance.now()+8000;}
 $("vName").oninput=()=>{vName=$("vName").value.slice(0,40);store.set("throat.vname",vName);};
 $("vSaveB").onclick=()=>{const n=(vName||"").trim()||"My rocket";const lib=store.get(VLIB,{});lib[n]=vps;store.set(VLIB,lib);vMsg(`Saved "${n}".`);vBarUI();};
 $("vDelB").onclick=()=>{const lib=store.get(VLIB,{}),n=(vName||"").trim();if(lib[n]){delete lib[n];store.set(VLIB,lib);vMsg(`Deleted "${n}".`);vBarUI();}else vMsg("Nothing saved under that name.");};
@@ -185,7 +191,7 @@ $("vLegs").onclick=()=>{vLegsOut=!vLegsOut;vBarUI();vInspUI();};$("vUndoB").oncl
 $("vClear").onclick=()=>{if(!vps.length)return;vPush();vps=[];vsel=null;vChanged();vMsg("Cleared. Ctrl+Z brings it back.");};
 $("vBack").onclick=()=>closeVab();
 $("vGo").onclick=()=>{const a=analyze(vps,engineNums());if(a.root<0||!a.stages.length||a.stages[0].twr<=1)return;closeVab(true);startFlight(vps,vName);};
-function openVab(){FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();requestAnimationFrame(vFrame);}
+function openVab(){FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();vOldMsg();requestAnimationFrame(vFrame);}
 function closeVab(toFlight){FLT.vab=false;vab.classList.remove("show");vcarry=null;if(!toFlight)enter($("stage"));if(!toFlight){S.paused=$("bPause").classList.contains("on");cfg();}}
 $("bLaunch").onclick=openVab;$("vCen").onclick=()=>{vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();};
 // ---------- drawing ----------

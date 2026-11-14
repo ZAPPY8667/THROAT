@@ -177,6 +177,20 @@ made on the test stand.
 - On phones (`SMALL`) loading a scenario zooms the stand to the walls' bounding box (`fitCam`, snapped to `ZL`, room behind the
   nozzle for the flame), and world labels (`TXT`) are 1.8× bigger. Before, the engine was a few pixels tall at 390 px wide.
 
+## v1.30: Super Heavy faster to orbit
+- Core 60 → 48 m, boosters 54 → 44 m: the core alone had TWR 1.1 after booster sep and 5.7 km/s of Δv it never used (490 t
+  left in orbit), so the ascent took ~14 game-minutes. Now ~7 (405 s on the autopilot), lift-off TWR 1.9. Menu says 91 m.
+
+## v1.31: rockets saved before v1.16 are rebuilt
+- Old saves keep the old small-part numbers (engines 60 wide, decouplers 15 tall, fins 45 wide); read at today's scale the engines
+  were ~4× too strong for tanks holding a fraction of the fuel. `oldScale` (parts.js) spots a part only the old catalogue made;
+  `upscaleOld` swaps each part for its modern size (tanks ⅔ as wide and 2.4× as long, standard engines, 60×150 booster →
+  18×260 like the Sparrow's, thin decouplers), re-stacks from the bottom, puts each side column flush to the widest core part
+  beside it (3-unit gap if it had a side decoupler), hangs fins/legs on the widest part of their stack and side decouplers on
+  the booster's inner edge. The editor does it on load (current rocket and saved ones) and says so; Save keeps the new version.
+- tests/flight/old_rockets.js: the v1.15 ready-made rockets (old_rockets.json, built by v1.15's own tpl) are spotted, rebuilt
+  with no overlaps or loose parts, reach orbit on the ascent autopilot; today's rockets are never taken for old ones.
+
 ## Things that went wrong (don't repeat)
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
   dead from v1.15b to v1.22. When editing these long lines, put new code and its comment on their own line.
