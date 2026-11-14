@@ -1,7 +1,7 @@
 // The new Earth: the pad is at sea level, there are real mountains and deep sea, the ground has no cliffs, a slow
 // splashdown floats and a fast one crashes, a craft lands on top of a mountain (not on sea level), and the clock starts at 9:00.
 const F=require('./harness.js');let bad=0;const ok=(c,t)=>{console.log((c?'ok   ':'FAIL ')+t);if(!c)bad++;};
-ok(Math.abs(F.terrH(0))<0.01,'launch pad at sea level');
+ok(Math.abs(F.terrH(0)-12)<0.01&&Math.abs(F.terrH(150))<0.01,'launch pad on its 12 m mound, ground around it at sea level');
 let hi=-1e9,lo=1e9,jump=0,prev=F.terrH(0);const C=2*Math.PI*F.PR;
 for(let s=10;s<C;s+=10){const h=F.terrH(s);hi=Math.max(hi,h);lo=Math.min(lo,h);jump=Math.max(jump,Math.abs(h-prev));prev=h;}
 ok(hi>4500,`mountains: highest peak ${(hi/1000).toFixed(1)} km`);ok(lo<-2000,`ocean: deepest ${(-lo/1000).toFixed(1)} km`);ok(jump<40,`no cliffs: biggest step ${jump.toFixed(1)} m per 10 m`);

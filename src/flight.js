@@ -330,8 +330,8 @@ function padEmit(dt){const v=AV;if(!v||v.body!==0||dt<=0)return;const fx=padFx()
   const near=Math.abs(Math.atan2(v.x,v.y)*PR)<400&&hAG<300;
   if(near&&v.F>0){const k=Math.min(1,v.F/((v.m||1)*9.81))*(1-hAG/300),n=Math.min(10,Math.random()<k*dt*70?1+((k*dt*70)|0):0);
     const tg=trenchGeo(launchW,launchH);
-    for(let i=0;i<n&&steam.length<340*QPUFF[QL];i++){const sd=Math.random()<0.5?-1:1,x0=sd*(tg.X+tg.th*0.5);
-      steam.push({x:x0,y:PR+1.5+Math.random()*3,vx:sd*(12+Math.random()*26),vy:4+Math.random()*9,t:0,life:22+Math.random()*25,r0:4+Math.random()*4,r1:(25+Math.random()*55)*Math.max(0.6,launchH/60),g:0.85+Math.random()*0.15});}}
+    for(let i=0;i<n&&steam.length<340*QPUFF[QL];i++){const sd=Math.random()<0.5?-1:1,x0=sd*tg.xe;   // out of the duct mouths on the mound's slopes, heading up and away at 45°
+      steam.push({x:x0,y:PR+PADH+tg.ye+1+Math.random()*3,vx:sd*(14+Math.random()*24),vy:10+Math.random()*12,t:0,life:22+Math.random()*25,r0:4+Math.random()*4,r1:(25+Math.random()*55)*Math.max(0.6,launchH/60),g:0.85+Math.random()*0.15});}}
   for(const q of steam){q.t+=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(0.55,dt);q.vy=q.vy*Math.pow(0.7,dt)+0.4*dt;q.x+=windDir*wx.wind*dt*0.3;}
   steam=steam.filter(q=>q.t<q.life);}
 // ---------- the loop ----------
@@ -471,9 +471,9 @@ function boom(c,v){   // fireball, flying debris and a smoke column, in local up
 // Near the pad nothing shows below the deck except inside the flame trench: the flame goes down the slot, not through the rock.
 let trK=0;   // how hard the exhaust is roaring through the trench this frame (0..1)
 function underPad(c,v,draw){if(v.body!==0||Math.abs(Math.atan2(v.x,v.y)*PR)>150||Math.hypot(v.x,v.y)-PR>400){draw();return;}
-  const m=c.getTransform();c.save();c.translate(0,PR);c.beginPath();c.rect(-1e7,-1e7,2e7,2e7);c.rect(-150,-500,300,500);trenchPath(c,trenchGeo(launchW,launchH),0);
+  const m=c.getTransform();c.save();c.translate(0,PR+PADH);const g=trenchGeo(launchW,launchH);c.beginPath();c.rect(-1e7,-1e7,2e7,2e7);groundPath(c);trenchPath(c,g,g.xe-g.tw/2);
   c.clip("evenodd");c.setTransform(m);draw();c.restore();}
-function padAt(c,ang,draw){c.save();c.translate(PR*Math.sin(ang),PR*Math.cos(ang));c.rotate(-ang);draw();c.restore();}
+function padAt(c,ang,draw){const r=PR+terrH(ang*PR);c.save();c.translate(r*Math.sin(ang),r*Math.cos(ang));c.rotate(-ang);draw();c.restore();}
 function renderFlight(dt){
   const c=fx,r=AV,B=BOD[r.body],h=Math.hypot(r.x,r.y)-B.R,psi=Math.atan2(r.x,r.y);
   c.setTransform(1,0,0,1,0,0);

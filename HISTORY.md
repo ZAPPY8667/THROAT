@@ -255,6 +255,11 @@ made on the test stand.
   rocket's own flame is clipped (`underPad`, evenodd clip) so below the deck it only shows inside the trench, not through rock.
   At night the trench fire is put back in the glow pass.
   Made deeper and bolder after Wyatt's first look (depth 30 m+, thick lining, hazard stripes down the slot).
+- Redone after Wyatt's second look: **two straight 45° ducts** (a slot, the wedge, then ducts rising at 45° out through the
+  pad's slopes; `trenchGeo` finds where each comes out, steam starts there) instead of the U tunnels. **The pad is raised**:
+  `padMound` in `terrH` (12 m high, flat ±44 m, smooth slopes out to ±74 m, `PADH/PADT/PADS`), so it's physical ground too;
+  `padAt` now uses the real ground height; the deck never overhangs the mound. Tests: world.js expects the 12 m mound,
+  clamps.js measures the rocket's height from the pad, not sea level. Altitude on the pad now reads ~12 m more (it's above sea level).
 - **Tower in the background**: the launch tower is drawn at half strength (hazy), so the rocket stands out in front; the deck stays solid.
 - **Clean view**: a button in the top-right corner (or V) hides every display (`#flight.clean`) so only the rocket shows.
 - **More fold-away tabs** on the right: GAUGES (speed/altitude dials), TIMELINE (clock + events), STEER (heading ring + SAS
