@@ -97,6 +97,10 @@ made on the test stand.
 - Ground collisions use the real terrain under each contact point; the sea floats a slow splashdown. Landing zone moved to 2 km
   west (east of the pad is now ocean).
 - The camera pulls back as the rocket climbs (ground kept in the bottom of the frame); a marker shows the rocket when it's tiny.
+- Wyatt: "make the continents look real" → a painted globe (domain-warped 3D noise, climate zones, ridged mountains, cloud layer)
+  drawn whenever the planet is small on screen and on the map; near the rim it blends into the real terrain so they agree.
+- Thick, detailed launch tower: lattice with X-bracing, platforms, elevator, stairs, crane, umbilical arms with hoses and a crew
+  arm; the arms swing away in the 1.6 s after lift-off. (Phase 3 will add the countdown, clamps, venting and deluge.)
 - Night darkens the scene with an overlay, then lights and engine flames are drawn again on top so they glow.
 
 ## Things that went wrong (don't repeat)

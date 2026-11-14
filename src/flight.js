@@ -349,8 +349,7 @@ function renderFlight(dt){
     // Earth: real ground (biomes, sea, trees, rocks, buildings: world.js), then the pads on top
     drawEarth(c,psi*PR,s,FT,now);
     // pads are drawn at a scale that fits the rocket (k), with the pad's top at ground level so the rocket stands on it
-    padAt(c,0,()=>{const k=Math.max(2,launchH/12);c.scale(k,k);c.translate(0,-0.4);const tx=-(launchW/2/k+2.2);c.fillStyle="#7c8495";c.fillRect(-8,-0.5,16,0.9);c.fillStyle="#9aa3b5";c.fillRect(tx,0,0.5,14);for(let i=0;i<8;i++)c.fillRect(tx,i*1.75,1.6,0.12);
-      c.fillStyle="#e8b923";c.fillRect(-1,0.36,2,0.06);});
+    padAt(c,0,()=>drawTower(c,launchW,launchH,T0==null?0:Math.min(1,(FT-T0)/1.6)));   // the launch tower; its arms swing away at lift-off
     padAt(c,PAD2/PR,()=>{c.scale(5,5);c.translate(0,-0.4);c.fillStyle="#6d7586";c.fillRect(-9,-0.5,18,0.9);c.fillStyle="#e8e9ee";c.fillRect(-6,0.38,12,0.04);c.fillStyle="#e8b923";for(const x of[-7.5,7.5])c.fillRect(x-0.4,0.36,0.8,0.06);
       c.fillStyle="#d24b3a";c.fillRect(-0.15,0.4,0.3,3);c.beginPath();c.moveTo(0.15,3.4);c.lineTo(1.8,3.05);c.lineTo(0.15,2.7);c.fill();});}
   else{

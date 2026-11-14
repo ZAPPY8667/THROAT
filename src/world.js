@@ -70,9 +70,11 @@ function drawEarth(c,sc,px,t,now){
   const ang=[],H=[];for(let i=0;i<=N;i++){const a=a0+i*da;ang.push(a);H.push(terrH(a*PR));}
   const P=(a,r)=>[Math.sin(a)*r,Math.cos(a)*r];
   // rock underneath everything
-  c.fillStyle="#3b3128";if(full){c.beginPath();c.arc(0,0,PR-3200,0,6.2832);c.fill();}
+  const far=px*PR<5000;   // far enough to see the planet as a ball: paint the globe under the real rim
+  if(far)drawGlobe(c,PR-1500,true);
+  c.fillStyle="#3b3128";if(full&&!far){c.beginPath();c.arc(0,0,PR-3200,0,6.2832);c.fill();}
   c.beginPath();for(let i=0;i<=N;i++){const[x,y]=P(ang[i],PR+H[i]);i?c.lineTo(x,y):c.moveTo(x,y);}
-  for(let i=N;i>=0;i-=Math.max(1,N>>6)){const[x,y]=P(ang[i],PR-3400);c.lineTo(x,y);}c.closePath();c.fill();
+  for(let i=N;i>=0;i-=Math.max(1,N>>6)){const[x,y]=P(ang[i],PR-(far?Math.max(3400,12/px):3400));c.lineTo(x,y);}c.closePath();if(!far)c.fill();
   // soil / sand / snow band along the top, coloured by biome; snow on high ground
   let i=0;while(i<N){const b=biomeAt(ang[i]*PR);let j=i;const snow=H[i]>3600;while(j<N&&biomeAt(ang[j+1]*PR)===b&&(H[j+1]>3600)===snow)j++;j=Math.min(N,j+1);
     c.beginPath();for(let k=i;k<=j;k++){const[x,y]=P(ang[k],PR+H[k]);k>i?c.lineTo(x,y):c.moveTo(x,y);}
@@ -149,3 +151,74 @@ let lightT=5,lightF=0;
 function drawEarthShadow(c,psi,h,px){if(h<15000)return;const sg=sunAng(FT),k=Math.min(1,(h-15000)/40000);c.save();
   for(const[off,al]of[[0,0.55],[0.05,0.15],[-0.05,0.15]]){c.beginPath();c.moveTo(0,0);c.arc(0,0,PR+3000,-sg-Math.PI+off,-sg-off*0);c.closePath();c.fillStyle=`rgba(2,6,18,${al*k})`;c.fill();}
   c.restore();}
+// ================= the launch tower (umbilical tower) =================
+// A thick steel lattice tower west of the rocket, a bit taller than it: two heavy corner columns with X-bracing in every bay,
+// a platform every 8 m, an elevator shaft and stairs inside, a lightning mast on top, and swing arms out to the rocket:
+// umbilical arms with sagging hoses (fuel, power, data) and a crew access arm near the top. The arms swing up and away when the
+// rocket lifts off (retract 0 → 1). Sizes in metres; x = 0 is the rocket's centre line, y = 0 the pad deck.
+function drawTower(c,rw,rh,retract){const H=Math.max(30,rh*1.12+8),W=Math.max(13,Math.min(24,rh*0.17)),gap=Math.max(7,rw*0.3),xR=-(rw/2+gap),xL=xR-W;
+  const steel="#5d636c",dark="#3a3f46",lite="#8a919b";
+  // the pad deck: a concrete slab with the flame trench opening under the rocket and hold-down posts
+  c.fillStyle="#8b8f95";c.fillRect(xL-12,-4,(rw/2+gap+W+12)*2,4);c.fillStyle="#6e7278";c.fillRect(xL-12,-0.6,(rw/2+gap+W+12)*2,0.6);
+  c.fillStyle="#1d1f23";c.fillRect(-rw*0.45,-4,rw*0.9,3.2);
+  c.fillStyle=dark;for(const x of[-rw/2-1.2,rw/2+0.2])c.fillRect(x,0,1,2.2);
+  // corner columns (thick), with a light edge so they read as steel
+  for(const x of[xL,xR-2.2]){c.fillStyle=steel;c.fillRect(x,0,2.2,H);c.fillStyle=lite;c.fillRect(x,0,0.5,H);c.fillStyle=dark;c.fillRect(x+1.7,0,0.5,H);}
+  // bays: horizontal beams and X-bracing
+  const bay=Math.max(4,W*0.5),mid=(xL+xR)/2;c.strokeStyle=steel;c.lineWidth=0.7;c.beginPath();   // two columns of X-bracing with a middle post
+  for(let y=0;y<H-0.5;y+=bay){const y1=Math.min(H,y+bay);for(const[a,b]of[[xL+2.2,mid],[mid,xR-2.2]]){c.moveTo(a,y);c.lineTo(b,y1);c.moveTo(b,y);c.lineTo(a,y1);}c.moveTo(xL+2.2,y);c.lineTo(xR-2.2,y);}c.stroke();
+  c.fillStyle=steel;c.fillRect(mid-0.5,0,1,H);
+  // service platforms every 8 m: a deck with a handrail sticking out toward the rocket
+  for(let y=8;y<H-2;y+=8){c.fillStyle=dark;c.fillRect(xL-0.6,y-0.5,W+1.6,0.9);c.strokeStyle=lite;c.lineWidth=0.18;c.beginPath();c.moveTo(xL-0.6,y+1.1);c.lineTo(xR+0.8,y+1.1);c.stroke();}
+  // elevator shaft and the stairs zig-zagging beside it
+  c.fillStyle="rgba(30,33,38,.75)";c.fillRect(xL+W*0.18,0,W*0.28,H-3);c.fillStyle="#c9ccd1";const cab=((performance.now()/1000)%40)/40;c.fillRect(xL+W*0.2,(cab<0.5?cab*2:2-cab*2)*(H-8)+1,W*0.24,2.6);
+  c.strokeStyle="rgba(150,156,165,.7)";c.lineWidth=0.2;c.beginPath();for(let y=0;y<H-2;y+=4){const a=xL+W*0.55,b=xR-1.8;c.moveTo(a,y);c.lineTo(b,y+2);c.lineTo(a,y+4);}c.stroke();
+  // top: a cap, the lightning mast and a hammerhead crane
+  c.fillStyle=dark;c.fillRect(xL-1,H,W+2,1.6);c.fillStyle=lite;c.fillRect(xL+W/2-0.25,H+1.6,0.5,H*0.18);
+  c.fillStyle=steel;c.fillRect(xL-W*0.6,H+1.6,W*2.1,1.1);c.fillRect(xL+W*0.4,H+1.6,1,3);c.strokeStyle=lite;c.lineWidth=0.12;c.beginPath();c.moveTo(xL+W*1.3,H+1.6);c.lineTo(xL+W*1.3,H-6);c.stroke();
+  // swing arms: three umbilical arms with hoses, and the crew access arm with its white room near the top
+  const arms=[[0.28,0],[0.55,0],[0.8,0],[0.93,1]];
+  for(const[f,crew]of arms){const y=Math.min(H-3,rh*f),L=gap+0.2,a=retract*(crew?1.3:1.1);   // swing up and back toward the tower
+    c.save();c.translate(xR,y);c.rotate(a);
+    c.fillStyle=crew?"#c9ccd1":steel;c.fillRect(0,-0.9,L,crew?3:1.8);c.fillStyle=dark;c.fillRect(0,-0.9,L,0.4);c.strokeStyle=lite;c.lineWidth=0.15;c.beginPath();
+    for(let x=0;x<L;x+=1.2){c.moveTo(x,-0.5);c.lineTo(x+0.6,crew?1.9:0.6);}c.stroke();
+    if(crew){c.fillStyle="#e9ebee";c.fillRect(L-2.2,-0.5,2.2,2.6);c.fillStyle="#1f2329";c.fillRect(L-1.6,0.2,1,1.2);}
+    else if(retract<0.05){c.strokeStyle="#1c1e22";c.lineWidth=0.55;for(const k of[0.15,0.4,0.65]){c.beginPath();c.moveTo(L*k,-0.9);c.quadraticCurveTo((L*k+L)/2,-4.5-k*2,L,-1.4);c.stroke();}
+      c.fillStyle="#2a2d33";c.fillRect(L-0.6,-1.6,0.6,1.2);}
+    c.restore();}}
+// ================= the globe: what the planet looks like from far away =================
+// The game is a slice through the planet, so only the rim is "real ground". From orbit and on the map you look at the whole
+// disc, so it gets a painted globe: continents with natural coastlines (fractal noise, warped so they don't look like blobs),
+// climate zones (ice, tundra, forest, grassland, desert, jungle), mountain ranges with snow, shallow seas near the coasts, and
+// a layer of cloud. Near the rim it fades into the real biomes and coastline, so the two always agree. Made once, then cached.
+const h3=(x,y,z)=>{const n=Math.sin(x*127.1+y*311.7+z*74.7)*43758.5453;return n-Math.floor(n);};
+function vn3(x,y,z){const X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z),fx=x-X,fy=y-Y,fz=z-Z,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),w=fz*fz*(3-2*fz);
+  const L=(a,b,t)=>a+(b-a)*t,c=(i,j,k)=>h3(X+i,Y+j,Z+k);
+  return L(L(L(c(0,0,0),c(1,0,0),u),L(c(0,1,0),c(1,1,0),u),v),L(L(c(0,0,1),c(1,0,1),u),L(c(0,1,1),c(1,1,1),u),v),w);}
+function fbm3(x,y,z,o){let a=0.5,s=0,f=1;for(let i=0;i<o;i++){s+=a*vn3(x*f,y*f,z*f);f*=2.03;a*=0.5;}return s;}
+let globeTex=null,cloudTex=null;
+function makeGlobe(){const N=640,cv=document.createElement("canvas"),cc=document.createElement("canvas");cv.width=cv.height=cc.width=cc.height=N;
+  const g=cv.getContext("2d"),gc=cc.getContext("2d"),im=g.createImageData(N,N),ic=gc.createImageData(N,N),d=im.data,dc=ic.data;
+  const C=(hex)=>hexRGB(hex),ICE=C("#e8eef3"),TUN=C("#7d8467"),FOR=C("#355f2e"),GRA=C("#6b8f45"),DES=C("#d2b274"),JUN=C("#2a5a24"),ROCK=C("#6f665a"),SNOW=C("#f2f5f8");
+  const DEEP=[10,38,72],MIDS=[20,70,120],SHAL=[44,130,160];
+  for(let py=0;py<N;py++)for(let px=0;px<N;px++){const x=(px+0.5)/N*2-1,y=1-(py+0.5)/N*2,r=Math.hypot(x,y),o=(py*N+px)*4;if(r>1){d[o+3]=dc[o+3]=0;continue;}
+    const z=Math.sqrt(Math.max(0,1-r*r)),X=x*1.7,Y=y*1.7,Z=z*1.7;
+    const wx=fbm3(X+3.1,Y,Z,3)-0.5,wy=fbm3(X,Y+5.7,Z,3)-0.5;   // domain warp: twisty, believable coastlines
+    let n=fbm3(X+wx*1.6,Y+wy*1.6,Z,6),land=n-0.52;
+    const ang=Math.atan2(x,y),sx=ang*PR,th=terrH(sx),b=biomeAt(sx),wr=Math.max(0,Math.min(1,(r-0.9)/0.08))**2;   // near the rim: the real coast and biome
+    land=land*(1-wr)+(th>=0?0.06:-0.06)*wr;
+    let col;
+    if(land<0){const dp=Math.min(1,-land*7);col=dp<0.25?mixC(SHAL,MIDS,dp/0.25):mixC(MIDS,DEEP,(dp-0.25)/0.75);}
+    else{const temp=fbm3(X*0.7+9,Y*0.7,Z*0.7,3)+(0.35-Math.abs(y)*0.45)*0.6,wet=fbm3(X*1.3,Y*1.3+11,Z*1.3,4),ridge=1-Math.abs(fbm3(X*2.2+2,Y*2.2,Z*2.2,5)*2-1),mtn=Math.max(0,ridge-0.72)*3.6*Math.min(1,land*14);
+      col=temp<0.42?ICE:temp<0.5?TUN:temp>0.66&&wet<0.48?DES:temp>0.64&&wet>0.55?JUN:wet>0.5?FOR:GRA;
+      if(mtn>0)col=mixC(col,mtn>0.75?SNOW:ROCK,Math.min(1,mtn));
+      if(wr>0)col=mixC(col,th>3600?SNOW:hexRGB(b[4]),wr);
+      col=mixC(col,[col[0]*0.85,col[1]*0.9,col[2]*0.8],Math.min(1,land*5)*0.3);}   // inland a touch darker
+    const sh=0.5+0.5*z;   // a round planet: darker toward the edge
+    d[o]=col[0]*sh;d[o+1]=col[1]*sh;d[o+2]=col[2]*sh;d[o+3]=255;
+    const cl=fbm3(X*1.4+wx*2.5+20,Y*2.8+wy*2,Z*1.4,5);const ca=Math.max(0,Math.min(1,(cl-0.55)*4))*0.85;dc[o]=dc[o+1]=dc[o+2]=255;dc[o+3]=ca*255*(0.6+0.4*z);}
+  g.putImageData(im,0,0);gc.putImageData(ic,0,0);globeTex=cv;cloudTex=cc;}
+// draw the globe at radius R (world coordinates, y up), with its clouds and a thin glow of air around it
+function drawGlobe(c,R,clouds){if(!globeTex){if(typeof document==="undefined")return;makeGlobe();}
+  const g=c.createRadialGradient(0,0,R,0,0,R*1.035);g.addColorStop(0,"rgba(110,170,255,.55)");g.addColorStop(1,"rgba(110,170,255,0)");c.fillStyle=g;c.beginPath();c.arc(0,0,R*1.035,0,6.2832);c.fill();
+  c.save();c.scale(1,-1);c.drawImage(globeTex,-R,-R,2*R,2*R);if(clouds)c.drawImage(cloudTex,-R,-R,2*R,2*R);c.restore();}
