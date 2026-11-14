@@ -336,9 +336,11 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
     pair("leg",W/2+15,A.find(p=>p.t==="engine"&&p.e==="wren").y+32);pair("fin",84/2+15,70);}
   else if(name==="sls"){   // SLS proportions: an 8.4 m orange core with a 4-engine cluster, two slim 3.7 m solid boosters flush to its
     // sides with pointed noses, an upper stage with a vacuum engine, a service module, and an Orion-style capsule with its escape tower
+    // core 48 m, boosters 44 m (v1.30; were 60 and 54): the long core alone had a thrust-to-weight of 1.1 after the boosters left,
+    // so the climb to orbit took ~14 minutes and it arrived with 490 t of fuel unused. Now it gets there in ~7, like the others.
     const C=84,eng=add("engine:stand:4",0,0,C);let y=eng.h;
-    const core=add("tank",0,y,C,600);core.sk="foam";y+=600;
+    const core=add("tank",0,y,C,480);core.sk="foam";y+=480;
     const ad=add("adapter",0,y,C,50);ad.w2=50;y+=50;
     y=stack(y,[["dec",50],["engine:vac",28],["tank",50,80],["dec",50],["engine:wren",22],["tank",50,36],["capsule",50],["les",14]]);
-    const bw=37,bx=C/2+3+bw/2;pair("sdec",C/2+1.5,200);pair("srb:thumper",bx,0,bw,540);pair("nose",bx,540,bw,80);for(const p of A)if(p.t==="nose"&&p.w===bw)p.ns="cone";}
+    const bw=37,bx=C/2+3+bw/2;pair("sdec",C/2+1.5,200);pair("srb:thumper",bx,0,bw,440);pair("nose",bx,440,bw,80);for(const p of A)if(p.t==="nose"&&p.w===bw)p.ns="cone";}
   return A;}
