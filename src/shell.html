@@ -354,6 +354,12 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .saslist button kbd{display:inline-block!important}
 /* title screen (title.js): over the live demo, whose cockpit displays are hidden */
 #flight.attract>*:not(#fcv){visibility:hidden!important}
+/* clean view (v1.36): one button in the top-right corner hides every display, so the rocket has the screen to itself */
+.cleanb{position:absolute;top:12px;right:12px;z-index:9;width:34px;height:34px;background:rgba(0,0,0,.55);backdrop-filter:blur(6px)}
+.cleanb.on{border-color:var(--red);box-shadow:inset 0 -2px 0 var(--red)}
+#flight.clean>*:not(#fcv):not(#fClean){visibility:hidden!important}
+#flight.attract .cleanb{visibility:hidden!important}
+@media (max-width:700px){.cleanb{top:2px;right:4px;width:28px;height:28px}}
 .title{position:fixed;inset:0;z-index:80;background:linear-gradient(90deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.55) 42%,rgba(0,0,0,0) 70%);display:flex;align-items:center}
 .title-box{margin-left:6vw;max-width:min(560px,88vw);color:var(--txt)}
 .title-tag{font:600 11px var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--dim)}.title-tag::before{content:"";display:inline-block;width:14px;height:2px;background:var(--red);vertical-align:middle;margin-right:10px}
@@ -471,7 +477,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <div>Throttle up / down<i><kbd>Shift</kbd> <kbd>Ctrl</kbd> or <kbd>W</kbd> <kbd>S</kbd></i></div><div>Full / cut<i><kbd>Z</kbd> <kbd>X</kbd></i></div>
       <div>Steer<i><kbd>A</kbd> <kbd>D</kbd></i></div><div>Countdown, then next stage<kbd>Space</kbd></div>
       <div>Landing legs<kbd>G</kbd></div><div>RCS on / off<kbd>T</kbd></div><div>Parachutes (capsule)<kbd>P</kbd></div><div>ABORT (escape tower)<kbd>Backspace</kbd></div><div>RCS nudge<i><kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd></i></div><div>SAS holds<i><kbd>1</kbd>–<kbd>9</kbd></i></div><div></div><div>Fly another craft<i><kbd>[</kbd> <kbd>]</kbd></i></div>
-      <div>Map<kbd>M</kbd></div><div>Time / weather / warp to<i>TIME tab</i></div><div>Time warp<i><kbd>.</kbd> <kbd>,</kbd></i></div>
+      <div>Map<kbd>M</kbd></div><div>Clean view (hide the displays)<kbd>V</kbd></div><div>Time / weather / warp to<i>TIME tab</i></div><div>Time warp<i><kbd>.</kbd> <kbd>,</kbd></i></div>
       <div>Retry / editor<i><kbd>R</kbd> <kbd>B</kbd></i></div><div>Back to the test stand<kbd>Esc</kbd></div>
     </div>
     <p class="tip" style="margin:12px 0 0">Click a valve, igniter or tank with the <b>Select</b> tool to change its settings: which number key runs it, open/closed, start delay, length, direction, gas and pressure. Press <b>H</b> or <b>Esc</b> to close.</p>
@@ -496,6 +502,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 </div>
 <div class="flight" id="flight">
   <canvas id="fcv" aria-label="Flight view"></canvas>
+  <button class="b ico cleanb" id="fClean" title="Clean view: hide every display so only the rocket shows (V)" data-ic="eye"></button>
   <div class="live" id="fLive"><i></i>LIVE<span id="fVes"></span><em id="fWarp"></em></div>
   <div class="dials" id="fDials"><div class="dial" id="dSpd"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fSpd">–</b><small id="fSpdU">M/S</small></div><span>SPEED</span></div><div class="dial" id="dAlt"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fAlt">–</b><small id="fAltU">M</small></div><span>ALTITUDE</span></div></div>
   <div class="tline" id="fTline"><div class="tclk"><b id="fClock">T+00:00:00</b><span id="fStageN"></span></div><div class="tl" id="fTl"><div class="tlbar"><i id="fTlFill"></i></div></div></div>

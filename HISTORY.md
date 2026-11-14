@@ -247,6 +247,18 @@ made on the test stand.
   tanks 300 → 140, Lander 160/90 → 70/40, Super Heavy service module 36 → 18; old-save upgrade makes kerosene tanks shorter.
   The editor shows "120 t kerosene + oxygen". All ready-made rockets still reach orbit on the autopilot.
 
+## v1.36: flame trench, clean view, everything folds away
+- **Flame trench** (`trenchGeo`/`trenchPath`/`drawTrench` in world.js): the ground under the pad is drawn cut open: a slot
+  under the rocket, a steel deflector wedge that splits the exhaust, two tunnels, and vents coming up beyond the tower on both
+  sides. While engines fire near the pad (`trK` = TWR, fading out by 120 m up) the trench glows white-hot down the slot and
+  orange along the tunnels, with fire blasting out of the vents; the steam clouds now billow from the vents. Near the pad the
+  rocket's own flame is clipped (`underPad`, evenodd clip) so below the deck it only shows inside the trench, not through rock.
+  At night the trench fire is put back in the glow pass.
+- **Clean view**: a button in the top-right corner (or V) hides every display (`#flight.clean`) so only the rocket shows.
+- **More fold-away tabs** on the right: GAUGES (speed/altitude dials), TIMELINE (clock + events), STEER (heading ring + SAS
+  buttons) join DATA/TIME/SAS. Only GAUGES starts open now (DATA used to). `free:true` tabs don't count in the phones'
+  one-panel-at-a-time rule. foldUI fix: a tab with no saved state starts the way its def says (new tabs used to start closed).
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

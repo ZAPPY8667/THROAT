@@ -6,7 +6,8 @@ const ICP={
   trophy:["M8 21h8","M12 17v4","M7 4h10v5a5 5 0 0 1-10 0z","M17 5h3v2a3 3 0 0 1-3 3","M7 5H4v2a3 3 0 0 0 3 3"],
   sound:["M11 5 6 9H3v6h3l5 4z","M15.5 8.5a5 5 0 0 1 0 7","M18.5 5.5a9 9 0 0 1 0 13"],mute:["M11 5 6 9H3v6h3l5 4z","M22 9l-6 6","M16 9l6 6"],
   help:["o 12 12 9","M9.6 9.2a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .8-1 1.6","M12 16.8v.2"],reload:["M20 12a8 8 0 1 1-2.4-5.7","M20 4v5h-5"],
-  pause:["M9 5v14","M15 5v14"],play:["M8 5l11 7-11 7z"],globe:["o 12 12 9","M3 12h18","M12 3c-3 3.5-3 14.5 0 18","M12 3c3 3.5 3 14.5 0 18"],
+  pause:["M9 5v14","M15 5v14"],eye:["M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z","o 12 12 3"],eyeoff:["M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z","M4 20 20 4"],
+play:["M8 5l11 7-11 7z"],globe:["o 12 12 9","M3 12h18","M12 3c-3 3.5-3 14.5 0 18","M12 3c3 3.5 3 14.5 0 18"],
   vacuum:["M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"],clear:["M3 8h10a3 3 0 1 0-3-3","M3 16h13a3 3 0 1 1-3 3","M3 12h17"],
   undo:["M9 14 4 9l5-5","M4 9h10a6 6 0 0 1 0 12h-3"],redo:["M15 14l5-5-5-5","M20 9H10a6 6 0 0 0 0 12h3"],
   folder:["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"],book:["M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z","M5 18a2 2 0 0 1 2-2h12","M9 8h6"],
@@ -726,11 +727,11 @@ function foldUI(host,name,defs){
       if(on){d.el.classList.remove("folded","closing");if(anim&&!REDUCED){d.el.classList.remove("opening");void d.el.offsetWidth;d.el.classList.add("opening");}}
       else if(anim&&!REDUCED){d.el.classList.add("closing");setTimeout(()=>{if(!mine[d.label]){d.el.classList.add("folded");d.el.classList.remove("closing");}},180);}
       else d.el.classList.add("folded");};
-    show(mine[d.label]!==false&&mine[d.label]!==undefined?true:false,false);
+    show(mine[d.label]===undefined?!!d.open:!!mine[d.label],false);
     t.onclick=()=>{const on=!mine[d.label];
-      if(on&&matchMedia("(max-width:700px)").matches)for(const o of defs)if(o!==d&&mine[o.label])api[o.label](false);   // phones: one panel at a time
+      if(on&&!d.free&&matchMedia("(max-width:700px)").matches)for(const o of defs)if(o!==d&&!o.free&&mine[o.label])api[o.label](false);   // phones: one panel at a time
       show(on,true);save();};api[d.label]=on=>{show(on,true);save();};}
-  if(matchMedia("(max-width:700px)").matches){let seen=false;for(const d of defs)if(mine[d.label]){if(seen)api[d.label](false);seen=true;}}
+  if(matchMedia("(max-width:700px)").matches){let seen=false;for(const d of defs)if(mine[d.label]&&!d.free){if(seen)api[d.label](false);seen=true;}}
   return api;}
 // ---------- movable panels ----------
 const PS="throat.panels.v1";

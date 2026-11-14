@@ -246,6 +246,37 @@ function drawFlameGlow(c,x,y,k){if(k<=0.01)return;const R=60+140*k;c.save();c.gl
 // heat shimmer over the flame trench: faint wavy bands of warm air
 function drawShimmer(c,rw,k,now){if(k<=0.01)return;c.save();c.strokeStyle=`rgba(255,240,220,${0.07*k})`;c.lineWidth=0.6;for(let j=0;j<6;j++){c.beginPath();const y0=2+j*3;
   for(let x=-rw*1.2;x<=rw*1.2;x+=1){const y=y0+Math.sin(x*0.6+now*7+j)*0.6;x===-rw*1.2?c.moveTo(x,y):c.lineTo(x,y);}c.stroke();}c.restore();}
+// ================= the flame trench (v1.36) =================
+// Real pads don't let the exhaust hit flat concrete: it goes down a deep slot under the rocket, hits a steel wedge (the flame
+// deflector) that splits it in two, and runs through tunnels to vents on both sides, well away from the rocket and the tower.
+// The ground is drawn cut open so you can see it. Pad frame, metres: x = 0 the rocket's centre line, y = 0 the deck, y up.
+function trenchGeo(rw,rh){const W=Math.max(13,Math.min(24,rh*0.17)),gap=Math.max(7,rw*0.3),tw=Math.max(3,rw*0.9),th=Math.max(5,rw*0.45);
+  return{tw,th,D:4+Math.max(12,rw*1.1)+th,X:rw/2+gap+W+16};}   // tw: slot width, th: tunnel height, D: depth, X: where the vents come up
+// the inside of the trench as one outline; top: where the slot starts. open: leave out the edges across openings (for the lining)
+function trenchPath(c,g,top,open){const{tw,th,D,X}=g,L=open?(x,y)=>c.moveTo(x,y):(x,y)=>c.lineTo(x,y);
+  c.moveTo(-tw/2,top);L(tw/2,top);c.lineTo(tw/2,-D+th);c.lineTo(X-th,-D+th);c.quadraticCurveTo(X,-D+th,X,0);L(X+th,0);c.quadraticCurveTo(X+th,-D,X-th,-D);
+  c.lineTo(tw/2,-D);c.lineTo(0,-D+th*0.8);c.lineTo(-tw/2,-D);
+  c.lineTo(-(X-th),-D);c.quadraticCurveTo(-(X+th),-D,-(X+th),0);L(-X,0);c.quadraticCurveTo(-X,-D+th,-(X-th),-D+th);c.lineTo(-tw/2,-D+th);c.lineTo(-tw/2,top);}
+// k: how hard the exhaust is roaring through it (0..1). fireOnly: just the glowing gas (the night pass puts the glow back on top)
+function drawTrench(c,rw,rh,k,now,fireOnly){const g=trenchGeo(rw,rh),{tw,th,D,X}=g;c.save();
+  if(!fireOnly){c.beginPath();trenchPath(c,g,0);c.fillStyle="#131417";c.fill();
+    c.beginPath();trenchPath(c,g,0,true);c.strokeStyle="#8b8f95";c.lineWidth=1.1;c.stroke();   // concrete lining
+    c.fillStyle="#6b7179";c.beginPath();c.moveTo(-tw/2,-D);c.lineTo(0,-D+th*0.8);c.lineTo(tw/2,-D);c.closePath();c.fill();   // the deflector wedge
+    c.fillStyle="#9a9ea4";for(const sd of[-1,1])c.fillRect(sd>0?X+th:-X-th-2.5,-0.8,2.5,0.8);}   // concrete lips round the vents
+  if(k>0.01){c.save();c.beginPath();trenchPath(c,g,0);c.clip();
+    let gr=c.createLinearGradient(0,0,0,-D);gr.addColorStop(0,`rgba(255,244,210,${0.95*k})`);gr.addColorStop(1,`rgba(255,160,60,${0.85*k})`);c.fillStyle=gr;c.fillRect(-tw/2,-D,tw,D);   // white-hot down the slot
+    for(const sd of[-1,1]){gr=c.createLinearGradient(0,0,sd*(X+th),0);gr.addColorStop(0,`rgba(255,180,80,${0.85*k})`);gr.addColorStop(1,`rgba(255,100,30,${0.5*k})`);
+      c.fillStyle=gr;c.fillRect(sd>0?tw/2:-(X+th),-D,X+th-tw/2,D);
+      for(let i=0;i<16;i++){const u=(now*1.4+i/16+(sd>0?0:0.03))%1;let x,y;   // hot lumps rushing along the tunnel and up the vent
+        if(u<0.7){x=tw/2+u/0.7*(X-th-tw/2);y=-D+th/2;}else{const t=(u-0.7)/0.3,a=X-th,b=X+th/2;x=(1-t)*(1-t)*a+2*t*(1-t)*b+t*t*b;y=(1-t*t)*(-D+th/2);}
+        const rr=th*(0.55+0.25*Math.sin(i*2.7+now*9)),g2=c.createRadialGradient(sd*x,y,0,sd*x,y,rr);g2.addColorStop(0,`rgba(255,235,170,${0.6*k*(1-u*0.5)})`);g2.addColorStop(1,"rgba(255,140,40,0)");
+        c.fillStyle=g2;c.fillRect(sd*x-rr,y-rr,2*rr,2*rr);}}
+    c.restore();
+    // out of the vents: fire and hot gas blasting up and away from the pad
+    for(const sd of[-1,1]){const x0=sd*(X+th/2);for(let j=0;j<3;j++){const fl=0.85+0.3*Math.sin(now*(17+j*5)+j*2+sd),Lt=th*(1.6+j*0.9)*k*fl,ax=sd*(0.35+j*0.12),n=Math.hypot(ax,1),dx=ax/n,dy=1/n;
+      const gr2=c.createLinearGradient(x0,0,x0+dx*Lt,dy*Lt);gr2.addColorStop(0,`rgba(255,225,150,${0.75*k})`);gr2.addColorStop(0.5,`rgba(255,140,50,${0.45*k})`);gr2.addColorStop(1,"rgba(255,90,30,0)");
+      c.fillStyle=gr2;c.beginPath();c.moveTo(x0-th*0.45,0);c.lineTo(x0+dx*Lt,dy*Lt);c.lineTo(x0+th*0.45,0);c.closePath();c.fill();}}}
+  c.restore();}
 // ================= clouds by altitude (phase 4) =================
 // Three layers, like real weather: puffy cumulus at 1–3 km, flat stratus sheets at 4–8 km, thin wispy cirrus at 9–14 km; none
 // higher. Each cloud has a depth d: 0 = level with the rocket (you can fly through it), > 0 = further away (drawn smaller and
