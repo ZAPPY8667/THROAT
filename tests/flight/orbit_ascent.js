@@ -10,7 +10,9 @@ while(t<1500){const {h,o,a}=st();const psi=Math.atan2(a.x,a.y);let u=0;
   else if(phase==='circ'){const vang=Math.atan2(a.vx,a.vy);u=Math.max(-1,Math.min(1,Math.atan2(Math.sin(vang-a.phi),Math.cos(vang-a.phi))*3));if(o.pe>45e3){a.thr=0;phase='done';}}
   // stage when the current stage is dry
   const lit=a.feeds.map(f=>f.reduce((s,j)=>s+a.ps[j].fuel,0)).some(x=>x>1e-3);
-  if(a.thr>0&&!lit){F.doStage();staged++;}
+  // and drop solid boosters once they've burnt out (a player presses Space when the flame goes out)
+  const srbs=a.eng.filter(i=>a.ps[i].t==='srb');
+  if(a.thr>0&&(!lit||srbs.length&&srbs.every(i=>a.ps[i].fuel<1e-3))){F.doStage();staged++;}
   for(const v of F.VS)F.stepV(v,dt,v===F.AV?u:0);t+=dt;
   if(t>log){log+=30;console.log(`t=${t.toFixed(0)} ${phase} h=${(h/1000).toFixed(1)}km v=${Math.hypot(a.vx,a.vy).toFixed(0)} q=${(a.q||0).toFixed(0)} Ap=${o.esc?'esc':(o.ap/1000).toFixed(1)} Pe=${o.esc?'-':(o.pe/1000).toFixed(1)} vessels=${F.VS.length} crashed=${F.VS.filter(v=>v.crashed).length}`);}
   if(a.crashed){console.log('CRASH',t);break;}

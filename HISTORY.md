@@ -78,6 +78,17 @@ made on the test stand.
   can't out-turn A/D. In thick air at speed the fins can beat the reaction wheel; the test (tests/flight/sas_holds.js) checks the
   surface modes above the Moon for that reason.
 
+## v1.16 (start of phase 1.5): real-size rockets
+- Wyatt: parts too wide, too small (a tank held ~90 kg; he wants ~90 t), side boosters sat far from the core.
+- Units are now 10 cm (`UM`), so every rocket is 10× longer; volume (propellant, masses) and thrust are ×1000 (`MK`), which keeps
+  TWR and Δv about where they were. Engines and boosters scale thrust and mass with width² from a reference size.
+- Solid boosters were ~10× too weak for their size next to real ones: `RHO_S` 220 → 900 and booster thrust is referenced to an
+  18-unit (1.8 m) width (`SRB_REF`), so a 3.7 m booster pushes ~14 MN like an SLS booster.
+- Reaction wheels 12 MN·m per 4 m probe (a straight ×1000 scale left big rockets turning painfully slowly); RCS 250 kN per block.
+- Tests compute thrust and centre-of-mass height from the vessel instead of hard-coded numbers; the ascent test drops burnt-out
+  boosters. The SLS-shaped template reaches orbit (but needs ~14 minutes; the core alone has TWR 0.5 after the boosters go).
+- Still to do in phase 1.5: 1,000 km Earth, capsule + abort tower, parachutes, heat shield, upper stage, engine mount part.
+
 ## Things that went wrong (don't repeat)
 - The flight bundle is one closure: map.js already has `tfmt`/`kmf`, so a second `const` with those names breaks the whole page.
 - Wyatt shared a schlieren reference image with no text; Claude assumed what he wanted and changed things. He said

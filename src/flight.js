@@ -33,7 +33,7 @@ function engineNums(){
 // ---------- vessels ----------
 const fcv=$("fcv"),fx=fcv.getContext("2d");let FW=1280,FH=720,FDS=1;
 function fitF(){const r=fcv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);FW=Math.max(320,Math.round(r.width*d));FH=Math.max(200,Math.round(r.height*d));if(fcv.width!==FW||fcv.height!==FH){fcv.width=FW;fcv.height=FH;}FDS=FH/720;}
-let flyers=[],mapCam=null,predC=null,VS=[],AV=null,EN=null,launchPs=null,launchName="",smoke=[],warp=1,mapView=false,zoomF=1,keys=new Set(),msg="",msgT=0,lastFT=0,rotBtn=0,clouds=[],said={},vesId=0,hudN=0,anAV=null,launchW=0.6;
+let launchH=3,flyers=[],mapCam=null,predC=null,VS=[],AV=null,EN=null,launchPs=null,launchName="",smoke=[],warp=1,mapView=false,zoomF=1,keys=new Set(),msg="",msgT=0,lastFT=0,rotBtn=0,clouds=[],said={},vesId=0,hudN=0,anAV=null,launchW=0.6;
 const WARPS=[1,2,4,10,50,100,500,1000,5000,20000];let FT=0,warpWhy="";
 // webcast extras: the mission timeline (events tick off as they happen), the lift-off clock, Max-Q tracking, and the camera's
 // ignition jolt / flash (kickF, flashF), which fade out over a second or so
@@ -42,20 +42,20 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   const ps=v.ps,adj=adjOf(ps);v.adj=adj;v.root=rootIdx(ps);v.ctrl=v.root>=0;
   let m=0,mx=0,my=0;for(const p of ps){const pm=partMass(p)+(p.fuel||0);m+=pm;mx+=pm*p.x;my+=pm*(p.y+p.h/2);}
   const npx=mx/m,npy=my/m;
-  if(keepWorld&&v.px!=null){const dx=(npx-v.px)/100,dy=(npy-v.py)/100,c=Math.cos(v.phi),s=Math.sin(v.phi);v.x+=dx*c+dy*s;v.y+=-dx*s+dy*c;}
+  if(keepWorld&&v.px!=null){const dx=(npx-v.px)*UM,dy=(npy-v.py)*UM,c=Math.cos(v.phi),s=Math.sin(v.phi);v.x+=dx*c+dy*s;v.y+=-dx*s+dy*c;}
   v.px=npx;v.py=npy;
   const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
   v.dry=ps.reduce((s,p)=>s+partMass(p),0);
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,W=0,top=null,I=0;
   for(const p of ps){x0=Math.min(x0,p.x-p.w/2);x1=Math.max(x1,p.x+p.w/2);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y+p.h);if(!isRad(p))W=Math.max(W,p.w);
-    if(!isRad(p)&&(!top||p.y+p.h>top.y+top.h))top=p;const pm=partMass(p)+(p.fuel||0),dx=(p.x-npx)/100,dy=(p.y+p.h/2-npy)/100;I+=pm*(dx*dx+dy*dy+(p.w*p.w+p.h*p.h)/12e4);}
-  v.H=(y1-y0)/100;v.W=Math.max(0.15,W/100);v.Wall=(x1-x0)/100;v.I=Math.max(I,1);v.nose=!!top&&top.t==="nose";
-  v.fins=ps.filter(p=>p.t==="fin").length;v.finA=v.fins*0.17;v.Af=Math.PI*(v.W/2)**2;v.As=v.H*v.W;v.Lr=Math.max(0.3,v.H*0.45);
-  v.wheel=ps.filter(p=>p.t==="probe").length*45;
+    if(!isRad(p)&&(!top||p.y+p.h>top.y+top.h))top=p;const pm=partMass(p)+(p.fuel||0),dx=(p.x-npx)*UM,dy=(p.y+p.h/2-npy)*UM;I+=pm*(dx*dx+dy*dy+(p.w*p.w+p.h*p.h)*UM*UM/12);}
+  v.H=(y1-y0)*UM;v.W=Math.max(0.15,W*UM);v.Wall=(x1-x0)*UM;v.I=Math.max(I,1);v.nose=!!top&&top.t==="nose";
+  v.fins=ps.filter(p=>p.t==="fin").length;v.finA=v.fins*ps.filter(p=>p.t==="fin").reduce((a,p)=>a+p.w*p.h*UM*UM*0.5,0)/Math.max(1,v.fins);v.Af=Math.PI*(v.W/2)**2;v.As=v.H*v.W;v.Lr=Math.max(0.3,v.H*0.45);
+  v.wheel=ps.filter(p=>p.t==="probe").reduce((a,p)=>a+1.2e7*A2(p.w,40),0);   // reaction wheels: 12 MN·m for a 4 m probe, more for wider ones (big rockets still turn slower)
   v.rcs=ps.filter(p=>p.t==="rcs");for(const p of v.rcs)if(p.mono==null)p.mono=RCS_MONO;
-  v.rcsArm=v.rcs.reduce((a,p)=>a+Math.max(0.2,Math.abs(p.y+p.h/2-npy)/100),0);   // turning: side jets far from the centre of mass turn hardestv.hasLegs=ps.some(p=>p.t==="leg");
+  v.rcsArm=v.rcs.reduce((a,p)=>a+Math.max(0.2,Math.abs(p.y+p.h/2-npy)*UM),0);   // turning: side jets far from the centre of mass turn hardestv.hasLegs=ps.some(p=>p.t==="leg");
   v.cpts=contactPts(ps,false);v.cptsL=contactPts(ps,true);
-  v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)/100,(q[1]-npy)/100)),v.H);
+  v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)*UM,(q[1]-npy)*UM)),v.H);
   v.boomS=Math.max(1.5,v.H*0.6);}
 function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
@@ -64,7 +64,7 @@ function startFlight(ps,name){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
   const a=analyze(launchPs,engineNums()),keep=a.root>=0?bfs(adjOf(launchPs),a.root,()=>true):new Set();
   const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;}EN=engineNums();   // full tanks again on a retry
-  const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)/100);v.x=0;v.y=PR-lo+0.005;v.landed=true;launchW=v.Wall;
+  const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)*UM);v.x=0;v.y=PR-lo+0.005;v.landed=true;launchW=v.Wall;launchH=v.H;
   VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
   msg="Throttle: Shift / W (Z = full).  Steer: A / D.  Space = next stage.  1–9 = SAS holds.  M = map.  , . = time warp";msgT=10;
   if(!clouds.length)for(let i=0;i<70;i++){const a=(Math.random()-0.5)*0.12,h=900+Math.random()*3500;clouds.push({a,h,w:180+Math.random()*420,o:0.35+Math.random()*0.4});}
@@ -86,13 +86,13 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
   if(!decs.length){msg="Nothing left to stage.";msgT=2.5;return;}
   const sp=split(v.ps,v.adj,all,decs,v.root),om=v.om,c=Math.cos(v.phi),s=Math.sin(v.phi);
   for(const sh of v.shr)if(decs.includes(sh.i)&&!v.ps[sh.i].shed){v.ps[sh.i].shed=true;const hw=sh.w/2;
-    for(const side of[-1,1]){const lx=(sh.x+side*hw/2-v.px)/100,ly=((sh.y0+sh.y1)/2-v.py)/100,[wx,wy]=loc(v,lx,ly),out=side*2.5;
-      flyers.push({body:v.body,x:wx,y:wy,vx:v.vx+out*c+0.6*s,vy:v.vy-out*s+0.6*c,ang:v.phi,om:side*1.6,w:hw/100,h:(sh.y1-sh.y0)/100,side,t:0});}}
+    for(const side of[-1,1]){const lx=(sh.x+side*hw/2-v.px)*UM,ly=((sh.y0+sh.y1)/2-v.py)*UM,[wx,wy]=loc(v,lx,ly),out=side*2.5;
+      flyers.push({body:v.body,x:wx,y:wy,vx:v.vx+out*c+0.6*s,vy:v.vy-out*s+0.6*c,ang:v.phi,om:side*1.6,w:hw*UM,h:(sh.y1-sh.y0)*UM,side,t:0});}}
   const keepPs=[...sp.keep].map(i=>v.ps[i]),pieces=sp.pieces.map(set=>[...set].map(i=>v.ps[i]));
   const oldPx=v.px,oldPy=v.py,X0=v.x,Y0=v.y,V0x=v.vx,V0y=v.vy;
   v.ps=keepPs;derive(v,true);{const rx=v.x-X0,ry=v.y-Y0;v.vx=V0x+om*ry;v.vy=V0y-om*rx;}
   for(const P of pieces){const n=mkVessel(P,P.some(p=>p.t==="probe")?v.name+" booster":"Debris",v.body);
-    const dx=(n.px-oldPx)/100,dy=(n.py-oldPy)/100,rx=dx*c+dy*s,ry=-dx*s+dy*c;
+    const dx=(n.px-oldPx)*UM,dy=(n.py-oldPy)*UM,rx=dx*c+dy*s,ry=-dx*s+dy*c;
     n.phi=v.phi;n.om=om;n.x=X0+rx;n.y=Y0+ry;
     let ux=n.x-v.x,uy=n.y-v.y;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
     n.vx=V0x+om*ry+ux*1.4;n.vy=V0y-om*rx+uy*1.4;n.thr=0;n.landed=false;VS.push(n);}
@@ -126,7 +126,7 @@ function stepV(v,dt,u){
   // air: drag depends on the shape and on how sideways you fly; fins turn you into the wind
   let tq=0;const sp=Math.hypot(v.vx,v.vy);
   if(rho>0&&sp>0.3){const q=0.5*rho*sp*sp,ca=(v.vx*s+v.vy*c)/sp,sa=(s*v.vy-c*v.vx)/sp;
-    const CdA=v.Af*(ca>=0?(v.nose?0.3:0.8):0.95)*ca*ca+v.As*0.9*sa*sa+v.fins*0.012;
+    const CdA=v.Af*(ca>=0?(v.nose?0.3:0.8):0.95)*ca*ca+v.As*0.9*sa*sa+v.finA*0.07;
     const D=q*CdA;ax-=D/m*v.vx/sp;ay-=D/m*v.vy/sp;v.q=q;v.D=D;v.rho=rho;
     tq+=q*sa*v.Lr*(v.As*0.012-v.finA*1.1);                                   // fins win: they swing the nose into the airflow
     tq-=q*(v.finA*1.1+v.As*0.04)*v.Lr*v.Lr*v.om/Math.max(sp,5)*2;}           // and damp the wobble
@@ -182,12 +182,12 @@ function railStep(v,T){let left=T,guard=0;
   return true;}
 function ground(v,held){
   const pts=v.legs?v.cptsL:v.cpts,c=Math.cos(v.phi),s=Math.sin(v.phi);let mn=1e18,leg=false;
-  for(const q of pts){const lx=(q[0]-v.px)/100,ly=(q[1]-v.py)/100,wx=v.x+lx*c+ly*s,wy=v.y-lx*s+ly*c,r=Math.hypot(wx,wy);if(r<mn){mn=r;leg=q[2]===1;}}
+  for(const q of pts){const lx=(q[0]-v.px)*UM,ly=(q[1]-v.py)*UM,wx=v.x+lx*c+ly*s,wy=v.y-lx*s+ly*c,r=Math.hypot(wx,wy);if(r<mn){mn=r;leg=q[2]===1;}}
   const BR=BOD[v.body].R;if(mn>=BR){if(held&&mn-BR>0.05)v.landed=false;return;}const rr=Math.hypot(v.x,v.y),push=BR-mn;
   if(!held){const sp=Math.hypot(v.vx,v.vy),tilt=Math.abs(wrapA(v.phi-Math.atan2(v.x,v.y))),ok=leg?(sp<=9&&tilt<0.45):(sp<=3.5&&tilt<0.25);
     if(!ok){crash(v,sp);return;}
     v.landed=true;v.vx=v.vy=0;v.om=0;
-    if(v===AV&&v.t>3){const pd=padDist(v);if(JX){if(v.body===1)JX.goal("moonland");else if(Math.abs(pd.d)<10&&pd.at)JX.goal("pad");}msg=v.body===1?`🌙 Landed on the Moon at ${sp.toFixed(1)} m/s!`:Math.abs(pd.d)<10?`🎯 Landed on the ${pd.name} at ${sp.toFixed(1)} m/s!`:`✅ Landed at ${sp.toFixed(1)} m/s, ${fmt(Math.abs(pd.d))} m from the ${pd.name}.`;msgT=6;}}
+    if(v===AV&&v.t>3){const pd=padDist(v);if(JX){if(v.body===1)JX.goal("moonland");else if(Math.abs(pd.d)<40&&pd.at)JX.goal("pad");}msg=v.body===1?`🌙 Landed on the Moon at ${sp.toFixed(1)} m/s!`:Math.abs(pd.d)<40?`🎯 Landed on the ${pd.name} at ${sp.toFixed(1)} m/s!`:`✅ Landed at ${sp.toFixed(1)} m/s, ${fmt(Math.abs(pd.d))} m from the ${pd.name}.`;msgT=6;}}
   v.x+=v.x/rr*push;v.y+=v.y/rr*push;}
 function orbitOf(r){const B=BOD[r.body],mu=B.mu,rr=Math.hypot(r.x,r.y),v2=r.vx*r.vx+r.vy*r.vy,E=v2/2-mu/rr,hz=r.x*r.vy-r.y*r.vx;
   const ex=r.vy*hz/mu-r.x/rr,ey=-r.vx*hz/mu-r.y/rr,e=Math.hypot(ex,ey);
@@ -284,8 +284,8 @@ function srbPlume(ctx,x0,y0,w,a,bright){   // solid exhaust, like SLS boosters a
   ctx.restore();}
 function drawVessel(c,v,bright){
   c.save();c.translate(v.x,v.y);c.rotate(-v.phi);
-  if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))/100);boom(c,v);c.restore();return;}
-  c.scale(0.01,0.01);c.translate(-v.px,-v.py);
+  if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))*UM);boom(c,v);c.restore();return;}
+  c.scale(UM,UM);c.translate(-v.px,-v.py);
   v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8),v.thr,v.a,bright,k==="vac");}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
   for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
@@ -317,7 +317,7 @@ function renderFlight(dt){
   const g=c.createLinearGradient(0,0,0,FH);g.addColorStop(0,col(top,1));g.addColorStop(1,col(bot,1));c.fillStyle=g;c.fillRect(0,0,FW,FH);
   if(sk>0.25){c.fillStyle=`rgba(255,255,255,${(sk-0.25)*0.9})`;for(let i=0;i<160;i++){const sx=(i*9301+49297)%233280/233280*FW,sy=(i*4673+12345)%93179/93179*FH;c.fillRect(sx,sy,i%7?1.2:2,i%7?1.2:2);}}
   // camera: the craft in the middle, local "up" pointing up the screen
-  const s=Math.max(0.00002,(FH/(Math.max(2.4,r.H)*5.5))*zoomF*(h>2000?Math.max(0.5,Math.sqrt(2000/h)):1));
+  const s=Math.max(0.00002,(FH/(Math.max(2.4,r.H)*3.4))*zoomF*(h>2000?Math.max(0.5,Math.sqrt(2000/h)):1));
   // live camera: a slow drift like a handheld long lens, plus shake from thrust, from the air pushing on the rocket,
   // and a jolt when an engine lights or a stage goes. All of it is off for players who asked their system for less motion.
   camT+=dt;kickF=Math.max(0,kickF-dt*1.5);flashF=Math.max(0,flashF-dt*2);
@@ -334,9 +334,10 @@ function renderFlight(dt){
     // Earth, the launch pad with its tower, and the landing zone
     c.fillStyle="#3e6b3a";c.beginPath();c.arc(0,0,PR,0,6.2832);c.fill();
     c.fillStyle="#5a4632";c.beginPath();c.arc(0,0,PR-6,0,6.2832);c.fill();c.fillStyle="#4f7f45";c.beginPath();c.arc(0,0,PR-0.5,0,6.2832);c.fill();
-    padAt(c,0,()=>{const tx=-(launchW/2+2.2);c.fillStyle="#7c8495";c.fillRect(-8,-0.5,16,0.9);c.fillStyle="#9aa3b5";c.fillRect(tx,0,0.5,14);for(let i=0;i<8;i++)c.fillRect(tx,i*1.75,1.6,0.12);
+    // pads are drawn at a scale that fits the rocket (k), with the pad's top at ground level so the rocket stands on it
+    padAt(c,0,()=>{const k=Math.max(2,launchH/12);c.scale(k,k);c.translate(0,-0.4);const tx=-(launchW/2/k+2.2);c.fillStyle="#7c8495";c.fillRect(-8,-0.5,16,0.9);c.fillStyle="#9aa3b5";c.fillRect(tx,0,0.5,14);for(let i=0;i<8;i++)c.fillRect(tx,i*1.75,1.6,0.12);
       c.fillStyle="#e8b923";c.fillRect(-1,0.36,2,0.06);});
-    padAt(c,PAD2/PR,()=>{c.fillStyle="#6d7586";c.fillRect(-9,-0.5,18,0.9);c.fillStyle="#e8e9ee";c.fillRect(-6,0.38,12,0.04);c.fillStyle="#e8b923";for(const x of[-7.5,7.5])c.fillRect(x-0.4,0.36,0.8,0.06);
+    padAt(c,PAD2/PR,()=>{c.scale(5,5);c.translate(0,-0.4);c.fillStyle="#6d7586";c.fillRect(-9,-0.5,18,0.9);c.fillStyle="#e8e9ee";c.fillRect(-6,0.38,12,0.04);c.fillStyle="#e8b923";for(const x of[-7.5,7.5])c.fillRect(x-0.4,0.36,0.8,0.06);
       c.fillStyle="#d24b3a";c.fillRect(-0.15,0.4,0.3,3);c.beginPath();c.moveTo(0.15,3.4);c.lineTo(1.8,3.05);c.lineTo(0.15,2.7);c.fill();});}
   else{
     // the Moon: grey dust, darker patches and craters rimmed with light
@@ -352,8 +353,8 @@ function renderFlight(dt){
   // every craft near this one: the one you fly, dropped stages, boosters
   for(const v of VS){if(v.body!==r.body||Math.hypot(v.x-r.x,v.y-r.y)>Math.max(4000,FH/s*2))continue;
     if(v.F>0&&v.a>0.03&&smoke.length<600){const cc=Math.cos(v.phi),ss=Math.sin(v.phi);v.eng.forEach((i,n)=>{const p=v.ps[i],sol=p.t==="srb";if(!v.lit[n]||Math.random()>(sol?1.6:0.8*v.thr)*v.a)return;
-      const[wx,wy]=loc(v,(p.x-v.px)/100,(p.y-v.py)/100),sp=25+Math.random()*25;
-      smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w/100*0.8,r1:(sol?10:6)+Math.random()*10,o:v.a*(sol?1.6:1)});});}
+      const[wx,wy]=loc(v,(p.x-v.px)*UM,(p.y-v.py)*UM),sp=25+Math.random()*25;
+      smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w*UM*0.8,r1:((sol?10:6)+Math.random()*10)*Math.max(1,p.w*UM/2),o:v.a*(sol?1.6:1)});});}
     drawVessel(c,v,bright);}
   c.setTransform(1,0,0,1,0,0);
   if(flashF>0.01){const g2=c.createRadialGradient(FW/2+ox,FH*0.62+oy,0,FW/2+ox,FH*0.62+oy,FH*0.9);   // ignition flash and bloom
@@ -430,7 +431,7 @@ function hudFlight(dt){
   const st=anAV.stages[0]||{dv:0};let sf=0,sc=0;const seen=new Set();r.feeds.forEach(f=>f.forEach(j=>{if(!seen.has(j)){seen.add(j);sf+=r.ps[j].fuel;sc+=capOf(r.ps[j]);}}));
   const g=B.mu/(rr*rr),Fn=r.est.reduce((q,E)=>q+E.vac.F-(E.vac.F-E.sl.F)*r.a,0),twrMax=Fn/((r.m||1)*g),twr=(r.F||0)/((r.m||1)*g);
   set("fThrO",Math.round(r.thr*100)+"%");
-  if(open("fpData")){rv("dAp",o.esc?null:o.ap,kmF);rv("dPe",o.pe,kmF);rv("dTwr",twrMax,x=>x.toFixed(2));rv("dDv",st.dv,ms);rv("dFuel",sf,x=>fmt(x)+" kg");
+  if(open("fpData")){rv("dAp",o.esc?null:o.ap,kmF);rv("dPe",o.pe,kmF);rv("dTwr",twrMax,x=>x.toFixed(2));rv("dDv",st.dv,ms);rv("dFuel",sf,fM);
     $("fFuelBar").style.width=(sc?100*sf/sc:0)+"%";const nd=st.dropKind;set("dNext",nd?(nd==="boosters"?"drop boosters":"drop stage"):"–");if(o.esc)set("dAp",r.body?"leaving":"escaping");}
   if(open("fpOrbit")){const tt=orbTimes(r,o,B);rv("oAp",o.esc?null:o.ap,kmF);if(o.esc)set("oAp",r.body?"leaving":"escaping");rv("oPe",o.pe,kmF);
     set("oTAp",tt?tfm(tt.ap):"–");set("oTPe",tt?tfm(tt.pe):"–");set("oPer",tt?tfm(tt.per):"–");rv("oE",o.e,x=>x.toFixed(3));rv("oA",o.esc?null:o.a,kmF);rv("oV",sp,ms);set("oSoi",B.name);}
@@ -438,9 +439,9 @@ function hudFlight(dt){
     set("sMq",qMax>0?(qMax/1000).toFixed(2)+" kPa":"–");rv("sDrag",r.D||0,x=>x>=1000?(x/1000).toFixed(2)+" kN":Math.round(x)+" N");rv("sRho",r.rho||0,x=>x.toFixed(x>0.01?3:5)+" kg/m³");
     const ang=r.body===0?Math.atan2(r.x,r.y)*PR:null,arw=d=>d>0.5?" ←":d<-0.5?" →":" ✓";
     set("sPad",ang==null?"–":km(Math.abs(ang))+arw(ang));set("sLz",ang==null?"–":km(Math.abs(ang-PAD2))+arw(ang-PAD2));}
-  if(open("fpVes")){rv("vM",r.m||0,x=>fmt(x)+" kg");rv("vDry",r.dry,x=>fmt(x)+" kg");rv("vTwr",twr,x=>x.toFixed(2));rv("vTwrM",twrMax,x=>x.toFixed(2));
+  if(open("fpVes")){rv("vM",r.m||0,fM);rv("vDry",r.dry,fM);rv("vTwr",twr,x=>x.toFixed(2));rv("vTwrM",twrMax,x=>x.toFixed(2));
     set("vLit",`${r.lit.filter(Boolean).length} of ${r.eng.length}`);
-    set("vRcs",r.rcs.length?`${r.rcs.reduce((a,p)=>a+p.mono,0).toFixed(2)} kg${r.rcsOn?" · on":""}`:"none");
+    set("vRcs",r.rcs.length?`${fM(r.rcs.reduce((a,p)=>a+p.mono,0))}${r.rcsOn?" · on":""}`:"none");
     let bl=0;r.eng.forEach((i,n)=>{const P=r.ps[i];if(P.t!=="srb"||!r.lit[n])return;let av=0;for(const j of r.feeds[n])av+=r.ps[j].fuel;const E=r.est[n];bl=Math.max(bl,av*E.vac.isp*G0/E.vac.F);});
     set("vSrb",bl>0?tfm(bl):"–");rv("vDvT",anAV.total,ms);
     const hs=anAV.stages.map((q,k)=>`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b>${fmt(q.dv)}</b></span><span>${Math.round(q.burn)} s</span><i>TWR ${q.twr.toFixed(2)} · ${q.eng} engine${q.eng===1?"":"s"}</i></div>`).join("");

@@ -59,6 +59,9 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
 
 ## Phase 1.5: real-size rockets with real proportions (v1.16), do this next
 Goal: Wyatt can build a rocket with the proportions of SLS (and Falcon 9, Starship, New Glenn) and fly it.
+- **Done so far:** real size (10 cm units, ×1000 mass/thrust), free widths, engines scaled by size, flush thin side decouplers,
+  real-size templates incl. an SLS-shaped one. **Left:** bigger Earth/Moon, engine mount part, capsule/abort/parachutes/heat
+  shield, upper stage part, booster nose/skirt.
 - **Real size:** parts are in real metres. An SLS-style rocket is ~98 m tall, core ~8.4 m wide, boosters ~3.7 m wide.
   Retune masses, tank capacity, engines, drag, camera, pad and editor view for that scale.
 - **Planet: 1,000 km Earth** (orbit ≈ 4.3 km/s, air thickness scaled to match), **Moon scaled to match** (~300 km radius,

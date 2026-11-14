@@ -1,39 +1,52 @@
 // ================= PARTS & VEHICLES =================
-// Parts are rectangles in centimetres: x = centre, y = bottom. They join wherever two of them touch, so the editor
-// and the flight both read the rocket straight from its shape: no hidden attachment tree to get out of sync.
-// RCS: each block of jets pushes 45 N in any direction it's asked and carries its own 2.5 kg of monopropellant (Isp 180 s).
-// The fuel's weight stays in the part's mass the whole flight: 2.5 kg makes no difference worth the bookkeeping.
-const RCS_F=45,RCS_ISP=180,RCS_MONO=2.5;
+// Parts are rectangles: x = centre, y = bottom, in units of 10 cm (UM = 0.1 m per unit), so a 40 × 300 tank is a real-size
+// 4 m × 30 m tank holding about 136 t. They join wherever two of them touch, so the editor and the flight both read the
+// rocket straight from its shape: no hidden attachment tree to get out of sync.
+// v1.16 made rockets real size: ten times longer than before, so masses (volume) and thrust are MK = 1000× the old numbers.
+// Your test-stand engine is a 2D slice a few cm across; in flight it is scaled up to the part's size the same way
+// (thrust grows with the nozzle's area, Isp stays what you measured).
+const UM=0.1,MK=1000;
+// RCS: each block of jets pushes 250 kN in any direction it's asked and carries its own 2.5 t of monopropellant (Isp 180 s).
+// The fuel's weight stays in the part's mass the whole flight: it's small next to the rocket and not worth the bookkeeping.
+const RCS_F=250*MK,RCS_ISP=180,RCS_MONO=2.5*MK;
 const G0=9.80665,RHO_P=360;   // bulk density of liquid hydrogen + liquid oxygen, kg/m³
-const tankCap=(w,h)=>RHO_P*Math.PI*(w/200)**2*(h/100);
-// solid boosters carry their own propellant, packed denser than the liquids (a game number: heavy, but not a brick);
-// the bottom 20 cm is the nozzle, so it holds no propellant
-const RHO_S=220,SRB_NZ=20;
-const srbCap=(w,h)=>RHO_S*Math.PI*(w/200)**2*(Math.max(0,h-SRB_NZ)/100);
+const tankCap=(w,h)=>RHO_P*Math.PI*(w*UM/2)**2*(h*UM);
+// solid boosters carry their own propellant, packed much denser than the liquids (real solid propellant is ~1,750 kg/m³;
+// 900 allows for the hollow core);
+// the bottom 2 m is the nozzle, so it holds no propellant
+const RHO_S=900,SRB_NZ=20,SRB_REF=18;   // SRB_REF: a booster this wide pushes its listed thrust × MK (real SLS boosters: ~15 MN at 3.7 m)
+const srbCap=(w,h)=>RHO_S*Math.PI*(w*UM/2)**2*(Math.max(0,h-SRB_NZ)*UM);
 const capOf=p=>p.t==="tank"?tankCap(p.w,p.h):p.t==="srb"?srbCap(p.w,p.h):0;
 const hasProp=p=>p.t==="tank"||p.t==="srb";
 const isEng=p=>p.t==="engine"||p.t==="srb";
+// thrust in readable units: kN up to 1 MN, then MN
+// masses in readable units: kg up to 10 t, then tonnes
+const fM=m=>m>=1e4?Math.round(m/1000).toLocaleString()+" t":Math.round(m).toLocaleString()+" kg";
+const fF=F=>F>=1e6?(F/1e6).toFixed(2)+" MN":Math.round(F/1000)+" kN";
+const A2=(w,r)=>(w/r)**2;   // how a part's mass (or an engine's thrust) grows with its width: by cross-section area
+// ws: [default width]; wr: [narrowest, widest] the editor lets you stretch it to (free width for everything in the stack)
 const PT={
-  probe:  {name:"Probe core",     ws:[60],     h:()=>30, m:()=>4,   desc:"The brain. You need one to steer, and its reaction wheels turn the rocket even with the engine off."},
-  nose:   {name:"Nose cone",      ws:[60,120], h:w=>w,   m:w=>w>60?4:1.5, desc:"Cuts air drag a lot. Put one on top of every stack that leads the way."},
-  tank:   {name:"Fuel tank",      ws:[60,120], h:()=>90, m:(w,h)=>1+0.08*tankCap(w,h), desc:"Liquid hydrogen + oxygen. Shift+wheel or − / + to change its length."},
-  adapter:{name:"Adapter",        ws:[120],    h:()=>60, m:()=>3,   desc:"Joins a wide stack (below) to a narrow one (above)."},
-  engine: {name:"Engine",         ws:[60],     h:()=>60, m:()=>9,   desc:"An engine."},
-  srb:    {name:"Solid booster",  ws:[60],     h:()=>150,m:(w,h)=>2+0.12*srbCap(w,h), desc:"Fuel and engine in one. Lights when you throttle up and can't be stopped or throttled until it burns out. Stretch it for a longer burn."},
-  dec:    {name:"Decoupler",      ws:[60,120], h:()=>15, m:w=>w>60?5:2, desc:"Space drops everything below it. Engines sitting on one stay off until it fires."},
-  sdec:   {name:"Side decoupler", ws:[15],     h:()=>60, m:()=>1.5, radial:1, desc:"Hang boosters on the side. Space drops them (it goes with the booster)."},
-  fin:    {name:"Fin",            ws:[45],     h:()=>75, m:()=>1.2, radial:1, desc:"Keeps the rocket pointing where it's going while in the air."},
-  rcs:    {name:"RCS thrusters", ws:[15],     h:()=>30, m:()=>0.8+RCS_MONO, radial:1, desc:"Little gas jets. T turns RCS on: they help the rocket turn (in space too), and I J K L nudge it forward, back and sideways. Own fuel."},
-  leg:    {name:"Landing leg",    ws:[30],     h:()=>90, m:()=>2.5, radial:1, desc:"G deploys. Lets you land at up to 9 m/s instead of about 3."},
+  probe:  {name:"Probe core",     ws:[40], wr:[10,160], h:w=>Math.round(w*0.5), m:w=>4*MK*A2(w,60), desc:"The brain. You need one to steer, and its reaction wheels turn the rocket even with the engine off."},
+  nose:   {name:"Nose cone",      ws:[40], wr:[10,160], h:w=>Math.round(w*1.6), m:w=>1.5*MK*A2(w,60), desc:"Cuts air drag a lot. Put one on top of every stack that leads the way."},
+  tank:   {name:"Fuel tank",      ws:[40], wr:[10,160], h:()=>200, m:(w,h)=>MK*A2(w,60)*h/90+0.08*tankCap(w,h), desc:"Liquid hydrogen + oxygen. Shift+wheel stretches its length, Ctrl+wheel its width."},
+  adapter:{name:"Adapter",        ws:[84], wr:[14,160], h:w=>40, m:w=>3*MK*A2(w,120), desc:"Joins a wide stack (below) to a narrower one (above). Set both widths in its settings."},
+  engine: {name:"Engine",         ws:[30], wr:[8,120],  h:w=>w, m:()=>9*MK, desc:"An engine."},
+  srb:    {name:"Solid booster",  ws:[37], wr:[10,120], h:()=>300,m:(w,h)=>2*MK*A2(w,60)*h/150+0.12*srbCap(w,h), desc:"Fuel and engine in one. Lights when you throttle up and can't be stopped or throttled until it burns out. Stretch it for a longer burn."},
+  dec:    {name:"Decoupler",      ws:[40], wr:[10,160], h:()=>6,  m:w=>2*MK*A2(w,60), desc:"Space drops everything below it. Engines sitting on one stay off until it fires."},
+  sdec:   {name:"Side decoupler", ws:[3],               h:()=>40, m:()=>1.5*MK, radial:1, desc:"Hang boosters on the side, almost touching the core. Space drops them (it goes with the booster)."},
+  fin:    {name:"Fin",            ws:[30],              h:()=>50, m:()=>1.2*MK, radial:1, desc:"Keeps the rocket pointing where it's going while in the air."},
+  rcs:    {name:"RCS thrusters",  ws:[10],              h:()=>20, m:()=>0.8*MK+RCS_MONO, radial:1, desc:"Little gas jets. T turns RCS on: they help the rocket turn (in space too), and I J K L nudge it forward, back and sideways. Own fuel."},
+  leg:    {name:"Landing leg",    ws:[30],              h:()=>90, m:()=>2.5*MK, radial:1, desc:"G deploys. Lets you land at up to 9 m/s instead of about 3."},
 };
-// engines: your own (numbers from the test stand) and four ready-made ones
+// engines: your own (numbers from the test stand) and four ready-made ones, at their default size (w × h units).
+// Numbers here are at that size, in the old small units; engStat() scales them by MK and by the nozzle area of the actual part.
 const ENG={
-  stand:{name:"Your engine",w:60,h:60,m:9,desc:"Your engine, with the thrust and Isp it made on the test stand."},
-  wren: {name:"Wren",w:60,h:45,m:5,sl:{F:1100,isp:285},vac:{F:1250,isp:322},desc:"Small and light, for sea level. Good for hoppers and landers."},
-  mule: {name:"Mule",w:60,h:60,m:12,sl:{F:3300,isp:305},vac:{F:3650,isp:338},desc:"The workhorse: lots of push at sea level for its size."},
-  bison:{name:"Bison",w:120,h:90,m:28,sl:{F:7500,isp:300},vac:{F:8300,isp:330},desc:"Big, powerful sea-level engine for heavy first stages. Needs a wide tank."},
-  vac:  {name:"Lumen Vac",w:60,h:105,m:7,sl:{F:800,isp:140},vac:{F:2600,isp:445},desc:"Huge bell for space: best Isp of all, but weak at sea level (the exhaust is over-expanded)."},
-  lib:  {name:"Saved engine",w:60,h:60,m:9,desc:"An engine you tested and saved in the engine library."}};
+  stand:{name:"Your engine",w:30,h:46,m:9,desc:"Your engine, with the thrust and Isp it made on the test stand, scaled up to this size."},
+  wren: {name:"Wren",w:22,h:32,m:5,sl:{F:1100,isp:285},vac:{F:1250,isp:322},desc:"Small and light, for sea level. Good for hoppers and landers."},
+  mule: {name:"Mule",w:32,h:46,m:12,sl:{F:3300,isp:305},vac:{F:3650,isp:338},desc:"The workhorse: lots of push at sea level for its size."},
+  bison:{name:"Bison",w:56,h:70,m:28,sl:{F:7500,isp:300},vac:{F:8300,isp:330},desc:"Big, powerful sea-level engine for heavy first stages."},
+  vac:  {name:"Lumen Vac",w:36,h:84,m:7,sl:{F:800,isp:140},vac:{F:2600,isp:445},desc:"Huge bell for space: best Isp of all, but weak at sea level (the exhaust is over-expanded)."},
+  lib:  {name:"Saved engine",w:30,h:46,m:9,desc:"An engine you tested and saved in the engine library, scaled up to this size."}};
 // solid boosters: what's inside the casing. "Your booster" = your last burn on the test stand; saved ones keep a copy of their numbers
 // on the part (p.n), so a rocket still flies the same after the library entry is deleted. The curve is thrust (relative to the
 // average) against how much of the propellant has burned, sampled evenly from first to last.
@@ -42,19 +55,22 @@ const BOOST={
   thumper:{name:"Thumper",sl:{F:3400,isp:215},vac:{F:3750,isp:237},curve:[1.2,1.15,1.1,1.05,1,1,1,0.98,0.95,0.92,0.9,0.85],desc:"A ready-made booster: hard kick at lift-off that tapers off."},
   lib:    {name:"Saved booster",desc:"A booster you burned on the test stand and saved in the engine library."}};
 const boostKey=p=>p.b&&BOOST[p.b]?p.b:"stand";
-function boostStat(p){const k=boostKey(p);if(k==="lib"&&p.n)return p.n;if(k==="stand")return boosterNums();return BOOST[k];}
+function boostStat(p){const k=boostKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?boosterNums():BOOST[k],MK*A2(p.w,SRB_REF));}
+// numbers at real size: thrust × k (Isp unchanged); keeps the extra fields (curve, name, est, src)
+function scaleStat(E,k){const o=Object.assign({},E);o.sl=Object.assign({},E.sl,{F:E.sl.F*k});o.vac=Object.assign({},E.vac,{F:E.vac.F*k});return o;}
 // thrust multiplier when a fraction u of the propellant is gone (straight lines between the curve's samples)
 function curveAt(c,u){if(!c||c.length<2)return 1;const x=Math.max(0,Math.min(1,u))*(c.length-1),i=Math.min(c.length-2,Math.floor(x));return c[i]+(c[i+1]-c[i])*(x-i);}
 const ENG_ORDER=["stand","wren","mule","bison","vac"];
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
-function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k];}
+function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],MK*A2(p.w,ENG[k].w));}
 const PT_ORDER=["probe","nose","tank","adapter","engine:stand","engine:wren","engine:mule","engine:bison","engine:vac","srb:stand","srb:thumper","dec","sdec","fin","rcs","leg"];
 let partId=1;
 // t can carry a model: "engine:mule", "srb:thumper"; n = a saved library entry's numbers to copy onto the part
 function mkPart(t,w,h,e,n){let b;if(t.startsWith("engine:")){e=t.slice(7);t="engine";}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}const d=PT[t];
-  if(t==="engine"){e=e||"stand";w=ENG[e].w;h=ENG[e].h;}w=w||d.ws[0];const p={id:partId++,t,x:0,y:0,w,h:h||d.h(w),f:1,tw:0};if(e)p.e=e;if(t==="srb")p.b=b||"stand";
+  if(t==="engine"){e=e||"stand";const E=ENG[e];w=w||E.w;h=h||Math.round(E.h*w/E.w);}w=w||d.ws[0];const p={id:partId++,t,x:0,y:0,w,h:h||d.h(w),f:1,tw:0};if(e)p.e=e;if(t==="srb")p.b=b||"stand";
+  if(t==="adapter")p.w2=Math.round(w*0.48);
   if(n)p.n=JSON.parse(JSON.stringify(n));return p;}
-const partMass=p=>p.t==="engine"?ENG[engKey(p)].m:PT[p.t].m(p.w,p.h);
+const partMass=p=>p.t==="engine"?ENG[engKey(p)].m*MK*A2(p.w,ENG[engKey(p)].w):PT[p.t].m(p.w,p.h);
 const partName=p=>p.t==="engine"?(engKey(p)==="lib"&&p.n?p.n.name:ENG[engKey(p)].name):p.t==="srb"?(boostKey(p)==="lib"&&p.n?p.n.name:BOOST[boostKey(p)].name):PT[p.t].name;
 // a decoupler under an engine gets a shroud (interstage) that covers the engine until it separates
 function shroudsOf(ps){const out=[];ps.forEach((d,i)=>{if(d.t!=="dec"||d.shed)return;let top=-1e9;
@@ -64,7 +80,7 @@ function drawShroud(c,s,al){c.save();c.globalAlpha=al==null?1:al;const L=s.x-s.w
   c.fillStyle=cyl(c,L,R,[42,44,50]);c.fillRect(L,s.y0,s.w,s.y1-s.y0);c.fillStyle="rgba(255,255,255,.045)";for(let yy=s.y0+3;yy<s.y1;yy+=3)c.fillRect(L,yy,s.w,0.6);
   c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,s.y1-1.2,s.w,1.2);c.fillStyle="rgba(0,0,0,.4)";c.fillRect(s.x-0.5,s.y0,1,s.y1-s.y0);c.restore();}
 const isRad=p=>!!PT[p.t].radial;
-const topW=p=>p.t==="nose"?0:p.t==="adapter"?60:p.w;
+const topW=p=>p.t==="nose"?0:p.t==="adapter"?(p.w2||Math.round(p.w*0.48)):p.w;
 const ovl=(a0,a1,b0,b1)=>Math.min(a1,b1)-Math.max(a0,b0);
 const near=(a,b)=>Math.abs(a-b)<0.01;
 function touching(a,b){
@@ -98,7 +114,7 @@ function analyze(ps,_eng,fuel){
   const adj=adjOf(ps),all=bfs(adj,out.root,()=>true);
   const loose=ps.length-all.size;if(loose)out.warn.push(`${loose} part${loose>1?"s aren't":" isn't"} attached (shown red) and will be left behind.`);
   const F=ps.map((p,i)=>hasProp(p)?(fuel?fuel[i]:capOf(p)):0);
-  let S=all,first=true,lo=1e9,hi=-1e9;for(const i of all){lo=Math.min(lo,ps[i].y);hi=Math.max(hi,ps[i].y+ps[i].h);}out.H=(hi-lo)/100;
+  let S=all,first=true,lo=1e9,hi=-1e9;for(const i of all){lo=Math.min(lo,ps[i].y);hi=Math.max(hi,ps[i].y+ps[i].h);}out.H=(hi-lo)*UM;
   const massOf=set=>{let m=0;for(const i of set)m+=partMass(ps[i])+F[i];return m;};
   out.mass=massOf(all);
   for(let k=0;k<12;k++){
@@ -209,9 +225,9 @@ function drawPart(c,p,o={}){
       c.fillStyle="rgba(0,0,0,.18)";c.fillRect(x-0.5,y,1,h);c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,y,w,2);
       c.fillStyle="rgba(0,0,0,.05)";c.fillRect(L,y+h*0.3,w,0.8);c.restore();break;}
     case"adapter":{   // carbon interstage cone
-      c.beginPath();c.moveTo(L,y);c.lineTo(x-30,T);c.lineTo(x+30,T);c.lineTo(R,y);c.closePath();c.fillStyle=cyl(c,L,R,[46,48,54]);c.fill();
+      const tw2=topW(p)/2;c.beginPath();c.moveTo(L,y);c.lineTo(x-tw2,T);c.lineTo(x+tw2,T);c.lineTo(R,y);c.closePath();c.fillStyle=cyl(c,L,R,[46,48,54]);c.fill();
       c.save();c.clip();c.fillStyle="rgba(255,255,255,.05)";for(let yy=y+3;yy<T;yy+=3)c.fillRect(L,yy,w,0.6);c.restore();
-      c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,y,w,1.2);c.fillRect(x-30,T-1.2,60,1.2);break;}
+      c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,y,w,1.2);c.fillRect(x-tw2,T-1.2,tw2*2,1.2);break;}
     case"engine":drawEngine(c,x,y,w,h,engKey(p));break;
     case"srb":{const cy=y+SRB_NZ;   // SLS-style solid booster: white steel segments, an aft skirt, and a gimballed nozzle
       bell(c,x,cy-2,y,w*0.12,w*0.36,[60,62,68],[92,88,84]);
@@ -259,13 +275,23 @@ function contactPts(ps,legs){const pts=[];
 // ready-made rockets
 function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.x=x;p.y=y;p.f=f||1;A.push(p);return p;};
   const pair=(t,x,y,w,h)=>{const a=add(t,x,y,w,h,1),b=add(t,-x,y,w,h,-1);a.tw=b.id;b.tw=a.id;};
-  if(name==="hopper"){add("engine",0,0);add("tank",0,60,60,90);add("probe",0,150);add("nose",0,180,60);pair("leg",45,60);}
-  else if(name==="orbiter"){add("engine",0,0);add("tank",0,60,60,90);add("dec",0,150,60);add("engine",0,165);add("tank",0,225,60,45);add("probe",0,270);add("nose",0,300,60);pair("fin",52.5,60);}
-  else if(name==="heavy"){add("engine",0,0);add("tank",0,60,60,150);add("dec",0,210,60);add("engine:vac",0,225);add("tank",0,330,60,60);add("probe",0,390);add("nose",0,420,60);
-    pair("sdec",37.5,90);pair("engine:mule",75,30);pair("tank",75,90,60,120);pair("nose",75,210,60);pair("fin",127.5,90);}
-  else if(name==="sparrow"){   // the Orbiter with two Thumper solid boosters strapped on: they light with the throttle; Space drops them
-    add("engine",0,0);add("tank",0,60,60,90);add("dec",0,150,60);add("engine",0,165);add("tank",0,225,60,45);add("probe",0,270);add("nose",0,300,60);
-    pair("sdec",37.5,45);pair("srb:thumper",75,0);pair("nose",75,150,60);pair("fin",127.5,0);}
-  else if(name==="lander"){add("engine:bison",0,0);add("tank",0,90,120,60);add("adapter",0,150);add("dec",0,210,60);add("engine:wren",0,225);add("tank",0,270,60,60);
-    add("probe",0,330);add("nose",0,360,60);pair("leg",45,270);pair("fin",82.5,90);}
+  // a stack, bottom to top: each entry [type, width, height]; returns the top y. Units are 10 cm.
+  const stack=(y,list)=>{for(const[t,w,h]of list){const p=add(t,0,y,w,h);y+=p.h;}return y;};
+  const W=40;   // 4 m core, Falcon-like
+  if(name==="hopper"){stack(0,[["engine",30],["tank",W,120],["probe",W],["nose",W]]);pair("leg",W/2+15,46);}
+  else if(name==="orbiter"){stack(0,[["engine",30],["tank",W,215],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);pair("fin",W/2+15,46);}
+  else if(name==="heavy"){const top=stack(0,[["engine",30],["tank",W,360],["dec",W],["engine:vac",30],["tank",W,140],["probe",W],["nose",W]]);
+    const bw=34,bx=W/2+3+bw/2,mh=mkPart("engine:mule",30).h;pair("sdec",W/2+1.5,90);pair("engine:mule",bx,0,30);pair("tank",bx,mh,bw,300);pair("nose",bx,mh+300,bw);pair("fin",bx+bw/2+15,mh);}
+  else if(name==="sparrow"){   // the Orbiter with two solid boosters strapped on, flush to the core: they light with the throttle; Space drops them
+    stack(0,[["engine",30],["tank",W,250],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);
+    const bw=18,bx=W/2+3+bw/2;pair("sdec",W/2+1.5,60);pair("srb:thumper",bx,0,bw,260);pair("nose",bx,260,bw);pair("fin",bx+bw/2+15,0);}
+  else if(name==="lander"){const y=stack(0,[["engine:bison",56],["tank",84,160],["adapter",84],["dec",W],["engine:wren",22],["tank",W,90],["probe",W],["nose",W]]);
+    pair("leg",W/2+15,A.find(p=>p.t==="engine"&&p.e==="wren").y+32);pair("fin",84/2+15,70);}
+  else if(name==="sls"){   // SLS proportions: an 8.4 m orange core with 4 engines, two slim 3.7 m solid boosters flush to its sides,
+    // a small upper stage with a vacuum engine, and a capsule-shaped top. About 98 m tall.
+    const C=84;let y=0;for(const x of[-31.5,-10.5,10.5,31.5])add("engine:mule",x,0,21);y=mkPart("engine:mule",21).h;
+    const core=add("tank",0,y,C,620);core.sk="foam";y+=620;
+    const ad=add("adapter",0,y,C,60);ad.w2=50;y+=60;
+    stack(y,[["dec",50],["engine:vac",28],["tank",50,70],["probe",50],["nose",50,150]]);
+    const bw=37,bx=C/2+3+bw/2;pair("sdec",C/2+1.5,200);pair("srb:thumper",bx,0,bw,540);pair("nose",bx,540,bw,70);}
   return A;}

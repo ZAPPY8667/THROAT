@@ -95,7 +95,8 @@ function vUp(e){vTouch.delete(e.pointerId);if(vTouch.size<2)vPinch=null;vpan=nul
   vU.push(d.before);vR=[];vChanged();}
 vcv.addEventListener("pointerup",vUp);vcv.addEventListener("pointercancel",vUp);vcv.addEventListener("contextmenu",e=>e.preventDefault());
 vcv.addEventListener("wheel",e=>{e.preventDefault();const i=vsel?vById(vsel):-1;
-  if(e.shiftKey&&i>=0&&hasProp(vps[i])){const p=vps[i],h=Math.max(30,Math.min(450,p.h+(e.deltaY<0?15:-15)));if(h!==p.h)vResize(i,p.w,h);return;}
+  if(e.shiftKey&&i>=0&&hasProp(vps[i])){const p=vps[i],h=Math.max(20,Math.min(900,p.h+(e.deltaY<0?10:-10)));if(h!==p.h)vResize(i,p.w,h);return;}
+  if((e.ctrlKey||e.metaKey)&&i>=0&&canWiden(vps[i])){vWiden(i,e.deltaY<0?2:-2);return;}
   const q=vEvXY(e),k=e.deltaY<0?1.15:1/1.15,s2=Math.max(0.15*VDS,Math.min(12*VDS,vv.s*k)),kk=s2/vv.s;vv.ox=q.X-(q.X-vv.ox)*kk;vv.oy=q.Y-(q.Y-vv.oy)*kk;vv.s=s2;},{passive:false});
 // ---------- keys (while the editor is open, the sandbox doesn't hear them) ----------
 addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT")return;
@@ -107,7 +108,8 @@ addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const t
   else if(k==="m"){vMirror=!vMirror;store.set("throat.vmirror",vMirror);vBarUI();}
   else if(k==="f"){vFitView();}
   else if(k==="enter"){$("vGo").click();}
-  else if(k==="-"||k==="="||k==="+"){const i=vsel?vById(vsel):-1;if(i>=0&&hasProp(vps[i])){const p=vps[i];vResize(i,p.w,Math.max(30,Math.min(450,p.h+(k==="-"?-15:15))));}}
+  else if(k==="-"||k==="="||k==="+"){const i=vsel?vById(vsel):-1;if(i>=0&&hasProp(vps[i])){const p=vps[i];vResize(i,p.w,Math.max(20,Math.min(900,p.h+(k==="-"?-10:10))));}}
+  else if(k==="["||k==="]"){const i=vsel?vById(vsel):-1;if(i>=0&&canWiden(vps[i]))vWiden(i,k==="]"?2:-2);}
   e.stopImmediatePropagation();},true);
 // ---------- panels ----------
 function partIcon(t){const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
@@ -118,23 +120,31 @@ function vPalUI(){const box=$("vParts");box.innerHTML="";
     b.addEventListener("pointerdown",e=>{startCarry(t,e);});box.appendChild(b);};
   for(const t of PT_ORDER){const en=t.startsWith("engine:")?ENG[t.slice(7)]:t.startsWith("srb:")?BOOST[t.slice(4)]:null;item(t,en?en.name:PT[t].name,en?en.desc:PT[t].desc,en?" veng":"");}
   for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}). Sea level ${(e.sl.F/1000).toFixed(2)} kN, ${Math.round(e.sl.isp)} s.`," vlib");}
+// free width: every part in the stack can be any width in its range. Nose cones, probes and engines keep their shape
+// (height grows with width); tanks, boosters, decouplers and adapters keep their length.
+const canWiden=p=>!!(PT[p.t].wr);
+function vWiden(i,dw){const p=vps[i],r=PT[p.t].wr,w=Math.max(r[0],Math.min(r[1],p.w+dw));if(w===p.w)return;
+  const keepShape=p.t==="nose"||p.t==="probe"||p.t==="engine";vResize(i,w,keepShape?Math.max(4,Math.round(p.h*w/p.w)):p.h,q=>{if(q.t==="adapter"&&q.w2>=w)q.w2=w-2;});}
 function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.display="none";return;}const p=vps[i],d=PT[p.t];el.style.display="";
   const cap=capOf(p),isE=p.t==="engine",isS=p.t==="srb",E=isE||isS?engStat(p):null,lib=libAll();
-  let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fmt(partMass(p)+cap)} kg${cap?` (${fmt(cap)} kg propellant)`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:isS?BOOST[boostKey(p)].desc:d.desc}</div>`;
+  let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fM(partMass(p)+cap)}${cap?` (${fM(cap)} propellant)`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:isS?BOOST[boostKey(p)].desc:d.desc}</div>`;
   if(isS){const B=E,k=boostKey(p),bt=cap*B.sl.isp*G0/B.sl.F;
-    h+=`<div class="tip" style="margin-top:4px">Sea level <b>${(B.sl.F/1000).toFixed(2)} kN · ${Math.round(B.sl.isp)} s</b>${B.sl.est?" (est.)":""}<br>Vacuum <b>${(B.vac.F/1000).toFixed(2)} kN · ${Math.round(B.vac.isp)} s</b>${B.vac.est?" (est.)":""}<br>Burns about <b>${Math.round(bt)} s</b> ${curveSvg(B.curve)}${k==="stand"?`<br>${B.src==="tested"?"From your last booster burn on the test stand.":"Not burned yet: these are the Thumper's numbers until you fire a booster on the test stand."}`:""}</div>
+    h+=`<div class="tip" style="margin-top:4px">Sea level <b>${fF(B.sl.F)} · ${Math.round(B.sl.isp)} s</b>${B.sl.est?" (est.)":""}<br>Vacuum <b>${fF(B.vac.F)} · ${Math.round(B.vac.isp)} s</b>${B.vac.est?" (est.)":""}<br>Burns about <b>${Math.round(bt)} s</b> ${curveSvg(B.curve)}${k==="stand"?`<br>${B.src==="tested"?"From your last booster burn on the test stand.":"Not burned yet: these are the Thumper's numbers until you fire a booster on the test stand."}`:""}</div>
     <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap"><button class="b${k==="stand"?" on":""}" data-bo="stand">Your booster</button><button class="b${k==="thumper"?" on":""}" data-bo="thumper">Thumper</button>${lib.filter(e=>e.kind==="solid").map(e=>`<button class="b${k==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-bo="${e.id}"></button>`).join("")}</div>`;}
-  if(isE)h+=`<div class="tip" style="margin-top:4px">Sea level <b>${(E.sl.F/1000).toFixed(2)} kN · ${Math.round(E.sl.isp)} s</b>${E.sl.est?" (est.)":""}<br>Vacuum <b>${(E.vac.F/1000).toFixed(2)} kN · ${Math.round(E.vac.isp)} s</b>${E.vac.est?" (est.)":""}${engKey(p)==="stand"?`<br>${E.src==="tested"?"From your test stand runs.":"Not tested yet: fire your engine on the stand to record its real numbers."}`:""}</div>
+  if(isE)h+=`<div class="tip" style="margin-top:4px">Sea level <b>${fF(E.sl.F)} · ${Math.round(E.sl.isp)} s</b>${E.sl.est?" (est.)":""}<br>Vacuum <b>${fF(E.vac.F)} · ${Math.round(E.vac.isp)} s</b>${E.vac.est?" (est.)":""}${engKey(p)==="stand"?`<br>${E.src==="tested"?"From your test stand runs.":"Not tested yet: fire your engine on the stand to record its real numbers."}`:""}</div>
     <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${ENG_ORDER.map(k=>`<button class="b${engKey(p)===k?" on":""}" data-e="${k}">${ENG[k].name}</button>`).join("")}${lib.filter(e=>e.kind!=="solid").map(e=>`<button class="b${engKey(p)==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-le="${e.id}"></button>`).join("")}</div>`;
   if(p.t==="tank")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${TANK_SKINS.map(([k,n])=>`<button class="b${tankSkin(p)===k?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
   if(p.t==="leg")h+=`<div class="row" style="margin-top:6px"><button class="b${vLegsOut?" on":""}" data-legs="1">${vLegsOut?"Show folded":"Show deployed"}</button></div>`;
   h+=`<div class="row" style="margin-top:6px;gap:5px;flex-wrap:wrap">`;
-  if(d.ws.length>1)for(const w of d.ws)h+=`<button class="b${p.w===w?" on":""}" data-w="${w}">${w===60?"Narrow":"Wide"}</button>`;
-  if(hasProp(p))h+=`<button class="b" data-l="-15">− Shorter</button><button class="b" data-l="15">+ Longer</button>`;
+  if(canWiden(p))h+=`<button class="b" data-dw="-4">− Narrower</button><button class="b" data-dw="4">+ Wider</button><span class="tip">${(p.w*UM).toFixed(1)} m wide</span>`;
+  if(p.t==="adapter")h+=`<button class="b" data-tw="-4">− Top</button><button class="b" data-tw="4">+ Top</button><span class="tip">top ${(topW(p)*UM).toFixed(1)} m</span>`;
+  if(hasProp(p))h+=`<button class="b" data-l="-20">− Shorter</button><button class="b" data-l="20">+ Longer</button><span class="tip">${(p.h*UM).toFixed(0)} m long</span>`;
   h+=`<button class="b" data-del="1" style="margin-left:auto">${ico("trash")}Remove</button></div>`;el.innerHTML=h;
   el.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{const w=+b.dataset.w;vResize(i,w,p.t==="nose"?w:p.h);});
-  el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{vResize(i,p.w,Math.max(30,Math.min(450,p.h+ +b.dataset.l)));});
-  el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const k=b.dataset.e;vResize(i,ENG[k].w,ENG[k].h,q=>{q.e=k;delete q.n;});});
+  el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{vResize(i,p.w,Math.max(20,Math.min(900,p.h+ +b.dataset.l)));});
+  el.querySelectorAll("[data-dw]").forEach(b=>b.onclick=()=>vWiden(i,+b.dataset.dw));
+  el.querySelectorAll("[data-tw]").forEach(b=>b.onclick=()=>vResize(i,p.w,p.h,q=>{q.w2=Math.max(8,Math.min(q.w-2,topW(q)+ +b.dataset.tw));}));
+  el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const k=b.dataset.e;vResize(i,p.w,Math.round(ENG[k].h*p.w/ENG[k].w),q=>{q.e=k;delete q.n;});});   // keep the size, change the model
   // saved names go in as text, not HTML
   el.querySelectorAll("[data-le]").forEach(b=>{const e=libGet(b.dataset.le);b.textContent=e?e.name:"?";b.onclick=()=>{if(e)vResize(i,ENG.lib.w,ENG.lib.h,q=>{q.e="lib";q.n=libNums(e);});};});
   el.querySelectorAll("[data-bo]").forEach(b=>{const k=b.dataset.bo,e=BOOST[k]?null:libGet(k);if(e)b.textContent=e.name;
@@ -143,17 +153,17 @@ function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.di
   el.querySelectorAll("[data-legs]").forEach(b=>b.onclick=()=>{vLegsOut=!vLegsOut;vBarUI();vInspUI();});
   el.querySelector("[data-del]").onclick=()=>vDelete(i);}
 function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stages;
-  let h=`<div class="read" style="grid-template-columns:auto 1fr auto 1fr"><span>Mass</span><b data-r="m" data-v="${a.mass}" data-u=" kg"></b><span>Height</span><b>${a.H.toFixed(1)} m</b></div>`;
+  let h=`<div class="read" style="grid-template-columns:auto 1fr auto 1fr"><span>Mass</span><b data-r="m" data-v="${a.mass}" data-u="mass"></b><span>Height</span><b>${a.H.toFixed(1)} m</b></div>`;
   if(st.length){h+=`<div class="vst">`;st.forEach((s,k)=>{h+=`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b data-r="s${k}" data-v="${s.dv}"></b> m/s</span><span>TWR <b class="${s.twr>(k?0.5:1.1)?"ok":"bad"}">${s.twr.toFixed(2)}</b></span><i>${s.eng} engine${s.eng===1?"":"s"} · burns ${Math.round(s.burn)} s</i></div>`;
     if(s.dropKind)h+=`<div class="vsep">Space → drop ${s.dropKind==="boosters"?"the side boosters":"stage "+(k+1)}</div>`;});
     h+=`</div><div class="read" style="grid-template-columns:auto 1fr"><span>Total Δv</span><b data-r="t" data-v="${a.total}" data-u=" m/s"></b></div><div class="tip">Orbit takes about 2,300 m/s. TWR above 1 to lift off.</div>`;}
   for(const w of a.warn)h+=`<div class="warn">⚠ ${w}</div>`;
   if(st.length&&st[0].twr<=1)h+=`<div class="warn">⚠ Too heavy to lift off: add engines or use less fuel.</div>`;
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;
-    for(const b of el.querySelectorAll("[data-r]")){const u=b.dataset.u||"";roll("vs"+b.dataset.r,b,+b.dataset.v,x=>fmt(x)+u);}}   // numbers roll to their new values
+    for(const b of el.querySelectorAll("[data-r]")){const u=b.dataset.u||"";roll("vs"+b.dataset.r,b,+b.dataset.v,u==="mass"?fM:x=>fmt(x)+u);}}   // numbers roll to their new values
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
 function vBarUI(){$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
-  const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
+  const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:sls">Super Heavy (SLS-shaped, 98 m)</option><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
   sel.innerHTML=h;$("vName").value=vName;}
 $("vLoad").onchange=()=>{const v=$("vLoad").value;$("vLoad").value="";if(!v)return;vPush();
@@ -173,7 +183,7 @@ $("bLaunch").onclick=openVab;
 // ---------- drawing ----------
 function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   c.setTransform(1,0,0,1,0,0);c.fillStyle="#0a0f1d";c.fillRect(0,0,VW,VH);
-  // blueprint grid: fine every 15 cm, bold every 60
+  // blueprint grid: fine every 1.5 m, bold every 6 m
   const s=vv.s;for(const[st,a]of[[15,0.05],[60,0.11]]){if(st*s<6)continue;c.strokeStyle=`rgba(120,150,230,${a})`;c.lineWidth=1;c.beginPath();
     const x0=Math.floor(-vv.ox/s/st)*st,y0=Math.floor((vv.oy-VH)/s/st)*st;
     for(let x=x0;x*s+vv.ox<VW;x+=st){const X=Math.round(vv.ox+x*s)+0.5;c.moveTo(X,0);c.lineTo(X,VH);}
