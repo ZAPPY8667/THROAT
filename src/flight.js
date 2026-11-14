@@ -272,13 +272,15 @@ function plume(ctx,x0,y0,w,thr,a,bright,vacEng){   // in the rocket's frame (y u
   if(a>0.12)for(let k=0;k<5;k++){const yy=y0-w*(1.25+1.3*k)*(1+0.4*vac),rr=w*(0.42-0.05*k),gg=ctx.createRadialGradient(x0,yy,0,x0,yy,rr);   // Mach diamonds
     gg.addColorStop(0,col([255,250,255],Math.min(1,1.1*a*thr*(1-0.17*k))));gg.addColorStop(1,col([255,150,230],0));ctx.fillStyle=gg;ctx.beginPath();ctx.arc(x0,yy,rr,0,6.2832);ctx.fill();}
   ctx.restore();}
-function srbPlume(ctx,x0,y0,w,a,bright){   // solid exhaust: a white-hot core in a long, flickering orange flame, wider in vacuum
-  const vac=1-a,fl=0.88+Math.random()*0.24,L=w*(13+5*vac)*fl,spread=Math.tan(lerp(0.05,0.42,Math.pow(vac,0.6)))*L;
+function srbPlume(ctx,x0,y0,w,a,bright){   // solid exhaust, like SLS boosters at lift-off: a long white-hot column, yellow then orange at the tail, wider in vacuum
+  const vac=1-a,fl=0.9+Math.random()*0.2,L=w*(16+6*vac)*fl,spread=Math.tan(lerp(0.04,0.42,Math.pow(vac,0.6)))*L;
   ctx.save();ctx.globalCompositeOperation=bright>0.5?"source-over":"lighter";
-  ctx.beginPath();ctx.moveTo(x0-w*0.5,y0);ctx.lineTo(x0-w*0.5-spread,y0-L);ctx.lineTo(x0+w*0.5+spread,y0-L);ctx.lineTo(x0+w*0.5,y0);ctx.closePath();
-  const g=ctx.createLinearGradient(0,y0,0,y0-L);g.addColorStop(0,col([255,244,200],0.95));g.addColorStop(0.22,col([255,175,65],0.85));g.addColorStop(0.65,col([235,105,30],0.4));g.addColorStop(1,col([190,60,20],0));
+  // soft glow around the flame
+  {const gg=ctx.createRadialGradient(x0,y0-w*1.5,0,x0,y0-w*1.5,w*5);gg.addColorStop(0,col([255,236,190],0.35*fl));gg.addColorStop(1,col([255,180,90],0));ctx.fillStyle=gg;ctx.fillRect(x0-w*5,y0-w*6.5,w*10,w*10);}
+  ctx.beginPath();ctx.moveTo(x0-w*0.5,y0);ctx.lineTo(x0-w*0.55-spread,y0-L);ctx.lineTo(x0+w*0.55+spread,y0-L);ctx.lineTo(x0+w*0.5,y0);ctx.closePath();
+  const g=ctx.createLinearGradient(0,y0,0,y0-L);g.addColorStop(0,col([255,253,240],1));g.addColorStop(0.3,col([255,240,190],0.95));g.addColorStop(0.55,col([255,190,90],0.75));g.addColorStop(0.8,col([240,120,40],0.35));g.addColorStop(1,col([190,70,20],0));
   ctx.fillStyle=g;ctx.fill();
-  ctx.beginPath();ctx.moveTo(x0-w*0.45,y0);ctx.lineTo(x0,y0-w*(2.6+1.5*vac)*fl);ctx.lineTo(x0+w*0.45,y0);ctx.closePath();ctx.fillStyle=col([255,255,240],0.95);ctx.fill();
+  ctx.beginPath();ctx.moveTo(x0-w*0.46,y0);ctx.quadraticCurveTo(x0-w*0.5,y0-w*4,x0,y0-w*(6+2*vac)*fl);ctx.quadraticCurveTo(x0+w*0.5,y0-w*4,x0+w*0.46,y0);ctx.closePath();ctx.fillStyle=col([255,255,250],1);ctx.fill();
   ctx.restore();}
 function drawVessel(c,v,bright){
   c.save();c.translate(v.x,v.y);c.rotate(-v.phi);

@@ -186,9 +186,12 @@ function drawPart(c,p,o={}){
         c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,y+2,w,1);c.fillRect(L,T-3,w,1);break;}
       const foam=sk==="foam";
       // white: painted Falcon-style skin; foam: SLS-style orange spray-on insulation (mottled)
-      c.fillStyle=cyl(c,L,R,foam?[200,106,44]:[236,238,241]);c.fillRect(L,y,w,h);
-      if(foam){c.fillStyle="rgba(110,45,10,.10)";for(let i=0,n=w*h/90;i<n;i++)c.fillRect(L+(i*73.7)%w,y+(i*37.3)%h,3,1.6);
-        c.fillStyle="rgba(255,220,180,.10)";for(let i=0,n=w*h/160;i<n;i++)c.fillRect(L+(i*51.3)%w,y+(i*91.7)%h,2,1.4);}
+      c.fillStyle=cyl(c,L,R,foam?[196,96,36]:[236,238,241]);c.fillRect(L,y,w,h);
+      if(foam){   // like the SLS core in sunlight: burnt orange, uneven where the foam was sprayed in passes, faint vertical streaks
+        for(let i=0;i<w*0.6;i++){const xx=L+(i*41.7)%w,a=0.03+((i*7)%5)*0.012;c.fillStyle=i%2?`rgba(90,35,5,${a})`:`rgba(255,190,130,${a*0.7})`;c.fillRect(xx,y,1+(i%3),h);}
+        for(let i=0,n=w*h/700;i<n;i++){const px=L+(i*73.7)%w,py=y+(i*37.3)%h;c.fillStyle=i%2?"rgba(100,40,8,.045)":"rgba(255,200,150,.04)";c.beginPath();c.ellipse(px,py,4+(i%4),2+(i%3),0,0,6.2832);c.fill();}
+        if(h>=90){const ib=Math.min(16,h*0.12);c.fillStyle=cyl(c,L,R,[178,84,30]);c.fillRect(L,T-ib-3,w,ib);   // intertank: ribbed band near the top
+          c.fillStyle="rgba(70,25,0,.22)";for(let xx=L+2;xx<R;xx+=3.2)c.fillRect(xx,T-ib-3,0.9,ib);c.fillStyle="rgba(0,0,0,.2)";c.fillRect(L,T-ib-3,w,0.8);c.fillRect(L,T-3,w,0.8);}}
       c.fillStyle="rgba(0,0,0,.2)";c.fillRect(L,y+2.5,w,1);c.fillRect(L,T-3.5,w,1);                 // dome welds at each end
       c.fillStyle="rgba(0,0,0,.06)";for(let yy=y+40;yy<T-15;yy+=40)c.fillRect(L,yy,w,0.8);           // barrel-section welds
       if(h>=45){const rx=L+w*0.74;c.fillStyle=cyl(c,rx,rx+4,foam?[170,88,36]:[205,208,214]);c.fillRect(rx,y+5,4,h-10);   // cable raceway running down the side
@@ -201,7 +204,7 @@ function drawPart(c,p,o={}){
       c.strokeStyle="rgba(255,255,255,.22)";c.lineWidth=0.8;c.strokeRect(x+w*0.08,y+h*0.25,w*0.22,h*0.5);
       c.fillStyle="rgba(0,0,0,.4)";for(const q of[-0.32,-0.24])c.fillRect(x+w*q,y+h*0.62,2.5,2);break;}   // two vent holes
     case"nose":{   // payload fairing: a smooth white ogive with the split line down the middle
-      c.beginPath();c.moveTo(L,y);c.bezierCurveTo(L,y+h*0.45,x-w*0.32,y+h*0.9,x-w*0.06,T-1);c.quadraticCurveTo(x,T+0.5,x+w*0.06,T-1);c.bezierCurveTo(x+w*0.32,y+h*0.9,R,y+h*0.45,R,y);c.closePath();
+      c.beginPath();c.moveTo(L,y);c.bezierCurveTo(L,y+h*0.42,x-w*0.22,y+h*0.86,x-w*0.03,T-0.6);c.quadraticCurveTo(x,T+0.3,x+w*0.03,T-0.6);c.bezierCurveTo(x+w*0.22,y+h*0.86,R,y+h*0.42,R,y);c.closePath();
       c.fillStyle=cyl(c,L,R,[240,241,244]);c.fill();c.save();c.clip();
       c.fillStyle="rgba(0,0,0,.18)";c.fillRect(x-0.5,y,1,h);c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,y,w,2);
       c.fillStyle="rgba(0,0,0,.05)";c.fillRect(L,y+h*0.3,w,0.8);c.restore();break;}
