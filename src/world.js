@@ -239,3 +239,24 @@ function drawFlameGlow(c,x,y,k){if(k<=0.01)return;const R=60+140*k;c.save();c.gl
 // heat shimmer over the flame trench: faint wavy bands of warm air
 function drawShimmer(c,rw,k,now){if(k<=0.01)return;c.save();c.strokeStyle=`rgba(255,240,220,${0.07*k})`;c.lineWidth=0.6;for(let j=0;j<6;j++){c.beginPath();const y0=2+j*3;
   for(let x=-rw*1.2;x<=rw*1.2;x+=1){const y=y0+Math.sin(x*0.6+now*7+j)*0.6;x===-rw*1.2?c.moveTo(x,y):c.lineTo(x,y);}c.stroke();}c.restore();}
+// ================= clouds by altitude (phase 4) =================
+// Three layers, like real weather: puffy cumulus at 1–3 km, flat stratus sheets at 4–8 km, thin wispy cirrus at 9–14 km; none
+// higher. Each cloud has a depth d: 0 = level with the rocket (you can fly through it), > 0 = further away (drawn smaller and
+// moving slower: parallax), < 0 = in front (bigger, faster, drawn over the rocket). Seeded per launch, so a retry looks the same.
+function makeClouds(seed){const out=[],q=(i,k)=>hash1(seed*0.013+i*12.97+k*3.1),cl=wx.cl;
+  const add=(n,kind,h0,h1,w0,w1,span)=>{for(let i=0;i<n;i++){const j=out.length+i*7.3;out.push({kind,a:(q(j,1)-0.5)*span,h:h0+q(j,2)*(h1-h0),w:w0+q(j,3)*(w1-w0),
+    d:q(j,4)<0.18?-0.25:q(j,5)<0.45?0:0.4+q(j,6)*1.8,o:0.55+q(j,7)*0.4,s:q(j,8)});}};
+  add(Math.round(70*cl),"cu",1000,3000,250,900,0.06);add(Math.round(18*Math.max(0.3,cl-0.3)),"st",4000,8000,2500,7000,0.08);add(Math.round(22*(0.5+cl*0.5)),"ci",9000,14000,1500,5000,0.1);
+  return out;}
+// draw one cloud (world coords, y up, already rotated to its spot). lc = light colour, dk = shadow colour, al = opacity
+function drawCloud(c,cl,w,lc,dk,al){
+  if(cl.kind==="cu"){for(let k=0;k<9;k++){const m=(k-4)/4,ox=m*w*0.42+(cl.s-0.5)*w*0.05*(k%3),hump=1-m*m,oy=w*(0.04+0.22*hump*(0.7+0.3*((k*7+cl.s*10)%3)/2)),rad=w*(0.12+0.12*hump);
+      const g=c.createRadialGradient(ox,oy+rad*0.3,0,ox,oy,rad);g.addColorStop(0,`rgba(${lc},${al})`);g.addColorStop(0.7,`rgba(${lc},${al*0.75})`);g.addColorStop(1,`rgba(${lc},0)`);c.fillStyle=g;c.beginPath();c.arc(ox,oy,rad,0,6.2832);c.fill();}
+    const g=c.createLinearGradient(0,0,0,w*0.15);g.addColorStop(0,`rgba(${dk},${al*0.3})`);g.addColorStop(1,`rgba(${dk},0)`);c.fillStyle=g;c.beginPath();c.ellipse(0,w*0.05,w*0.5,w*0.06,0,0,6.2832);c.fill();}   // soft grey flat base
+  else if(cl.kind==="st"){const g=c.createLinearGradient(0,-w*0.04,0,w*0.05);g.addColorStop(0,`rgba(${dk},0)`);g.addColorStop(0.4,`rgba(${lc},${al*0.7})`);g.addColorStop(1,`rgba(${lc},0)`);
+    c.fillStyle=g;c.beginPath();c.ellipse(0,0,w*0.5,w*0.05,0,0,6.2832);c.fill();}
+  else{c.strokeStyle=`rgba(${lc},${al*0.45})`;c.lineWidth=w*0.012;c.lineCap="round";for(let k=0;k<5;k++){const y=(k-2)*w*0.025,x0=-w*0.5+k*w*0.05;c.beginPath();c.moveTo(x0,y);c.quadraticCurveTo(0,y+w*0.03*(k%2?1:-1),w*0.45-k*w*0.04,y-w*0.01);c.stroke();}c.lineCap="butt";}}
+// how foggy it is right at the rocket: inside a cloud level with it (d = 0), thicker clouds fog more
+function cloudFog(cls,x,y){let f=0;for(const cl of cls){if(cl.d!==0)continue;const cr=PR+cl.h,cx=Math.sin(cl.a)*cr,cy=Math.cos(cl.a)*cr,dx=x-cx,dy=y-cy,ux=cx/cr,uy=cy/cr,
+    up=dx*ux+dy*uy,side=dx*uy-dy*ux,th=cl.kind==="cu"?cl.w*0.25:cl.kind==="st"?cl.w*0.05:cl.w*0.02,e=(side/(cl.w*0.5))**2+(up/th)**2;
+    if(e<1)f=Math.max(f,(1-e)*(cl.kind==="cu"?0.9:cl.kind==="st"?0.75:0.25)*cl.o);}return f;}

@@ -76,7 +76,7 @@ function startFlight(ps,name,keepWx){
   msg=JX?"On the pad. Press Space (or Start countdown) to count down from 10.":"";msgT=JX?8:0;
   // weather for this launch: a new one each time you launch from the editor, the same one when you retry (R)
   if(!keepWx){launchSeed=(launchSeed*16807+12345)%2147483647||7;}pickWeather(launchSeed%9973);
-  clouds=[];const nC=Math.round(60*wx.cl);for(let i=0;i<nC;i++){const q=k=>hash1(launchSeed*0.01+i*13.7+k),a=(q(1)-0.5)*0.05,h=900+q(2)*3500;clouds.push({a,h,w:300+q(3)*900,o:0.3+q(4)*0.4});}
+  clouds=makeClouds(launchSeed);   // three layers by altitude (world.js)
   FLT.on=true;FLT.vab=false;$("flight").classList.add("show");S.paused=true;cfg();fitF();$("fThr").value=0;lastFT=performance.now();
   requestAnimationFrame(flightFrame);}
 function endFlight(){FLT.on=false;$("flight").classList.remove("show");if(typeof enter==="function")enter($("stage"));S.paused=$("bPause").classList.contains("on");cfg();}
@@ -421,8 +421,13 @@ function renderFlight(dt){
   const amp=still?0:FDS*(kickF*12+thrK*(0.4+r.a)*1.6+Math.min(1,(r.q||0)/25000)*4),dr=still?0:FDS;
   const ox=(Math.sin(camT*0.31)*6+Math.sin(camT*0.17+1)*4)*dr+(Math.random()-0.5)*amp,oy=(Math.sin(camT*0.23+2)*4+Math.sin(camT*0.13)*3)*dr+(Math.random()-0.5)*amp;
   c.setTransform(1,0,0,1,FW/2+ox,FH*0.55+oy);c.scale(s,-s);c.rotate(psi);c.translate(-r.x,-r.y);
-  if(B.atm)for(const cl of clouds){cl.a+=windDir*wx.wind*dt/(PR+cl.h);const ca=cl.a,cr=PR+cl.h,cx=Math.sin(ca)*cr,cy=Math.cos(ca)*cr;const lc=mixC(wx.rain?[150,156,166]:[255,255,255],[255,170,120],sun.dusk*0.6).map(v=>v*Math.max(0.25,sun.light));const cs=`${lc[0]|0},${lc[1]|0},${lc[2]|0}`,al=cl.o*(1-sk);for(let q=0;q<5;q++){const ox2=(q-2)*cl.w*0.32,oy2=(q%2)*cl.w*0.06+Math.abs(q-2)*-cl.w*0.03,rad=cl.w*(0.42-Math.abs(q-2)*0.07),px2=cx+Math.cos(ca)*ox2+Math.sin(ca)*oy2,py2=cy-Math.sin(ca)*ox2+Math.cos(ca)*oy2;
-      const gg=c.createRadialGradient(px2,py2,0,px2,py2,rad);gg.addColorStop(0,`rgba(${cs},${al})`);gg.addColorStop(0.6,`rgba(${cs},${al*0.7})`);gg.addColorStop(1,`rgba(${cs},0)`);c.fillStyle=gg;c.beginPath();c.ellipse(px2,py2,rad,rad*0.45,ca,0,6.2832);c.fill();}}
+  // clouds: far ones (d > 0) first, smaller and closer to the rocket's spot, so they slide by slower (parallax); near ones (d < 0)
+  // are drawn later, over the rocket. Grey in rain, tinted at sunrise and sunset, dimmer at night.
+  const cLC=mixC(wx.rain?[170,176,186]:[255,255,255],[255,180,130],sun.dusk*0.6).map(v=>v*Math.max(0.25,sun.light)|0).join(),cDK=mixC([120,128,140],[90,70,80],sun.dusk*0.5).map(v=>v*Math.max(0.25,sun.light)|0).join();
+  const cloudPass=front=>{if(r.body!==0)return;const vw=Math.hypot(FW,FH)/s;for(const cl of clouds){if((cl.d<0)!==front)continue;if(!front)cl.a+=windDir*wx.wind*dt/(PR+cl.h);
+    const cr=PR+cl.h,cx=Math.sin(cl.a)*cr,cy=Math.cos(cl.a)*cr,f=1/(1+cl.d),px2=r.x+(cx-r.x)*f,py2=r.y+(cy-r.y)*f,w=cl.w*f;
+    if(Math.hypot(px2-r.x,py2-r.y)>vw+w)continue;c.save();c.translate(px2,py2);c.rotate(-cl.a);drawCloud(c,cl,w,cLC,cDK,cl.o*(1-sk)*(front?0.8:1));c.restore();}};
+  cloudPass(false);
   // exhaust smoke (only where there's air to make it)
   for(const p of smoke){p.t+=dt;if(p.body===0&&B.atm){const rr=Math.hypot(p.x,p.y);p.x+=windDir*wx.wind*dt*p.y/rr;p.y-=windDir*wx.wind*dt*p.x/rr;}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.985;p.vy*=0.985;}
   smoke=smoke.filter(p=>p.t<p.life&&p.body===r.body);
@@ -430,6 +435,9 @@ function renderFlight(dt){
     if(p.flake){c.fillStyle=`rgba(240,246,255,${(1-k)})`;c.fillRect(p.x,p.y,0.3,0.3);continue;}
     c.fillStyle=p.vap?`rgba(246,249,253,${0.42*(1-k)*Math.min(1,k*6)})`:`rgba(225,225,232,${0.32*(1-k)*p.o})`;c.beginPath();c.arc(p.x,p.y,rad,0,6.2832);c.fill();}
   if(r.body===0){
+    // from high up the air shows as a thin glowing line along the planet's curve (blue by day, orange at the terminator)
+    if(h>8000){const k=Math.min(1,(h-8000)/20000),gl=c.createRadialGradient(0,0,PR,0,0,PR+60000),cc=mixC([120,180,255],[255,150,90],sun.dusk*0.7).map(v=>v|0).join();
+      gl.addColorStop(0,`rgba(${cc},${0.75*k*Math.max(0.15,sun.day)})`);gl.addColorStop(0.25,`rgba(${cc},${0.3*k*Math.max(0.1,sun.day)})`);gl.addColorStop(1,`rgba(${cc},0)`);c.fillStyle=gl;c.beginPath();c.arc(0,0,PR+60000,0,6.2832);c.fill();}
     // Earth: real ground (biomes, sea, trees, rocks, buildings: world.js), then the pads on top
     drawEarth(c,psi*PR,s,FT,now);
     // pads are drawn at a scale that fits the rocket (k), with the pad's top at ground level so the rocket stands on it
@@ -454,6 +462,7 @@ function renderFlight(dt){
       const[wx,wy]=loc(v,(p.x-v.px)*UM,(p.y-v.py)*UM),sp=25+Math.random()*25;
       smoke.push({body:v.body,x:wx,y:wy,vx:v.vx*0.3-ss*sp+(Math.random()-0.5)*8,vy:v.vy*0.3-cc*sp+(Math.random()-0.5)*8,t:0,life:(sol?6:3)+Math.random()*3,r0:p.w*UM*0.8,r1:((sol?10:6)+Math.random()*10)*Math.max(1,p.w*UM/2),o:v.a*(sol?1.6:1)});});}
     drawVessel(c,v,bright);}
+  cloudPass(true);
   // re-entry glow: the air in front of the craft heats to plasma: an orange-pink glow on the leading side, streaming behind
   for(const v of VS){if(v.body!==r.body||!(v.hf>2e7)||v.crashed)continue;const sp=Math.hypot(v.vx,v.vy),ux=v.vx/sp,uy=v.vy/sp,k=Math.min(1,(v.hf-2e7)/2e8),L=Math.max(v.H,v.W)*0.5;
     c.save();c.globalCompositeOperation="lighter";const fxp=v.x+ux*L,fyp=v.y+uy*L,R=v.W*1.2+k*L*1.5,gg=c.createRadialGradient(fxp,fyp,0,fxp,fyp,R);gg.addColorStop(0,`rgba(255,235,210,${0.8*k})`);gg.addColorStop(0.4,`rgba(255,120,60,${0.5*k})`);gg.addColorStop(1,"rgba(255,60,120,0)");
@@ -473,6 +482,7 @@ function renderFlight(dt){
   if(r.body===0&&sk<1)drawEarthShadow(c,psi,h,s);
   c.setTransform(1,0,0,1,0,0);
   if(r.body===0)drawRain(c,h,now,dt);
+  if(r.body===0){const fog=cloudFog(clouds,r.x,r.y);if(fog>0.01){c.fillStyle=`rgba(${cLC},${Math.min(0.92,fog)})`;c.fillRect(0,0,FW,FH);}}   // flying through a cloud
   if(r.H*s<10&&!r.crashed){const X=FW/2+ox,Y=FH*0.55+oy;c.strokeStyle="#fff";c.lineWidth=1.5*FDS;c.beginPath();c.moveTo(X-7*FDS,Y+8*FDS);c.lineTo(X,Y-6*FDS);c.lineTo(X+7*FDS,Y+8*FDS);c.stroke();   // too small to see: a marker
     c.font=`600 ${10*FDS}px ${getComputedStyle(document.body).fontFamily}`;c.fillStyle="rgba(255,255,255,.8)";c.textAlign="center";c.fillText(r.name.toUpperCase(),X,Y+22*FDS);c.textAlign="left";}
   if(flashF>0.01){const g2=c.createRadialGradient(FW/2+ox,FH*0.62+oy,0,FW/2+ox,FH*0.62+oy,FH*0.9);   // ignition flash and bloom

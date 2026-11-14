@@ -126,7 +126,7 @@ bigger Moon from phase 1.5 came with it. See HISTORY.md.
   heat shimmer above the trench.
 - Hook into the existing `JUICE` sounds (ignition bang, roar) and goals (`launch`).
 
-## Phase 4: sky and clouds by altitude (v1.20)
+## Phase 4: sky and clouds by altitude (v1.21) — done (`makeClouds`/`drawCloud`/`cloudFog` in world.js)
 - **Layers by altitude:** puffy cumulus at 1–3 km, flat stratus sheets at 4–8 km, thin wispy cirrus at 9–14 km; none above about 15 km.
 - **Fly through them:** passing through a layer briefly fogs the view white (density by thickness), then clears above it.
 - **Parallax depth:** several depth bands; far clouds move slower than near ones relative to the rocket.
