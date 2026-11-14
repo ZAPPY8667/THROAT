@@ -154,4 +154,4 @@ plan drawn on the map. The player can take over at any moment (any steering or t
 - **Still waiting on Wyatt:** make the repo public and turn on GitHub Pages? The repo is private and Pages is off, so the
   "live" URL in CLAUDE.md doesn't work yet. Don't do this without his yes.
 - Flight tanks still use hydrolox density for every fuel (methane/kerosene should be denser): a later backlog item.
-- Backlog item 6 (centre of mass / lift / thrust markers) is unchanged.
+- Backlog item 6 (centre of mass / lift / thrust markers): done in v1.24.

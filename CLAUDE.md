@@ -86,7 +86,8 @@ See `HISTORY.md` for the version history, why things are tuned the way they are,
 3. ✅ (v1.11) Methane and kerosene on the test stand (blue-violet methane flame, sooty orange kerosene).
 4. ✅ (v1.13) Fix booster Isp (see above).
 5. ✅ (v1.14) Short first-time tutorial (light the engine → build a rocket → launch).
-6. Later: centre of mass / centre of lift / centre of thrust in flight.
+6. ✅ (v1.24) Centre of mass / lift / thrust markers (`centres`/`drawCentres` in parts.js): editor (Centres button, C) and flight (C);
+   the editor warns when lift is above mass (unstable in air).
 
 ## Working with Wyatt
 - Wants direct, brief updates; copy-paste-ready output; no padding.

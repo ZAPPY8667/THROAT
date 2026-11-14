@@ -450,7 +450,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
     </div>
     <div class="cols" style="margin-top:10px"><div style="grid-column:1/-1;color:var(--acc2);font-weight:650;border:0;letter-spacing:.14em;text-transform:uppercase;font-size:11px">Rocket editor &amp; flight</div>
       <div>Editor: move part + what's under it<i>drag (<kbd>Alt</kbd>: just it)</i></div><div>Stretch a tank<i><kbd>Shift</kbd> + wheel</i></div>
-      <div>Editor: mirror pairs<kbd>M</kbd></div><div>Editor: remove part<i><kbd>Del</kbd> or drag to the parts list</i></div>
+      <div>Editor: mirror pairs<kbd>M</kbd></div><div>Centre of mass / lift / thrust<kbd>C</kbd></div><div>Editor: remove part<i><kbd>Del</kbd> or drag to the parts list</i></div>
       <div>Throttle up / down<i><kbd>Shift</kbd> <kbd>Ctrl</kbd> or <kbd>W</kbd> <kbd>S</kbd></i></div><div>Full / cut<i><kbd>Z</kbd> <kbd>X</kbd></i></div>
       <div>Steer<i><kbd>A</kbd> <kbd>D</kbd></i></div><div>Countdown, then next stage<kbd>Space</kbd></div>
       <div>Landing legs<kbd>G</kbd></div><div>RCS on / off<kbd>T</kbd></div><div>Parachutes (capsule)<kbd>P</kbd></div><div>ABORT (escape tower)<kbd>Backspace</kbd></div><div>RCS nudge<i><kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd></i></div><div>SAS holds<i><kbd>1</kbd>–<kbd>9</kbd></i></div><div></div><div>Fly another craft<i><kbd>[</kbd> <kbd>]</kbd></i></div>
@@ -471,7 +471,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="vpanel vbar">
     <select id="vLoad" aria-label="Load a rocket"></select>
     <button class="b" id="vSaveB" title="Save under this name" data-ic="save">Save</button><button class="b ico" id="vDelB" title="Delete the saved rocket with this name" data-ic="trash"></button>
-    <button class="b on" id="vMirror" title="Place parts in mirrored pairs (M)"></button><button class="b" id="vLegs" title="Show landing legs folded or deployed"></button>
+    <button class="b on" id="vMirror" title="Place parts in mirrored pairs (M)"></button><button class="b" id="vLegs" title="Show landing legs folded or deployed"></button><button class="b" id="vCen" title="Show the centre of mass (yellow), lift (blue) and thrust (red) (C)"></button>
     <button class="b ico" id="vUndoB" title="Undo (Ctrl+Z)" data-ic="undo"></button><button class="b ico" id="vRedoB" title="Redo (Ctrl+Shift+Z)" data-ic="redo"></button><button class="b ico" id="vFit" title="Fit the view (F)" data-ic="fit"></button><button class="b" id="vClear" data-ic="trash">Clear</button>
     <button class="b go" id="vGo" style="font-size:13px;padding:0 16px" title="Launch (Enter)" data-ic="rocket">Launch</button><button class="b" id="vBack" data-ic="back">Test stand</button>
   </div>

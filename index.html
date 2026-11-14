@@ -450,7 +450,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
     </div>
     <div class="cols" style="margin-top:10px"><div style="grid-column:1/-1;color:var(--acc2);font-weight:650;border:0;letter-spacing:.14em;text-transform:uppercase;font-size:11px">Rocket editor &amp; flight</div>
       <div>Editor: move part + what's under it<i>drag (<kbd>Alt</kbd>: just it)</i></div><div>Stretch a tank<i><kbd>Shift</kbd> + wheel</i></div>
-      <div>Editor: mirror pairs<kbd>M</kbd></div><div>Editor: remove part<i><kbd>Del</kbd> or drag to the parts list</i></div>
+      <div>Editor: mirror pairs<kbd>M</kbd></div><div>Centre of mass / lift / thrust<kbd>C</kbd></div><div>Editor: remove part<i><kbd>Del</kbd> or drag to the parts list</i></div>
       <div>Throttle up / down<i><kbd>Shift</kbd> <kbd>Ctrl</kbd> or <kbd>W</kbd> <kbd>S</kbd></i></div><div>Full / cut<i><kbd>Z</kbd> <kbd>X</kbd></i></div>
       <div>Steer<i><kbd>A</kbd> <kbd>D</kbd></i></div><div>Countdown, then next stage<kbd>Space</kbd></div>
       <div>Landing legs<kbd>G</kbd></div><div>RCS on / off<kbd>T</kbd></div><div>Parachutes (capsule)<kbd>P</kbd></div><div>ABORT (escape tower)<kbd>Backspace</kbd></div><div>RCS nudge<i><kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd></i></div><div>SAS holds<i><kbd>1</kbd>–<kbd>9</kbd></i></div><div></div><div>Fly another craft<i><kbd>[</kbd> <kbd>]</kbd></i></div>
@@ -471,7 +471,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="vpanel vbar">
     <select id="vLoad" aria-label="Load a rocket"></select>
     <button class="b" id="vSaveB" title="Save under this name" data-ic="save">Save</button><button class="b ico" id="vDelB" title="Delete the saved rocket with this name" data-ic="trash"></button>
-    <button class="b on" id="vMirror" title="Place parts in mirrored pairs (M)"></button><button class="b" id="vLegs" title="Show landing legs folded or deployed"></button>
+    <button class="b on" id="vMirror" title="Place parts in mirrored pairs (M)"></button><button class="b" id="vLegs" title="Show landing legs folded or deployed"></button><button class="b" id="vCen" title="Show the centre of mass (yellow), lift (blue) and thrust (red) (C)"></button>
     <button class="b ico" id="vUndoB" title="Undo (Ctrl+Z)" data-ic="undo"></button><button class="b ico" id="vRedoB" title="Redo (Ctrl+Shift+Z)" data-ic="redo"></button><button class="b ico" id="vFit" title="Fit the view (F)" data-ic="fit"></button><button class="b" id="vClear" data-ic="trash">Clear</button>
     <button class="b go" id="vGo" style="font-size:13px;padding:0 16px" title="Launch (Enter)" data-ic="rocket">Launch</button><button class="b" id="vBack" data-ic="back">Test stand</button>
   </div>
@@ -1208,7 +1208,7 @@ const ICP={
   rocket:["M12 2c3 2.2 5 6 5 10l-2 4H9l-2-4c0-4 2-7.8 5-10z","M12 9.5v.1","M9 16l-3 3.5","M15 16l3 3.5","M10.5 20h3"],
   save:["M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z","M8 3v5h7V3","M8 21v-7h8v7"],trash:["M4 7h16","M10 11v6","M14 11v6","M6 7l1 13h10l1-13","M9 7V4h6v3"],
   mirror:["M12 3v18","M8 7 3 12l5 5z","M16 7l5 5-5 5z"],legs:["M12 4v8","M12 12l-6 8","M12 12l6 8","M3.5 20h5","M15.5 20h5"],fit:["M4 9V4h5","M20 9V4h-5","M4 15v5h5","M20 15v5h-5"],
-  stage:["M12 4l7 8H5z","M5 17h14"],chute:["M4 11a8 8 0 0 1 16 0z","M4 11l8 9 8-9","M12 11v9"],abort:["M12 3l10 18H2z","M12 10v5","M12 18v.1"],rcs:["o 12 12 3","M12 2v5","M12 17v5","M2 12h5","M17 12h5"],warp:["M3 6l8 6-8 6z","M12 6l8 6-8 6z"],map:["M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z","M9 4v14","M15 6v14"],
+  stage:["M12 4l7 8H5z","M5 17h14"],centre:["o 12 12 7","M12 5v14","M5 12h14"],chute:["M4 11a8 8 0 0 1 16 0z","M4 11l8 9 8-9","M12 11v9"],abort:["M12 3l10 18H2z","M12 10v5","M12 18v.1"],rcs:["o 12 12 3","M12 2v5","M12 17v5","M2 12h5","M17 12h5"],warp:["M3 6l8 6-8 6z","M12 6l8 6-8 6z"],map:["M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z","M9 4v14","M15 6v14"],
   build:["M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"],back:["M19 12H5","M11 6l-6 6 6 6"],
   rotl:["M4 13a8 8 0 1 0 2.3-6.3","M4 3v4.5h4.5"],rotr:["M20 13a8 8 0 1 1-2.3-6.3","M20 3v4.5h-4.5"],plus:["M12 5v14","M5 12h14"],minus:["M5 12h14"]};
 function ico(n){return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${(ICP[n]||[]).map(d=>d[0]==="o"?(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}"/>`)(d.slice(2).split(" ")):`<path d="${d}"/>`).join("")}</svg>`;}
@@ -2453,6 +2453,24 @@ function drawPart(c,p,o={}){
   if(o.sel||o.bad||o.ghost){c.save();c.lineWidth=o.lw||3;c.strokeStyle=o.bad?"#ff4d3a":o.sel?"#ffcf7a":"rgba(255,255,255,.5)";c.setLineDash(o.ghost?[6,5]:[]);c.strokeRect(L-2,y-2,w+4,h+4);
     if(o.bad){c.fillStyle="rgba(255,60,40,.22)";c.fillRect(L,y,w,h);}c.restore();}
 }
+// ---------- centre of mass, lift and thrust (backlog 6) ----------
+// mass: every part with its propellant. lift: where the air pushes sideways when the rocket flies at an angle, taken as the middle
+// of the side area (fins count double, they're made to catch the air). thrust: where the engines that light first push.
+// A rocket is stable in the air when the centre of lift is BELOW the centre of mass (like the feathers on an arrow).
+function centres(ps){if(!ps.length)return null;let m=0,mx=0,my=0,A=0,ax=0,ay=0,F=0,fx=0,fy=0;const adj=adjOf(ps),all=new Set(ps.keys());
+  ps.forEach((p,i)=>{const pm=partMass(p)+(p.fuel!=null?p.fuel:capOf(p));m+=pm;mx+=pm*p.x;my+=pm*(p.y+p.h/2);
+    const a=p.w*p.h*(p.t==="fin"?2:p.t==="nose"||p.t==="les"?0.5:p.t==="engine"||p.t==="srb"&&false?0.6:1)*(p.t==="rcs"?0.3:1);A+=a;ax+=a*p.x;ay+=a*(p.y+p.h*(p.t==="nose"?0.33:0.5));
+    if(isEng(p)&&engOn(ps,adj,i,all)){const f=engStat(p).sl.F;F+=f;fx+=f*p.x;fy+=f*p.y;}});
+  return{com:[mx/m,my/m],col:A?[ax/A,ay/A]:null,cot:F?[fx/F,fy/F]:null};}
+// draw the three markers (in part units; k = how many part units one screen pixel is, so the markers stay the same size on screen)
+function drawCentres(c,cn,k,labels){if(!cn)return;const R=9*k;c.save();c.lineWidth=1.5*k;
+  if(cn.cot){const[x,y]=cn.cot;c.strokeStyle="#ff3b2f";c.fillStyle="#ff3b2f";c.beginPath();c.moveTo(x,y-R*2.6);c.lineTo(x,y-R*0.6);c.stroke();c.beginPath();c.moveTo(x,y-R*0.2);c.lineTo(x-R*0.55,y-R*1.1);c.lineTo(x+R*0.55,y-R*1.1);c.closePath();c.fill();}   // thrust: an arrow pushing up
+  if(cn.col){const[x,y]=cn.col;c.strokeStyle="#6fc3ff";c.fillStyle="rgba(111,195,255,.25)";c.beginPath();c.arc(x,y,R*0.85,0,6.2832);c.fill();c.stroke();c.fillStyle="#6fc3ff";c.beginPath();c.arc(x,y,R*0.3,0,6.2832);c.fill();}
+  {const[x,y]=cn.com;c.fillStyle="#111";c.beginPath();c.arc(x,y,R,0,6.2832);c.fill();c.fillStyle="#ffd23f";for(const q of[0,2]){c.beginPath();c.moveTo(x,y);c.arc(x,y,R,q*Math.PI/2,(q+1)*Math.PI/2);c.closePath();c.fill();}
+    c.strokeStyle="#fff";c.beginPath();c.arc(x,y,R,0,6.2832);c.stroke();}   // mass: the classic quartered disc
+  if(labels){c.scale(1,-1);c.font=`600 ${10*k}px system-ui,sans-serif`;c.textBaseline="middle";const lab=(p,t,col)=>{if(!p)return;c.fillStyle=col;c.fillText(t,p[0]+R*1.4,-p[1]);};
+    lab(cn.com,"MASS","#ffd23f");lab(cn.col,"LIFT","#6fc3ff");if(cn.cot)lab([cn.cot[0],cn.cot[1]-R*1.4],"THRUST","#ff3b2f");}
+  c.restore();}
 // lowest points of a rocket, for touching the ground (centimetres, local)
 function contactPts(ps,legs){const pts=[];
   for(const p of ps){if(p.t==="leg"&&legs){pts.push([p.x+p.f*48,p.y-80,1]);continue;}
@@ -2930,6 +2948,7 @@ addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const t
   else if(k==="escape"){if(vcarry)vcarry=null;else if(vsel){vsel=null;vInspUI();}}
   else if(k==="m"){vMirror=!vMirror;store.set("throat.vmirror",vMirror);vBarUI();}
   else if(k==="f"){vFitView();}
+  else if(k==="c"&&!e.ctrlKey&&!e.metaKey){vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();}
   else if(k==="enter"){$("vGo").click();}
   else if(k==="-"||k==="="||k==="+"){const i=vsel?vById(vsel):-1;if(i>=0&&hasProp(vps[i])){const p=vps[i];vResize(i,p.w,Math.max(20,Math.min(900,p.h+(k==="-"?-10:10))));}}
   else if(k==="["||k==="]"){const i=vsel?vById(vsel):-1;if(i>=0&&canWiden(vps[i]))vWiden(i,k==="]"?2:-2);}
@@ -2988,10 +3007,11 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
     h+=`</div><div class="read" style="grid-template-columns:auto 1fr"><span>Total Δv</span><b data-r="t" data-v="${a.total}" data-u=" m/s"></b></div><div class="tip">Orbit takes about 2,300 m/s. TWR above 1 to lift off.</div>`;}
   for(const w of a.warn)h+=`<div class="warn">⚠ ${w}</div>`;
   if(st.length&&st[0].twr<=1)h+=`<div class="warn">⚠ Too heavy to lift off: add engines or use less fuel.</div>`;
+  {const cn=centres(vps);if(cn&&cn.col&&a.root>=0&&cn.col[1]>cn.com[1]+5)h+=`<div class="warn">⚠ The centre of lift (blue) is above the centre of mass (yellow): in the air it will want to flip. Add fins low down, or put heavy parts higher. C shows the markers.</div>`;}
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;
     for(const b of el.querySelectorAll("[data-r]")){const u=b.dataset.u||"";roll("vs"+b.dataset.r,b,+b.dataset.v,u==="mass"?fM:x=>fmt(x)+u);}}   // numbers roll to their new values
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
-function vBarUI(){$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
+function vBarUI(){$("vCen").classList.toggle("on",vCentres);icoBtn($("vCen"),"centre","Centres");$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
   const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:sls">Super Heavy (SLS-shaped, 98 m)</option><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
   sel.innerHTML=h;$("vName").value=vName;}
@@ -3008,8 +3028,9 @@ $("vBack").onclick=()=>closeVab();
 $("vGo").onclick=()=>{const a=analyze(vps,engineNums());if(a.root<0||!a.stages.length||a.stages[0].twr<=1)return;closeVab(true);startFlight(vps,vName);};
 function openVab(){FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();requestAnimationFrame(vFrame);}
 function closeVab(toFlight){FLT.vab=false;vab.classList.remove("show");vcarry=null;if(!toFlight)enter($("stage"));if(!toFlight){S.paused=$("bPause").classList.contains("on");cfg();}}
-$("bLaunch").onclick=openVab;
+$("bLaunch").onclick=openVab;$("vCen").onclick=()=>{vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();};
 // ---------- drawing ----------
+let vCentres=store.get("throat.vcentres",true);
 function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   c.setTransform(1,0,0,1,0,0);c.fillStyle="#0a0f1d";c.fillRect(0,0,VW,VH);
   // blueprint grid: fine every 1.5 m, bold every 6 m
@@ -3029,6 +3050,7 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   if(vcarry&&vcarry.inside!==false){const p={...vcarry.p},sn=vcarry.snap;if(sn){p.x=sn.x;p.y=sn.y;p.f=sn.f;}c.globalAlpha=0.75;
     const bad=!sn&&vps.some(o=>collide(p,o));drawPart(c,p,{ghost:!bad,bad,legs:vLegsOut,lw:2/s*VDS});
     if(vMirror&&sn&&Math.abs(p.x-ax)>0.5){const t={...p,x:2*ax-p.x,f:-p.f};c.globalAlpha=0.4;drawPart(c,t,{ghost:true,lw:2/s*VDS});}c.globalAlpha=1;}
+  if(vCentres&&vps.length)drawCentres(c,centres(vps),1/s,true);   // centre of mass, lift, thrust
   c.setTransform(1,0,0,1,0,0);
   if(vMsgT&&performance.now()>vMsgT){$("vMsg").style.display="none";vMsgT=0;}
   vStatsUI();requestAnimationFrame(vFrame);}
@@ -3104,6 +3126,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
 function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
+let showCen=false;
 let launchSeed=Date.now()%2147483647||7;
 function startFlight(ps,name,keepWx){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
@@ -3306,6 +3329,7 @@ addEventListener("keydown",e=>{if(!FLT.on)return;const tg=e.target&&e.target.tag
   else if(k==="t"&&!e.repeat)toggleRcs();
   else if(k==="backspace"&&!e.repeat){abort();e.preventDefault();}
   else if(k==="p"&&!e.repeat)chutes();
+  else if(k==="c"&&!e.repeat){showCen=!showCen;msg=showCen?"Showing centre of mass (yellow), lift (blue) and thrust (red). C to hide.":"Centres hidden.";msgT=2.5;}
   else if(k==="m"){mapView=!mapView;if(mapView)mapOpen();}
   else if(k==="f"&&mapView)mapFocus();
   else if(k==="r"){startFlight(launchPs,launchName,true);}
@@ -3423,6 +3447,7 @@ function drawVessel(c,v,bright,plumesOnly){
       c.beginPath();c.ellipse(cp.x+ox,top+oy,R2,R2*0.6,0,0,Math.PI);c.closePath();const gg=c.createLinearGradient(cp.x+ox-R2,0,cp.x+ox+R2,0);gg.addColorStop(0,"#d9472f");gg.addColorStop(0.33,"#d9472f");gg.addColorStop(0.34,"#f2f2f2");gg.addColorStop(0.66,"#f2f2f2");gg.addColorStop(0.67,"#d9472f");c.fillStyle=gg;c.fill();}}}
   for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
+  if(showCen&&v===AV){const T=c.getTransform(),sc=Math.hypot(T.a,T.b)||1;drawCentres(c,centres(v.ps),1/sc,false);}   // C: centre of mass / lift / thrust
   c.restore();}
 // which jets on this block are firing: opposite to the push asked for, and sideways ones for turning (in part cm, y up)
 function rcsPuffs(v,p){const out=[],cx=p.x,f=p.f>0?1:-1,ox=p.x+f*p.w/2,above=p.y+p.h/2>v.py,t=v.puff||[0,0];

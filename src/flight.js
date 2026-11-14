@@ -66,6 +66,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
 function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
+let showCen=false;
 let launchSeed=Date.now()%2147483647||7;
 function startFlight(ps,name,keepWx){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
@@ -268,6 +269,7 @@ addEventListener("keydown",e=>{if(!FLT.on)return;const tg=e.target&&e.target.tag
   else if(k==="t"&&!e.repeat)toggleRcs();
   else if(k==="backspace"&&!e.repeat){abort();e.preventDefault();}
   else if(k==="p"&&!e.repeat)chutes();
+  else if(k==="c"&&!e.repeat){showCen=!showCen;msg=showCen?"Showing centre of mass (yellow), lift (blue) and thrust (red). C to hide.":"Centres hidden.";msgT=2.5;}
   else if(k==="m"){mapView=!mapView;if(mapView)mapOpen();}
   else if(k==="f"&&mapView)mapFocus();
   else if(k==="r"){startFlight(launchPs,launchName,true);}
@@ -385,6 +387,7 @@ function drawVessel(c,v,bright,plumesOnly){
       c.beginPath();c.ellipse(cp.x+ox,top+oy,R2,R2*0.6,0,0,Math.PI);c.closePath();const gg=c.createLinearGradient(cp.x+ox-R2,0,cp.x+ox+R2,0);gg.addColorStop(0,"#d9472f");gg.addColorStop(0.33,"#d9472f");gg.addColorStop(0.34,"#f2f2f2");gg.addColorStop(0.66,"#f2f2f2");gg.addColorStop(0.67,"#d9472f");c.fillStyle=gg;c.fill();}}}
   for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
+  if(showCen&&v===AV){const T=c.getTransform(),sc=Math.hypot(T.a,T.b)||1;drawCentres(c,centres(v.ps),1/sc,false);}   // C: centre of mass / lift / thrust
   c.restore();}
 // which jets on this block are firing: opposite to the push asked for, and sideways ones for turning (in part cm, y up)
 function rcsPuffs(v,p){const out=[],cx=p.x,f=p.f>0?1:-1,ox=p.x+f*p.w/2,above=p.y+p.h/2>v.py,t=v.puff||[0,0];

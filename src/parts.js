@@ -295,6 +295,24 @@ function drawPart(c,p,o={}){
   if(o.sel||o.bad||o.ghost){c.save();c.lineWidth=o.lw||3;c.strokeStyle=o.bad?"#ff4d3a":o.sel?"#ffcf7a":"rgba(255,255,255,.5)";c.setLineDash(o.ghost?[6,5]:[]);c.strokeRect(L-2,y-2,w+4,h+4);
     if(o.bad){c.fillStyle="rgba(255,60,40,.22)";c.fillRect(L,y,w,h);}c.restore();}
 }
+// ---------- centre of mass, lift and thrust (backlog 6) ----------
+// mass: every part with its propellant. lift: where the air pushes sideways when the rocket flies at an angle, taken as the middle
+// of the side area (fins count double, they're made to catch the air). thrust: where the engines that light first push.
+// A rocket is stable in the air when the centre of lift is BELOW the centre of mass (like the feathers on an arrow).
+function centres(ps){if(!ps.length)return null;let m=0,mx=0,my=0,A=0,ax=0,ay=0,F=0,fx=0,fy=0;const adj=adjOf(ps),all=new Set(ps.keys());
+  ps.forEach((p,i)=>{const pm=partMass(p)+(p.fuel!=null?p.fuel:capOf(p));m+=pm;mx+=pm*p.x;my+=pm*(p.y+p.h/2);
+    const a=p.w*p.h*(p.t==="fin"?2:p.t==="nose"||p.t==="les"?0.5:p.t==="engine"||p.t==="srb"&&false?0.6:1)*(p.t==="rcs"?0.3:1);A+=a;ax+=a*p.x;ay+=a*(p.y+p.h*(p.t==="nose"?0.33:0.5));
+    if(isEng(p)&&engOn(ps,adj,i,all)){const f=engStat(p).sl.F;F+=f;fx+=f*p.x;fy+=f*p.y;}});
+  return{com:[mx/m,my/m],col:A?[ax/A,ay/A]:null,cot:F?[fx/F,fy/F]:null};}
+// draw the three markers (in part units; k = how many part units one screen pixel is, so the markers stay the same size on screen)
+function drawCentres(c,cn,k,labels){if(!cn)return;const R=9*k;c.save();c.lineWidth=1.5*k;
+  if(cn.cot){const[x,y]=cn.cot;c.strokeStyle="#ff3b2f";c.fillStyle="#ff3b2f";c.beginPath();c.moveTo(x,y-R*2.6);c.lineTo(x,y-R*0.6);c.stroke();c.beginPath();c.moveTo(x,y-R*0.2);c.lineTo(x-R*0.55,y-R*1.1);c.lineTo(x+R*0.55,y-R*1.1);c.closePath();c.fill();}   // thrust: an arrow pushing up
+  if(cn.col){const[x,y]=cn.col;c.strokeStyle="#6fc3ff";c.fillStyle="rgba(111,195,255,.25)";c.beginPath();c.arc(x,y,R*0.85,0,6.2832);c.fill();c.stroke();c.fillStyle="#6fc3ff";c.beginPath();c.arc(x,y,R*0.3,0,6.2832);c.fill();}
+  {const[x,y]=cn.com;c.fillStyle="#111";c.beginPath();c.arc(x,y,R,0,6.2832);c.fill();c.fillStyle="#ffd23f";for(const q of[0,2]){c.beginPath();c.moveTo(x,y);c.arc(x,y,R,q*Math.PI/2,(q+1)*Math.PI/2);c.closePath();c.fill();}
+    c.strokeStyle="#fff";c.beginPath();c.arc(x,y,R,0,6.2832);c.stroke();}   // mass: the classic quartered disc
+  if(labels){c.scale(1,-1);c.font=`600 ${10*k}px system-ui,sans-serif`;c.textBaseline="middle";const lab=(p,t,col)=>{if(!p)return;c.fillStyle=col;c.fillText(t,p[0]+R*1.4,-p[1]);};
+    lab(cn.com,"MASS","#ffd23f");lab(cn.col,"LIFT","#6fc3ff");if(cn.cot)lab([cn.cot[0],cn.cot[1]-R*1.4],"THRUST","#ff3b2f");}
+  c.restore();}
 // lowest points of a rocket, for touching the ground (centimetres, local)
 function contactPts(ps,legs){const pts=[];
   for(const p of ps){if(p.t==="leg"&&legs){pts.push([p.x+p.f*48,p.y-80,1]);continue;}

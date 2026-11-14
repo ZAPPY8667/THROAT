@@ -107,6 +107,7 @@ addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const t
   else if(k==="escape"){if(vcarry)vcarry=null;else if(vsel){vsel=null;vInspUI();}}
   else if(k==="m"){vMirror=!vMirror;store.set("throat.vmirror",vMirror);vBarUI();}
   else if(k==="f"){vFitView();}
+  else if(k==="c"&&!e.ctrlKey&&!e.metaKey){vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();}
   else if(k==="enter"){$("vGo").click();}
   else if(k==="-"||k==="="||k==="+"){const i=vsel?vById(vsel):-1;if(i>=0&&hasProp(vps[i])){const p=vps[i];vResize(i,p.w,Math.max(20,Math.min(900,p.h+(k==="-"?-10:10))));}}
   else if(k==="["||k==="]"){const i=vsel?vById(vsel):-1;if(i>=0&&canWiden(vps[i]))vWiden(i,k==="]"?2:-2);}
@@ -165,10 +166,11 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
     h+=`</div><div class="read" style="grid-template-columns:auto 1fr"><span>Total Δv</span><b data-r="t" data-v="${a.total}" data-u=" m/s"></b></div><div class="tip">Orbit takes about 2,300 m/s. TWR above 1 to lift off.</div>`;}
   for(const w of a.warn)h+=`<div class="warn">⚠ ${w}</div>`;
   if(st.length&&st[0].twr<=1)h+=`<div class="warn">⚠ Too heavy to lift off: add engines or use less fuel.</div>`;
+  {const cn=centres(vps);if(cn&&cn.col&&a.root>=0&&cn.col[1]>cn.com[1]+5)h+=`<div class="warn">⚠ The centre of lift (blue) is above the centre of mass (yellow): in the air it will want to flip. Add fins low down, or put heavy parts higher. C shows the markers.</div>`;}
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;
     for(const b of el.querySelectorAll("[data-r]")){const u=b.dataset.u||"";roll("vs"+b.dataset.r,b,+b.dataset.v,u==="mass"?fM:x=>fmt(x)+u);}}   // numbers roll to their new values
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
-function vBarUI(){$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
+function vBarUI(){$("vCen").classList.toggle("on",vCentres);icoBtn($("vCen"),"centre","Centres");$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
   const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:sls">Super Heavy (SLS-shaped, 98 m)</option><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
   sel.innerHTML=h;$("vName").value=vName;}
@@ -185,8 +187,9 @@ $("vBack").onclick=()=>closeVab();
 $("vGo").onclick=()=>{const a=analyze(vps,engineNums());if(a.root<0||!a.stages.length||a.stages[0].twr<=1)return;closeVab(true);startFlight(vps,vName);};
 function openVab(){FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();requestAnimationFrame(vFrame);}
 function closeVab(toFlight){FLT.vab=false;vab.classList.remove("show");vcarry=null;if(!toFlight)enter($("stage"));if(!toFlight){S.paused=$("bPause").classList.contains("on");cfg();}}
-$("bLaunch").onclick=openVab;
+$("bLaunch").onclick=openVab;$("vCen").onclick=()=>{vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();};
 // ---------- drawing ----------
+let vCentres=store.get("throat.vcentres",true);
 function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   c.setTransform(1,0,0,1,0,0);c.fillStyle="#0a0f1d";c.fillRect(0,0,VW,VH);
   // blueprint grid: fine every 1.5 m, bold every 6 m
@@ -206,6 +209,7 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   if(vcarry&&vcarry.inside!==false){const p={...vcarry.p},sn=vcarry.snap;if(sn){p.x=sn.x;p.y=sn.y;p.f=sn.f;}c.globalAlpha=0.75;
     const bad=!sn&&vps.some(o=>collide(p,o));drawPart(c,p,{ghost:!bad,bad,legs:vLegsOut,lw:2/s*VDS});
     if(vMirror&&sn&&Math.abs(p.x-ax)>0.5){const t={...p,x:2*ax-p.x,f:-p.f};c.globalAlpha=0.4;drawPart(c,t,{ghost:true,lw:2/s*VDS});}c.globalAlpha=1;}
+  if(vCentres&&vps.length)drawCentres(c,centres(vps),1/s,true);   // centre of mass, lift, thrust
   c.setTransform(1,0,0,1,0,0);
   if(vMsgT&&performance.now()>vMsgT){$("vMsg").style.display="none";vMsgT=0;}
   vStatsUI();requestAnimationFrame(vFrame);}
