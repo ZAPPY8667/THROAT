@@ -1,6 +1,6 @@
-# Plan: webcast look, flight computer, cinematic launch (v1.15 → v1.19)
+# Plan: webcast look, real-size rockets, flight computer, cinematic launch (v1.15 → v1.20)
 
-Agreed with Wyatt on 2026-11-13 through a round of questions. Read `CLAUDE.md` first. Work in five phases. After **each**
+Agreed with Wyatt on 2026-11-13 (phase 1.5 added 2026-11-14) through rounds of questions. Read `CLAUDE.md` first. Work in six phases. After **each**
 phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280×720 and phone 390×844), commit, push to
 `main`, and post a short summary.
 
@@ -57,7 +57,30 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
    - The holds use the existing fly-by-wire/heading-hold torque limits in `stepV` (`flight.js`), so an active hold can't do
      anything the rocket couldn't do already. Add a headless test that each hold settles within a few degrees.
 
-## Phase 2: test stand as an engineering cutaway (v1.16)
+## Phase 1.5: real-size rockets with real proportions (v1.16), do this next
+Goal: Wyatt can build a rocket with the proportions of SLS (and Falcon 9, Starship, New Glenn) and fly it.
+- **Real size:** parts are in real metres. An SLS-style rocket is ~98 m tall, core ~8.4 m wide, boosters ~3.7 m wide.
+  Retune masses, tank capacity, engines, drag, camera, pad and editor view for that scale.
+- **Planet: 1,000 km Earth** (orbit ≈ 4.3 km/s, air thickness scaled to match), **Moon scaled to match** (~300 km radius,
+  ~8,000 km away; time warp covers the trip). Update `orbit.js`, the map, the landing zone and the flight tests.
+- **Free width for every stacked part:** tanks, boosters, nose cones, adapters (join any two widths), decouplers, probe
+  and engines. Width stretches in small steps like length does now (Shift+wheel / buttons). Radial parts stay as they are.
+- **Your engine scales with its size:** pick an engine's size in the editor; thrust grows with nozzle exit area, Isp stays what
+  the test stand measured (2.3 kN at stand size → about RS-25 class at RS-25 size). Ready-made engines become real
+  engines' numbers at their real sizes.
+- **Engine clusters, both ways:** an engine mount / thrust plate part (pick engine type and count 1–9; lays them out like SLS 4,
+  New Glenn 7, Falcon 9 9) **and** free placement of engines side by side under a wide tank.
+- **New parts:** Orion-style capsule + service module; launch escape tower with a **full abort** (an ABORT key pulls the capsule
+  off the rocket at any moment); upper stage (ICPS-like, own vacuum engine); booster nose cone and flared aft skirt.
+- **Capsule in flight:** parachutes (new key) for splashdown / landing; heat shield with re-entry glow (too steep or no shield
+  = burn up). It must also look right.
+- **Markings:** plain, with real details only (welds, cable trays, roll-pattern marks on boosters). No logos or brand names.
+- **Templates:** replace the ready-made rockets with real-size ones, including an SLS-proportioned heavy rocket in Load.
+  Old saved rockets may fly oddly; no automatic rescale.
+- Tests: update every flight test for the new scale; add ascent-to-orbit for the SLS-style template, an abort test,
+  a parachute landing and a re-entry (shield survives, no shield burns up).
+
+## Phase 2: test stand as an engineering cutaway (v1.17)
 - Walls render as **crisp white outlines** (contours of the solid regions) on a near-black blue background, instead of pixel steel.
   Tanks, valves, injectors and igniters become line drawings in the same style (red only for active/open state).
 - **Blueprint grid** (faint, 1 cm minor / 10 cm major) and **dimension lines**: auto-measure throat width, exit width and
@@ -68,7 +91,7 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
 - **No part-name labels** (Wyatt didn't pick them).
 - The **rocket editor** gets the same blueprint/cutaway style (white-line parts on a grid). **Flight keeps realistic rocket art.**
 
-## Phase 3: cinematic launch (v1.17)
+## Phase 3: cinematic launch (v1.18)
 - **Pre-launch on the pad** (while the rocket sits waiting and through the countdown):
   - **Umbilical arms** from the tower connect to each stage's tanks. Upper arms swing away from T-5 to T-2, the base
     umbilicals drop at T-0. Draw the hoses with sag; arms retract with easing.
@@ -93,7 +116,7 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
   heat shimmer above the trench.
 - Hook into the existing `JUICE` sounds (ignition bang, roar) and goals (`launch`).
 
-## Phase 4: sky and clouds by altitude (v1.18)
+## Phase 4: sky and clouds by altitude (v1.19)
 - **Layers by altitude:** puffy cumulus at 1–3 km, flat stratus sheets at 4–8 km, thin wispy cirrus at 9–14 km; none above about 15 km.
 - **Fly through them:** passing through a layer briefly fogs the view white (density by thickness), then clears above it.
 - **Parallax depth:** several depth bands; far clouds move slower than near ones relative to the rocket.
@@ -101,7 +124,7 @@ phase: `python build.py`, `bash tests/run.sh`, check in a browser (desktop 1280�
   (from roughly 20 km). Keep it consistent with the existing `renderFlight` sky gradient and star field (`flight.js`).
 - Random but stable per launch (seeded), so a retry looks the same.
 
-## Phase 5: flight computer, the MechJeb-style autopilots (v1.19)
+## Phase 5: flight computer, the MechJeb-style autopilots (v1.20)
 Each is a pull-out edge-tab panel with clear Engage/Abort buttons, status text ("Gravity turn… 34%"), and the autopilot's
 plan drawn on the map. The player can take over at any moment (any steering or throttle input disengages it, with a callout).
 - **ASCENT:** set the target orbit altitude (default 60 km). It flies a gravity turn (start speed, turn shape, end angle, all
