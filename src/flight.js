@@ -284,7 +284,7 @@ function drawVessel(c,v,bright){
   c.save();c.translate(v.x,v.y);c.rotate(-v.phi);
   if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))/100);boom(c,v);c.restore();return;}
   c.scale(0.01,0.01);c.translate(-v.px,-v.py);
-  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.72:0.95),v.thr,v.a,bright,k==="vac");}});
+  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8),v.thr,v.a,bright,k==="vac");}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
   for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
@@ -344,8 +344,8 @@ function renderFlight(dt){
   // shroud halves tumbling away
   const dq=dt*(r.wv||1);for(const q of flyers){if(q.body!==r.body)continue;const Bq=BOD[q.body],rq=Math.hypot(q.x,q.y),g=-Bq.mu/(rq*rq)*dq;q.t+=dq;
     if(rq>Bq.R){q.vx+=g*q.x/rq;q.vy+=g*q.y/rq;const sp=Math.hypot(q.vx,q.vy),rho=Bq.atm?atmRho(rq-Bq.R):0,drag=Math.min(0.9,rho*sp*0.02*dq);q.vx*=1-drag;q.vy*=1-drag;q.x+=q.vx*dq;q.y+=q.vy*dq;q.ang+=q.om*dq;}
-    c.save();c.translate(q.x,q.y);c.rotate(-q.ang);const L=-q.w/2,R=q.w/2;const gg=c.createLinearGradient(L,0,R,0);gg.addColorStop(0,q.side<0?"#959eb1":"#eef1f6");gg.addColorStop(1,q.side<0?"#eef1f6":"#ccd2dd");
-    c.fillStyle=gg;c.fillRect(L,-q.h/2,q.w,q.h);c.fillStyle="#34405e";c.fillRect(L,q.h/2-0.04,q.w,0.04);c.restore();}
+    c.save();c.translate(q.x,q.y);c.rotate(-q.ang);const L=-q.w/2,R=q.w/2;const gg=c.createLinearGradient(L,0,R,0);gg.addColorStop(0,q.side<0?"#1c1d21":"#4a4d55");gg.addColorStop(1,q.side<0?"#4a4d55":"#2a2c31");
+    c.fillStyle=gg;c.fillRect(L,-q.h/2,q.w,q.h);c.fillStyle="#6a6d75";c.fillRect(L,q.h/2-0.03,q.w,0.03);c.restore();}
   flyers=flyers.filter(q=>q.t<25&&Math.hypot(q.x,q.y)>BOD[q.body].R);
   // every craft near this one: the one you fly, dropped stages, boosters
   for(const v of VS){if(v.body!==r.body||Math.hypot(v.x-r.x,v.y-r.y)>Math.max(4000,FH/s*2))continue;

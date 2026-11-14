@@ -2159,10 +2159,9 @@ const partName=p=>p.t==="engine"?(engKey(p)==="lib"&&p.n?p.n.name:ENG[engKey(p)]
 function shroudsOf(ps){const out=[];ps.forEach((d,i)=>{if(d.t!=="dec"||d.shed)return;let top=-1e9;
   for(const e of ps)if(e.t==="engine"&&near(e.y,d.y+d.h)&&ovl(e.x-e.w/2,e.x+e.w/2,d.x-d.w/2,d.x+d.w/2)>0.5)top=Math.max(top,e.y+e.h);
   if(top>-1e9)out.push({i,x:d.x,w:d.w,y0:d.y+d.h,y1:top});});return out;}
-function drawShroud(c,s,al){c.save();c.globalAlpha=al==null?1:al;const L=s.x-s.w/2,R=s.x+s.w/2;
-  c.fillStyle=metal(c,L,R,"#a9b1c2","#959eb1","#eef1f6","#ccd2dd");c.fillRect(L,s.y0,s.w,s.y1-s.y0);
-  c.fillStyle="#34405e";c.fillRect(L,s.y1-4,s.w,4);c.strokeStyle="rgba(60,70,95,.6)";c.lineWidth=1.5;c.beginPath();c.moveTo(s.x,s.y0);c.lineTo(s.x,s.y1-4);c.stroke();
-  c.fillStyle="rgba(40,50,75,.35)";for(let yy=s.y0+10;yy<s.y1-8;yy+=12){c.fillRect(L+4,yy,3,3);c.fillRect(R-7,yy,3,3);}c.restore();}
+function drawShroud(c,s,al){c.save();c.globalAlpha=al==null?1:al;const L=s.x-s.w/2,R=s.x+s.w/2;   // black carbon interstage, like Falcon 9's
+  c.fillStyle=cyl(c,L,R,[42,44,50]);c.fillRect(L,s.y0,s.w,s.y1-s.y0);c.fillStyle="rgba(255,255,255,.045)";for(let yy=s.y0+3;yy<s.y1;yy+=3)c.fillRect(L,yy,s.w,0.6);
+  c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,s.y1-1.2,s.w,1.2);c.fillStyle="rgba(0,0,0,.4)";c.fillRect(s.x-0.5,s.y0,1,s.y1-s.y0);c.restore();}
 const isRad=p=>!!PT[p.t].radial;
 const topW=p=>p.t==="nose"?0:p.t==="adapter"?60:p.w;
 const ovl=(a0,a1,b0,b1)=>Math.min(a1,b1)-Math.max(a0,b0);
@@ -2226,59 +2225,110 @@ function hazard(c,x0,y0,w,h,vert){c.save();c.beginPath();c.rect(x0,y0,w,h);c.cli
   const st=10;for(let k=-Math.max(w,h);k<Math.max(w,h)*2;k+=st*2){c.beginPath();if(vert){c.moveTo(x0,y0+k);c.lineTo(x0+w,y0+k+w);c.lineTo(x0+w,y0+k+w+st);c.lineTo(x0,y0+k+st);}else{c.moveTo(x0+k,y0);c.lineTo(x0+k+h,y0+h);c.lineTo(x0+k+h+st,y0+h);c.lineTo(x0+k+st,y0);}c.closePath();c.fill();}
   c.restore();c.strokeStyle="rgba(0,0,0,.5)";c.lineWidth=1.5;c.strokeRect(x0,y0,w,h);}
 function metal(c,L,R,a,b,cA,cB){const g=c.createLinearGradient(L,0,R,0);g.addColorStop(0,a);g.addColorStop(0.42,cA);g.addColorStop(0.72,cB);g.addColorStop(1,b);return g;}
+// cylinder lighting: dark at both edges, a soft highlight a third of the way across (light from the upper left), so a flat
+// rectangle reads as a round tube
+function cyl(c,L,R,col){const g=c.createLinearGradient(L,0,R,0),sh=m=>`rgb(${col.map(v=>Math.max(0,Math.min(255,Math.round(v*m)))).join()})`;
+  g.addColorStop(0,sh(0.52));g.addColorStop(0.1,sh(0.8));g.addColorStop(0.32,sh(1.07));g.addColorStop(0.48,sh(1));g.addColorStop(0.78,sh(0.76));g.addColorStop(1,sh(0.48));return g;}
+// a real nozzle bell: from the throat (half-width tw at yt) it flares fast, then straightens toward the exit (half-width ew at ye).
+// Top part regen-cooled (copper tubes), lower part darker; thin lines follow the cooling tubes; a lit rim at the exit.
+function bell(c,x,yt,ye,tw,ew,cLow,cTop,split){const H=yt-ye,path=()=>{c.beginPath();c.moveTo(x-tw,yt);c.bezierCurveTo(x-tw-(ew-tw)*0.32,yt-H*0.22,x-ew*0.9,ye+H*0.32,x-ew,ye);
+    c.lineTo(x+ew,ye);c.bezierCurveTo(x+ew*0.9,ye+H*0.32,x+tw+(ew-tw)*0.32,yt-H*0.22,x+tw,yt);c.closePath();};
+  path();c.fillStyle=cyl(c,x-ew,x+ew,cLow);c.fill();c.save();c.clip();
+  const sy=ye+H*(split==null?0.55:split);c.fillStyle=cyl(c,x-ew,x+ew,cTop);c.fillRect(x-ew,sy,ew*2,yt-sy);
+  c.strokeStyle="rgba(0,0,0,.22)";c.lineWidth=0.6;for(let t=-0.9;t<=0.9;t+=0.15){c.beginPath();c.moveTo(x+t*tw,yt);c.lineTo(x+t*ew,ye);c.stroke();}
+  c.fillStyle="rgba(0,0,0,.25)";c.fillRect(x-ew,sy-0.6,ew*2,1.2);c.restore();
+  c.fillStyle="rgba(235,225,210,.55)";c.fillRect(x-ew,ye,ew*2,1.6);}
+// engines: each one drawn after a real type. Mount on top, turbopump + plumbing, combustion chamber, throat, bell.
+// The exit widths stay what they were, because the flame in flight starts there.
+function drawEngine(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[150,152,158];
+  const pipe=(pts,wd,col)=>{c.strokeStyle=col;c.lineWidth=wd;c.lineCap="round";c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.stroke();c.lineCap="butt";};
+  const box=(x0,y0,bw,bh,col)=>{c.fillStyle=cyl(c,x0,x0+bw,col);c.fillRect(x0,y0,bw,bh);};
+  const mount=(yb,hw)=>{c.beginPath();c.moveTo(x-w*0.36,T);c.lineTo(x+w*0.36,T);c.lineTo(x+hw,yb);c.lineTo(x-hw,yb);c.closePath();c.fillStyle=cyl(c,x-w*0.36,x+w*0.36,dk);c.fill();};
+  if(k==="vac"){   // vacuum engine (MVac-style): small regen chamber on top, then a huge, thin, dark radiatively cooled extension
+    const yt=y+h*0.74;mount(y+h*0.92,w*0.1);box(x+w*0.06,y+h*0.76,w*0.12,h*0.13,[120,124,132]);
+    box(x-w*0.09,yt,w*0.18,h*0.18,ch);
+    bell(c,x,yt,y,w*0.05,w*0.47,[52,54,62],cu,0.85);
+    c.fillStyle="rgba(255,255,255,.07)";for(const q of[0.2,0.4])c.fillRect(x-w*0.5,y+(yt-y)*q,w,0.8);
+    pipe([[x+w*0.14,y+h*0.78],[x+w*0.2,y+h*0.7]],1.6,"#3a3d44");return;}
+  if(k==="bison"){   // big staged-combustion engine (BE-4 / Raptor style): squat, dense plumbing, two pumps
+    const yt=y+h*0.62;mount(y+h*0.9,w*0.12);
+    box(x-w*0.3,y+h*0.68,w*0.14,h*0.2,[128,132,140]);box(x+w*0.16,y+h*0.68,w*0.14,h*0.2,[128,132,140]);
+    box(x-w*0.1,yt,w*0.2,h*0.26,ch);
+    pipe([[x-w*0.23,y+h*0.68],[x-w*0.23,y+h*0.64],[x-w*0.1,y+h*0.64]],2.4,"#6c707a");pipe([[x+w*0.23,y+h*0.68],[x+w*0.23,y+h*0.64],[x+w*0.1,y+h*0.64]],2.4,"#6c707a");
+    pipe([[x-w*0.2,y+h*0.84],[x-w*0.06,y+h*0.8]],1.8,"#8a8e98");pipe([[x+w*0.2,y+h*0.84],[x+w*0.06,y+h*0.8]],1.8,"#8a8e98");
+    bell(c,x,yt,y,w*0.075,w*0.44,[64,66,72],cu,0.8);return;}
+  if(k==="wren"){   // small pressure-fed engine: no pump, just valves; short bell
+    const yt=y+h*0.62;mount(y+h*0.88,w*0.1);box(x-w*0.08,yt,w*0.16,h*0.26,ch);
+    box(x+w*0.1,y+h*0.72,w*0.1,h*0.1,[100,104,112]);pipe([[x+w*0.15,y+h*0.72],[x+w*0.08,y+h*0.68]],1.4,"#7a7e88");
+    bell(c,x,yt,y,w*0.06,w*0.3,[70,72,78],cu,0.78);return;}
+  // your engine / Mule / saved engines: gas-generator kerosene-style engine (Merlin-like): pump on one side, its exhaust pipe down the bell
+  const yt=y+h*0.7,sd=k==="mule"?-1:1;mount(y+h*0.92,w*0.1);
+  box(x-w*0.1,yt,w*0.2,h*0.22,ch);c.fillStyle="rgba(0,0,0,.2)";c.fillRect(x-w*0.1,y+h*0.86,w*0.2,1);   // chamber + injector-head line
+  box(x+sd*w*0.12-(sd<0?w*0.14:0),y+h*0.72,w*0.14,h*0.16,[120,124,132]);                                    // turbopump
+  bell(c,x,yt,y,w*0.065,w*0.4,[64,66,72],cu,0.8);
+  pipe([[x+sd*w*0.2,y+h*0.72],[x+sd*w*0.24,y+h*0.5],[x+sd*w*0.34,y+h*0.1]],2.4,"#2c2e33");   // gas-generator exhaust
+  pipe([[x+sd*w*0.13,y+h*0.78],[x+sd*w*0.08,y+h*0.75]],1.6,"#8a8e98");}
 function drawPart(c,p,o={}){
   const{x,y,w,h,f}=p,L=x-w/2,R=x+w/2,T=y+h;
   c.lineJoin="round";
   switch(p.t){
-    case"tank":{c.fillStyle=metal(c,L,R,"#8e98ad","#7d869b","#f5f7fb","#c9cfdb");c.fillRect(L,y,w,h);
-      c.fillStyle="#34405e";c.fillRect(L,y,w,4);c.fillRect(L,T-4,w,4);
-      c.strokeStyle="rgba(120,130,150,.45)";c.lineWidth=1;for(let yy=y+30;yy<T-10;yy+=30){c.beginPath();c.moveTo(L,yy);c.lineTo(R,yy);c.stroke();}
-      if(h>=45){const fx=R-11,fr=o.fuel!=null?o.fuel:1;c.fillStyle="rgba(10,14,26,.35)";c.fillRect(fx,y+8,5,h-16);c.fillStyle=fr>0.2?"#ffb347":"#ff6a4d";c.fillRect(fx,y+8,5,(h-16)*Math.max(0,Math.min(1,fr)));}
-      if(w>=120&&h>=90){c.fillStyle="rgba(196,64,47,.85)";c.fillRect(L+14,y+h*0.5-6,26,12);}
+    case"tank":{const wide=w>=120,fr=o.fuel!=null?Math.max(0,Math.min(1,o.fuel)):1;
+      // narrow tanks: white Falcon-style skin; wide tanks: SLS-style orange foam insulation (mottled, it's sprayed on)
+      c.fillStyle=cyl(c,L,R,wide?[210,112,46]:[238,240,244]);c.fillRect(L,y,w,h);
+      if(wide){c.fillStyle="rgba(110,45,10,.10)";for(let i=0,n=w*h/90;i<n;i++)c.fillRect(L+(i*73.7)%w,y+(i*37.3)%h,3,1.6);
+        c.fillStyle="rgba(255,220,180,.10)";for(let i=0,n=w*h/160;i<n;i++)c.fillRect(L+(i*51.3)%w,y+(i*91.7)%h,2,1.4);}
+      c.fillStyle="rgba(0,0,0,.22)";c.fillRect(L,y+2.5,w,1.2);c.fillRect(L,T-3.7,w,1.2);           // dome welds at each end
+      c.fillStyle="rgba(0,0,0,.06)";for(let yy=y+40;yy<T-15;yy+=40)c.fillRect(L,yy,w,0.8);           // barrel-section welds
+      if(h>=45){const rx=L+w*0.74,rw=4.5;                                                           // cable raceway, doubling as the fuel gauge
+        c.fillStyle="rgba(30,33,40,.6)";c.fillRect(rx,y+6,rw,h-12);c.fillStyle=fr>0.2?"#a9dcff":"#ff3b2f";c.fillRect(rx+1,y+7,rw-2,(h-14)*fr);}
       break;}
-    case"probe":{c.fillStyle=metal(c,L,R,"#3c4356","#363c4d","#8790a6","#5b6378");c.fillRect(L,y,w,h);
-      c.fillStyle="#c8a24a";c.fillRect(L,y+h*0.38,w,h*0.22);c.fillStyle="#2a3046";c.fillRect(L,T-4,w,4);
-      c.fillStyle="#5ae1f5";c.fillRect(x-14,y+5,6,4);c.fillStyle="#6fe28f";c.fillRect(x-4,y+5,6,4);break;}
-    case"nose":{c.beginPath();c.moveTo(L,y);c.quadraticCurveTo(L,y+h*0.72,x,T);c.quadraticCurveTo(R,y+h*0.72,R,y);c.closePath();
-      c.fillStyle=metal(c,L,R,"#b9c0cf","#a4acbd","#fbfcfe","#dfe3eb");c.fill();c.save();c.clip();c.fillStyle="#c4402f";c.fillRect(L,y+h*0.78,w,h);c.fillStyle="#34405e";c.fillRect(L,y,w,4);c.restore();break;}
-    case"adapter":{c.beginPath();c.moveTo(L,y);c.lineTo(x-30,T);c.lineTo(x+30,T);c.lineTo(R,y);c.closePath();c.fillStyle=metal(c,L,R,"#8e98ad","#7d869b","#eef1f6","#c9cfdb");c.fill();
-      c.fillStyle="#34405e";c.fillRect(L,y,w,4);c.fillRect(x-30,T-4,60,4);break;}
-    case"engine":{const k=engKey(p);
-      if(k==="vac"){const my=y+h*0.78;c.fillStyle="#2b303b";c.fillRect(x-w*0.2,my,w*0.4,T-my);c.fillStyle="#b08a3e";c.fillRect(x-w*0.13,my+3,4,T-my-6);
-        c.beginPath();c.moveTo(x-w*0.12,my);c.quadraticCurveTo(x-w*0.16,y+h*0.3,x-w*0.5,y);c.lineTo(x+w*0.5,y);c.quadraticCurveTo(x+w*0.16,y+h*0.3,x+w*0.12,my);c.closePath();
-        c.fillStyle=metal(c,x-w*0.5,x+w*0.5,"#3a3330","#352f2c","#a99a8a","#5c524a");c.fill();c.strokeStyle="rgba(255,200,150,.18)";c.lineWidth=1;for(let q=1;q<5;q++){const yy=y+(my-y)*q/5,hw=w*(0.5-0.38*q/5);c.beginPath();c.moveTo(x-hw,yy);c.lineTo(x+hw,yy);c.stroke();}
-        c.fillStyle="#7a5a2a";c.fillRect(x-w*0.5,y,w,3);break;}
-      const my=y+h*(k==="bison"?0.55:0.6),bw=k==="wren"?0.38:0.48;
-      c.fillStyle="#2b303b";c.fillRect(x-w*0.26,my,w*0.52,T-my);c.fillStyle="#b08a3e";c.fillRect(x-w*0.18,my+4,4,T-my-8);c.fillRect(x+w*0.18-4,my+4,4,T-my-8);
-      if(k==="bison"){c.fillStyle="#3b4250";c.fillRect(x-w*0.4,my+6,w*0.14,T-my-12);c.fillRect(x+w*0.26,my+6,w*0.14,T-my-12);c.fillStyle="#c4402f";c.fillRect(x-w*0.4,T-10,w*0.8,4);}
-      if(k==="mule"){c.fillStyle="#3b4250";c.fillRect(x+w*0.22,my+4,w*0.12,(T-my)*0.7);}
-      c.beginPath();c.moveTo(x-w*0.17,my);c.quadraticCurveTo(x-w*0.22,y+h*0.25,x-w*bw,y);c.lineTo(x+w*bw,y);c.quadraticCurveTo(x+w*0.22,y+h*0.25,x+w*0.17,my);c.closePath();
-      c.fillStyle=metal(c,x-w*bw,x+w*bw,"#262a33","#22262e","#767e8f","#3b414e");c.fill();c.fillStyle="#7a5a2a";c.fillRect(x-w*bw,y,w*bw*2,3);break;}
-    case"srb":{const cy=y+SRB_NZ;   // white casing with black bands (so you can see it roll), short dark nozzle under it
-      c.beginPath();c.moveTo(x-w*0.2,cy);c.lineTo(x-w*0.36,y);c.lineTo(x+w*0.36,y);c.lineTo(x+w*0.2,cy);c.closePath();c.fillStyle=metal(c,x-w*0.36,x+w*0.36,"#262a33","#22262e","#6d7484","#3b414e");c.fill();
-      c.fillStyle="#7a5a2a";c.fillRect(x-w*0.36,y,w*0.72,3);
-      c.fillStyle=metal(c,L,R,"#b3b9c6","#a2a9b8","#ffffff","#e3e7ee");c.fillRect(L,cy,w,T-cy);
-      c.fillStyle="#1f232c";for(const k of[0.18,0.5,0.82]){const yy=cy+(T-cy)*k;c.fillRect(L,yy-3,w,6);}
-      c.fillStyle="#c4402f";c.fillRect(L,T-6,w,6);c.fillStyle="#34405e";c.fillRect(L,cy,w,4);
-      if(T-cy>=45){const fx=x-w*0.5+6,fr=o.fuel!=null?o.fuel:1;c.fillStyle="rgba(10,14,26,.35)";c.fillRect(fx,cy+8,5,T-cy-16);c.fillStyle=fr>0.2?"#ffb347":"#ff6a4d";c.fillRect(fx,cy+8,5,(T-cy-16)*Math.max(0,Math.min(1,fr)));}
+    case"probe":{   // avionics ring in black carbon composite, an access hatch and two status lights
+      c.fillStyle=cyl(c,L,R,[44,46,52]);c.fillRect(L,y,w,h);
+      c.fillStyle="rgba(255,255,255,.05)";for(let yy=y+3;yy<T;yy+=3)c.fillRect(L,yy,w,0.6);
+      c.fillStyle="rgba(255,255,255,.14)";c.fillRect(L,y,w,1.2);c.fillRect(L,T-1.2,w,1.2);
+      c.strokeStyle="rgba(255,255,255,.22)";c.lineWidth=0.8;c.strokeRect(x+w*0.08,y+h*0.25,w*0.22,h*0.5);
+      c.fillStyle="#5ae1f5";c.fillRect(x-w*0.3,y+h*0.6,3,2.5);c.fillStyle="#6fe28f";c.fillRect(x-w*0.3+5,y+h*0.6,3,2.5);break;}
+    case"nose":{   // payload fairing: a smooth white ogive with the split line down the middle
+      c.beginPath();c.moveTo(L,y);c.bezierCurveTo(L,y+h*0.45,x-w*0.32,y+h*0.9,x-w*0.06,T-1);c.quadraticCurveTo(x,T+0.5,x+w*0.06,T-1);c.bezierCurveTo(x+w*0.32,y+h*0.9,R,y+h*0.45,R,y);c.closePath();
+      c.fillStyle=cyl(c,L,R,[240,241,244]);c.fill();c.save();c.clip();
+      c.fillStyle="rgba(0,0,0,.18)";c.fillRect(x-0.5,y,1,h);c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,y,w,2);
+      c.fillStyle="rgba(0,0,0,.05)";c.fillRect(L,y+h*0.3,w,0.8);c.restore();break;}
+    case"adapter":{   // carbon interstage cone
+      c.beginPath();c.moveTo(L,y);c.lineTo(x-30,T);c.lineTo(x+30,T);c.lineTo(R,y);c.closePath();c.fillStyle=cyl(c,L,R,[46,48,54]);c.fill();
+      c.save();c.clip();c.fillStyle="rgba(255,255,255,.05)";for(let yy=y+3;yy<T;yy+=3)c.fillRect(L,yy,w,0.6);c.restore();
+      c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,y,w,1.2);c.fillRect(x-30,T-1.2,60,1.2);break;}
+    case"engine":drawEngine(c,x,y,w,h,engKey(p));break;
+    case"srb":{const cy=y+SRB_NZ;   // SLS-style solid booster: white steel segments, an aft skirt, and a gimballed nozzle
+      bell(c,x,cy-2,y,w*0.12,w*0.36,[60,62,68],[92,88,84]);
+      c.fillStyle=cyl(c,L,R,[236,237,240]);c.fillRect(L,cy,w,T-cy);
+      c.fillStyle=cyl(c,L-2,R+2,[214,216,222]);c.fillRect(L,cy,w,10);                                // aft skirt
+      c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,cy+10,w,1);
+      const seg=T-cy-10;c.fillStyle="rgba(60,64,72,.55)";for(const k of[0.25,0.5,0.75]){const yy=cy+10+seg*k;c.fillRect(L,yy-1.5,w,3);}   // field joints between the segments
+      c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,T-3,w,3);
+      if(T-cy>=45){const fx=L+w*0.16,fr=o.fuel!=null?Math.max(0,Math.min(1,o.fuel)):1;c.fillStyle="rgba(30,33,40,.55)";c.fillRect(fx,cy+14,4,T-cy-20);c.fillStyle=fr>0.2?"#ffb070":"#ff3b2f";c.fillRect(fx+1,cy+15,2,(T-cy-22)*fr);}
       break;}
-    case"dec":hazard(c,L,y,w,h,false);break;
-    case"sdec":hazard(c,L,y,w,h,true);break;
+    case"dec":{   // separation ring: dark structure, a bright pyro line where it splits, and its bolts
+      c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.7,w,1.4);
+      c.fillStyle="rgba(0,0,0,.35)";for(let xx=L+5;xx<R-2;xx+=9)c.fillRect(xx,y+2,2,2);break;}
+    case"sdec":{   // side attach strut with its separation bolts
+      c.fillStyle=cyl(c,L,R,[64,67,74]);c.fillRect(L+2,y+6,w-4,h-12);c.fillStyle=cyl(c,L,R,[150,154,162]);c.fillRect(L,y+4,w,5);c.fillRect(L,T-9,w,5);
+      c.fillStyle="rgba(255,255,255,.75)";c.fillRect(L+2,y+h/2-0.6,w-4,1.2);break;}
     case"fin":{const ix=f>0?L:R,ox=f>0?R:L;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.18);c.lineTo(ox,y);c.lineTo(ix,y);c.closePath();
-      c.fillStyle="#c4402f";c.fill();c.strokeStyle="#7e2219";c.lineWidth=2;c.stroke();break;}
-    case"rcs":{const ix=f>0?L:R,ox=f>0?R:L,cx=(L+R)/2;c.fillStyle="#2b303c";c.fillRect(L,y+6,w,h-12);c.fillStyle="#d6dbe6";c.fillRect(ix,y+9,f*4,h-18);
+      c.fillStyle=cyl(c,Math.min(ix,ox),Math.max(ix,ox),[58,61,68]);c.fill();c.strokeStyle="rgba(210,214,222,.7)";c.lineWidth=1.5;   // carbon fin, titanium leading edge
+      c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.18);c.stroke();c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=1;c.beginPath();c.moveTo(ix,y);c.lineTo(ox,y);c.stroke();break;}
+    case"rcs":{const ix=f>0?L:R,ox=f>0?R:L,cx=(L+R)/2;c.fillStyle=cyl(c,L,R,[228,230,234]);c.fillRect(L,y+6,w,h-12);c.fillStyle="rgba(0,0,0,.2)";c.fillRect(ix,y+6,f*2,h-12);   // white thruster pod (Dragon-style)
       c.fillStyle="#1b1e26";for(const[ax,ay,bx,by]of[[cx,y+6,cx,y],[cx,T-6,cx,T],[ox-f*2,y+h/2,ox+f*4,y+h/2]]){const nx=by===ay?0:3,ny=by===ay?3:0;c.beginPath();c.moveTo(ax-nx*0.6,ay-ny*0.6);c.lineTo(bx-nx,by-ny);c.lineTo(bx+nx,by+ny);c.lineTo(ax+nx*0.6,ay+ny*0.6);c.closePath();c.fill();}
       if(o.puff)for(const[px,py,dx,dy]of o.puff){c.fillStyle="rgba(240,244,255,.75)";c.beginPath();c.moveTo(px,py);c.lineTo(px+dx*16-dy*5,py+dy*16-dx*5);c.lineTo(px+dx*16+dy*5,py+dy*16+dx*5);c.closePath();c.fill();}
       break;}
     case"leg":{const ix=f>0?L:R,dep=o.legs,hx=ix,hy=y+5;
       const quad=(ax,ay,bx,by,wa,wb,col)=>{const dx=bx-ax,dy=by-ay,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;c.beginPath();c.moveTo(ax+nx*wa/2,ay+ny*wa/2);c.lineTo(bx+nx*wb/2,by+ny*wb/2);c.lineTo(bx-nx*wb/2,by-ny*wb/2);c.lineTo(ax-nx*wa/2,ay-ny*wa/2);c.closePath();c.fillStyle=col;c.fill();};
       if(!dep){   // folded flat against the tank, foot at the top (like a Falcon 9 leg)
-        quad(hx+f*7,y+2,hx+f*6,T-12,13,8,"#262b36");c.fillStyle="#4b5263";c.fillRect(hx+f*7-1,y+10,2,h-26);
+        quad(hx+f*7,y+2,hx+f*6,T-12,13,8,"#2a2c31");c.fillStyle="#4b5263";c.fillRect(hx+f*7-1,y+10,2,h-26);
         c.fillStyle="#1b1e26";c.fillRect(hx+f*6-7,T-12,14,8);c.fillStyle="#9aa3b5";c.fillRect(hx+(f>0?0:-4),y,4,8);}
       else{const fx=ix+f*63,fy=y-80,kx=hx+(fx-hx)*0.55,ky=hy+(fy+6-hy)*0.55;
-        c.strokeStyle="#c9ced8";c.lineWidth=4;c.lineCap="round";c.beginPath();c.moveTo(ix+f*2,y+62);c.lineTo(kx,ky);c.stroke();   // shock strut
+        c.strokeStyle="#d8dbe0";c.lineWidth=4;c.lineCap="round";c.beginPath();c.moveTo(ix+f*2,y+62);c.lineTo(kx,ky);c.stroke();   // shock strut
         c.strokeStyle="#5a6070";c.lineWidth=6;c.beginPath();c.moveTo(ix+f*2,y+62);c.lineTo(ix+(kx-ix)*0.45,y+62+(ky-y-62)*0.45);c.stroke();c.lineCap="butt";
-        quad(hx,hy,fx,fy+6,14,8,"#262b36");c.strokeStyle="#4b5263";c.lineWidth=1.5;c.beginPath();c.moveTo(hx+(fx-hx)*0.1,hy+(fy-hy)*0.1);c.lineTo(hx+(fx-hx)*0.85,hy+(fy+6-hy)*0.85);c.stroke();
+        quad(hx,hy,fx,fy+6,14,8,"#2a2c31");c.strokeStyle="#4b5263";c.lineWidth=1.5;c.beginPath();c.moveTo(hx+(fx-hx)*0.1,hy+(fy-hy)*0.1);c.lineTo(hx+(fx-hx)*0.85,hy+(fy+6-hy)*0.85);c.stroke();
         c.fillStyle="#1b1e26";c.beginPath();c.moveTo(fx-14,fy);c.lineTo(fx+14,fy);c.lineTo(fx+9,fy+8);c.lineTo(fx-9,fy+8);c.closePath();c.fill();
         c.fillStyle="#9aa3b5";c.beginPath();c.arc(hx,hy,3.5,0,6.2832);c.fill();}
       break;}
@@ -2862,7 +2912,7 @@ function drawVessel(c,v,bright){
   c.save();c.translate(v.x,v.y);c.rotate(-v.phi);
   if(v.crashed){c.rotate(v.phi-Math.atan2(v.x,v.y));c.translate(0,-(v.py-Math.min(...v.cpts.map(q=>q[1])))/100);boom(c,v);c.restore();return;}
   c.scale(0.01,0.01);c.translate(-v.px,-v.py);
-  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.72:0.95),v.thr,v.a,bright,k==="vac");}});
+  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright);return;}plume(c,p.x,p.y,p.w*(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8),v.thr,v.a,bright,k==="vac");}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
   for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
@@ -2922,8 +2972,8 @@ function renderFlight(dt){
   // shroud halves tumbling away
   const dq=dt*(r.wv||1);for(const q of flyers){if(q.body!==r.body)continue;const Bq=BOD[q.body],rq=Math.hypot(q.x,q.y),g=-Bq.mu/(rq*rq)*dq;q.t+=dq;
     if(rq>Bq.R){q.vx+=g*q.x/rq;q.vy+=g*q.y/rq;const sp=Math.hypot(q.vx,q.vy),rho=Bq.atm?atmRho(rq-Bq.R):0,drag=Math.min(0.9,rho*sp*0.02*dq);q.vx*=1-drag;q.vy*=1-drag;q.x+=q.vx*dq;q.y+=q.vy*dq;q.ang+=q.om*dq;}
-    c.save();c.translate(q.x,q.y);c.rotate(-q.ang);const L=-q.w/2,R=q.w/2;const gg=c.createLinearGradient(L,0,R,0);gg.addColorStop(0,q.side<0?"#959eb1":"#eef1f6");gg.addColorStop(1,q.side<0?"#eef1f6":"#ccd2dd");
-    c.fillStyle=gg;c.fillRect(L,-q.h/2,q.w,q.h);c.fillStyle="#34405e";c.fillRect(L,q.h/2-0.04,q.w,0.04);c.restore();}
+    c.save();c.translate(q.x,q.y);c.rotate(-q.ang);const L=-q.w/2,R=q.w/2;const gg=c.createLinearGradient(L,0,R,0);gg.addColorStop(0,q.side<0?"#1c1d21":"#4a4d55");gg.addColorStop(1,q.side<0?"#4a4d55":"#2a2c31");
+    c.fillStyle=gg;c.fillRect(L,-q.h/2,q.w,q.h);c.fillStyle="#6a6d75";c.fillRect(L,q.h/2-0.03,q.w,0.03);c.restore();}
   flyers=flyers.filter(q=>q.t<25&&Math.hypot(q.x,q.y)>BOD[q.body].R);
   // every craft near this one: the one you fly, dropped stages, boosters
   for(const v of VS){if(v.body!==r.body||Math.hypot(v.x-r.x,v.y-r.y)>Math.max(4000,FH/s*2))continue;
