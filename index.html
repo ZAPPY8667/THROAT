@@ -2227,6 +2227,9 @@ function hazard(c,x0,y0,w,h,vert){c.save();c.beginPath();c.rect(x0,y0,w,h);c.cli
 function metal(c,L,R,a,b,cA,cB){const g=c.createLinearGradient(L,0,R,0);g.addColorStop(0,a);g.addColorStop(0.42,cA);g.addColorStop(0.72,cB);g.addColorStop(1,b);return g;}
 // cylinder lighting: dark at both edges, a soft highlight a third of the way across (light from the upper left), so a flat
 // rectangle reads as a round tube
+// tank finish: chosen per tank in the editor (p.sk); otherwise narrow tanks are white and wide ones orange foam
+const TANK_SKINS=[["white","White"],["steel","Stainless"],["foam","Orange foam"]];
+const tankSkin=p=>p.sk||(p.w>=120?"foam":"white");
 function cyl(c,L,R,col){const g=c.createLinearGradient(L,0,R,0),sh=m=>`rgb(${col.map(v=>Math.max(0,Math.min(255,Math.round(v*m)))).join()})`;
   g.addColorStop(0,sh(0.52));g.addColorStop(0.1,sh(0.8));g.addColorStop(0.32,sh(1.07));g.addColorStop(0.48,sh(1));g.addColorStop(0.78,sh(0.76));g.addColorStop(1,sh(0.48));return g;}
 // a real nozzle bell: from the throat (half-width tw at yt) it flares fast, then straightens toward the exit (half-width ew at ye).
@@ -2272,22 +2275,30 @@ function drawPart(c,p,o={}){
   const{x,y,w,h,f}=p,L=x-w/2,R=x+w/2,T=y+h;
   c.lineJoin="round";
   switch(p.t){
-    case"tank":{const wide=w>=120,fr=o.fuel!=null?Math.max(0,Math.min(1,o.fuel)):1;
-      // narrow tanks: white Falcon-style skin; wide tanks: SLS-style orange foam insulation (mottled, it's sprayed on)
-      c.fillStyle=cyl(c,L,R,wide?[210,112,46]:[238,240,244]);c.fillRect(L,y,w,h);
-      if(wide){c.fillStyle="rgba(110,45,10,.10)";for(let i=0,n=w*h/90;i<n;i++)c.fillRect(L+(i*73.7)%w,y+(i*37.3)%h,3,1.6);
+    case"tank":{const sk=tankSkin(p);
+      if(sk==="steel"){   // bare stainless steel, Starship-style: a sharp mirror highlight, brushed grain, welded rings with a slight heat tint
+        const g=c.createLinearGradient(L,0,R,0);[[0,"#4b4f56"],[0.07,"#8f949c"],[0.2,"#dfe2e6"],[0.28,"#fbfcfd"],[0.34,"#c7cbd1"],[0.55,"#8d9299"],[0.8,"#b3b7be"],[0.92,"#7d8289"],[1,"#41454c"]].forEach(([q,cc])=>g.addColorStop(q,cc));
+        c.fillStyle=g;c.fillRect(L,y,w,h);
+        for(let i=0;i<w*1.4;i++){const xx=L+(i*37.31)%w;c.fillStyle=i%3?"rgba(255,255,255,.05)":"rgba(0,0,0,.05)";c.fillRect(xx,y,0.5,h);}
+        let n=0;for(let yy=y+22;yy<T-8;yy+=22,n++){c.fillStyle=n%2?"rgba(190,140,90,.05)":"rgba(120,140,170,.05)";c.fillRect(L,yy-22,w,22);
+          c.fillStyle="rgba(0,0,0,.22)";c.fillRect(L,yy,w,0.7);c.fillStyle="rgba(255,255,255,.18)";c.fillRect(L,yy+0.7,w,0.5);}
+        c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,y+2,w,1);c.fillRect(L,T-3,w,1);break;}
+      const foam=sk==="foam";
+      // white: painted Falcon-style skin; foam: SLS-style orange spray-on insulation (mottled)
+      c.fillStyle=cyl(c,L,R,foam?[200,106,44]:[236,238,241]);c.fillRect(L,y,w,h);
+      if(foam){c.fillStyle="rgba(110,45,10,.10)";for(let i=0,n=w*h/90;i<n;i++)c.fillRect(L+(i*73.7)%w,y+(i*37.3)%h,3,1.6);
         c.fillStyle="rgba(255,220,180,.10)";for(let i=0,n=w*h/160;i<n;i++)c.fillRect(L+(i*51.3)%w,y+(i*91.7)%h,2,1.4);}
-      c.fillStyle="rgba(0,0,0,.22)";c.fillRect(L,y+2.5,w,1.2);c.fillRect(L,T-3.7,w,1.2);           // dome welds at each end
+      c.fillStyle="rgba(0,0,0,.2)";c.fillRect(L,y+2.5,w,1);c.fillRect(L,T-3.5,w,1);                 // dome welds at each end
       c.fillStyle="rgba(0,0,0,.06)";for(let yy=y+40;yy<T-15;yy+=40)c.fillRect(L,yy,w,0.8);           // barrel-section welds
-      if(h>=45){const rx=L+w*0.74,rw=4.5;                                                           // cable raceway, doubling as the fuel gauge
-        c.fillStyle="rgba(30,33,40,.6)";c.fillRect(rx,y+6,rw,h-12);c.fillStyle=fr>0.2?"#a9dcff":"#ff3b2f";c.fillRect(rx+1,y+7,rw-2,(h-14)*fr);}
+      if(h>=45){const rx=L+w*0.74;c.fillStyle=cyl(c,rx,rx+4,foam?[170,88,36]:[205,208,214]);c.fillRect(rx,y+5,4,h-10);   // cable raceway running down the side
+        c.fillStyle="rgba(0,0,0,.18)";c.fillRect(rx+4,y+5,0.8,h-10);}
       break;}
-    case"probe":{   // avionics ring in black carbon composite, an access hatch and two status lights
+    case"probe":{   // avionics ring in black carbon composite, an access hatch and two vents
       c.fillStyle=cyl(c,L,R,[44,46,52]);c.fillRect(L,y,w,h);
       c.fillStyle="rgba(255,255,255,.05)";for(let yy=y+3;yy<T;yy+=3)c.fillRect(L,yy,w,0.6);
       c.fillStyle="rgba(255,255,255,.14)";c.fillRect(L,y,w,1.2);c.fillRect(L,T-1.2,w,1.2);
       c.strokeStyle="rgba(255,255,255,.22)";c.lineWidth=0.8;c.strokeRect(x+w*0.08,y+h*0.25,w*0.22,h*0.5);
-      c.fillStyle="#5ae1f5";c.fillRect(x-w*0.3,y+h*0.6,3,2.5);c.fillStyle="#6fe28f";c.fillRect(x-w*0.3+5,y+h*0.6,3,2.5);break;}
+      c.fillStyle="rgba(0,0,0,.4)";for(const q of[-0.32,-0.24])c.fillRect(x+w*q,y+h*0.62,2.5,2);break;}   // two vent holes
     case"nose":{   // payload fairing: a smooth white ogive with the split line down the middle
       c.beginPath();c.moveTo(L,y);c.bezierCurveTo(L,y+h*0.45,x-w*0.32,y+h*0.9,x-w*0.06,T-1);c.quadraticCurveTo(x,T+0.5,x+w*0.06,T-1);c.bezierCurveTo(x+w*0.32,y+h*0.9,R,y+h*0.45,R,y);c.closePath();
       c.fillStyle=cyl(c,L,R,[240,241,244]);c.fill();c.save();c.clip();
@@ -2305,7 +2316,6 @@ function drawPart(c,p,o={}){
       c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,cy+10,w,1);
       const seg=T-cy-10;c.fillStyle="rgba(60,64,72,.55)";for(const k of[0.25,0.5,0.75]){const yy=cy+10+seg*k;c.fillRect(L,yy-1.5,w,3);}   // field joints between the segments
       c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,T-3,w,3);
-      if(T-cy>=45){const fx=L+w*0.16,fr=o.fuel!=null?Math.max(0,Math.min(1,o.fuel)):1;c.fillStyle="rgba(30,33,40,.55)";c.fillRect(fx,cy+14,4,T-cy-20);c.fillStyle=fr>0.2?"#ffb070":"#ff3b2f";c.fillRect(fx+1,cy+15,2,(T-cy-22)*fr);}
       break;}
     case"dec":{   // separation ring: dark structure, a bright pyro line where it splits, and its bolts
       c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.7,w,1.4);
@@ -2557,6 +2567,7 @@ function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.di
     <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap"><button class="b${k==="stand"?" on":""}" data-bo="stand">Your booster</button><button class="b${k==="thumper"?" on":""}" data-bo="thumper">Thumper</button>${lib.filter(e=>e.kind==="solid").map(e=>`<button class="b${k==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-bo="${e.id}"></button>`).join("")}</div>`;}
   if(isE)h+=`<div class="tip" style="margin-top:4px">Sea level <b>${(E.sl.F/1000).toFixed(2)} kN · ${Math.round(E.sl.isp)} s</b>${E.sl.est?" (est.)":""}<br>Vacuum <b>${(E.vac.F/1000).toFixed(2)} kN · ${Math.round(E.vac.isp)} s</b>${E.vac.est?" (est.)":""}${engKey(p)==="stand"?`<br>${E.src==="tested"?"From your test stand runs.":"Not tested yet: fire your engine on the stand to record its real numbers."}`:""}</div>
     <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${ENG_ORDER.map(k=>`<button class="b${engKey(p)===k?" on":""}" data-e="${k}">${ENG[k].name}</button>`).join("")}${lib.filter(e=>e.kind!=="solid").map(e=>`<button class="b${engKey(p)==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-le="${e.id}"></button>`).join("")}</div>`;
+  if(p.t==="tank")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${TANK_SKINS.map(([k,n])=>`<button class="b${tankSkin(p)===k?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
   if(p.t==="leg")h+=`<div class="row" style="margin-top:6px"><button class="b${vLegsOut?" on":""}" data-legs="1">${vLegsOut?"Show folded":"Show deployed"}</button></div>`;
   h+=`<div class="row" style="margin-top:6px;gap:5px;flex-wrap:wrap">`;
   if(d.ws.length>1)for(const w of d.ws)h+=`<button class="b${p.w===w?" on":""}" data-w="${w}">${w===60?"Narrow":"Wide"}</button>`;
@@ -2569,6 +2580,7 @@ function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.di
   el.querySelectorAll("[data-le]").forEach(b=>{const e=libGet(b.dataset.le);b.textContent=e?e.name:"?";b.onclick=()=>{if(e)vResize(i,ENG.lib.w,ENG.lib.h,q=>{q.e="lib";q.n=libNums(e);});};});
   el.querySelectorAll("[data-bo]").forEach(b=>{const k=b.dataset.bo,e=BOOST[k]?null:libGet(k);if(e)b.textContent=e.name;
     b.onclick=()=>vResize(i,p.w,p.h,q=>{if(e){q.b="lib";q.n=libNums(e);}else{q.b=k;delete q.n;}});});
+  el.querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>vResize(i,p.w,p.h,q=>{q.sk=b.dataset.sk;}));   // finish only changes the look
   el.querySelectorAll("[data-legs]").forEach(b=>b.onclick=()=>{vLegsOut=!vLegsOut;vBarUI();vInspUI();});
   el.querySelector("[data-del]").onclick=()=>vDelete(i);}
 function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stages;
