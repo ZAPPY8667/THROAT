@@ -1,6 +1,6 @@
 // ASCENT autopilot: every ready-made rocket that has the Δv for it reaches a stable orbit on its own (gravity turn, Max-Q
 // throttling, staging, coast, circularise). The hopper is a single small stage made for hops, so it's only expected to try.
-const F=require('./harness.js');const names=process.argv.slice(2).length?process.argv.slice(2):['orbiter','sparrow','heavy','lander','sls'];let bad=0;
+const F=require('./harness.js');const names=process.argv.slice(2).length?process.argv.slice(2):['orbiter','sparrow','heavy','lander','sls','pathfinder'];let bad=0;
 for(const n of names){F.startFlight(F.tpl(n),n);F.apEngage('ascent',{alt:70000});let t=0;const dt=0.01;
   while(t<2400&&F.AP.mode){F.apStep(dt);for(const v of F.VS)F.stepV(v,dt,0);t+=dt;if(F.AV.crashed)break;}
   const a=F.AV,o=F.orbitOf(a),okk=!a.crashed&&!o.esc&&o.pe>40e3;if(!okk)bad++;

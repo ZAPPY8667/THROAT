@@ -269,6 +269,27 @@ made on the test stand.
   buttons) join DATA/TIME/SAS. Only GAUGES starts open now (DATA used to). `free:true` tabs don't count in the phones'
   one-panel-at-a-time rule. foldUI fix: a tab with no saved state starts the way its def says (new tabs used to start closed).
 
+## v1.37: lots more parts
+- **Engines** (`ENG`, each with its own drawing in `drawEngine`; `fuel`/`pf` fields replace the hard-coded kerosene list in
+  `engFuel`/`fireKind` and the plume width table): Gnat (tiny methane thruster), Spike (aerospike: ring of chambers + a plug,
+  nearly as good at sea level as in vacuum), Condor (huge full-flow methane), Atom (nuclear: reactor drum with the trefoil,
+  Isp 820 in vacuum, weak and heavy).
+- **Boosters** (`BOOST` with their own size `w/h`, `BOOST_ORDER`): Sprinter (short, black with yellow bands, kicks hard and
+  fades), Longhorn (long bare-steel, steady, best Isp). The inspector lists every booster model.
+- **Variants** (`VARS`, palette id `type:variant` → `p.v`; same physics as the base type, own drawing and default size):
+  fuel spheres (`tank:ball`, ⅔ the capacity), grid fins and a swept wing (`fin:grid`, `fin:wing`), lander cabin
+  (`probe:cabin`), cockpit (`nose:cockpit`: a nose that is also the brain, `isBrain`), big Dragon-style capsule (`capsule:dragon`).
+- **New parts**: solar panel (radial; folded, opens above the air or near the Moon: `o.open` in flight, "Show deployed" in
+  the editor), floodlight (lamp + a 45° beam in the dark: `drawBeam`, `nightK`), heat-shield plate (`shield`; at the bottom it
+  counts as shield-first for re-entry, like a capsule: `v.capBottom`).
+- **Paint**: tanks also Carbon black, Black & white (Saturn roll pattern), Gold foil; nose cones White/Black/Steel/Orange/Gold
+  (`NOSE_SKINS`, `SKIN_COL`).
+- **Pathfinder** (ready-made): steel Condor booster with grid fins and wings, Atom upper stage on a gold-foil tank with solar panels
+  and floodlights, heat shield + big capsule. Reaches orbit on the autopilot (tests: templates, ap_ascent).
+- Centres: grid fins count ½ (open lattice), solar panels and lights 0.3. Share codes carry `v`. `__vab` exposes `drawPart`/`mkPart`
+  (part gallery screenshots), `__flt` `release`/`setZoom`.
+- Bit us again: a `// comment` added before more code on the same line hid `v.hasLes` (abort test caught it). Use `/* */` mid-line.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

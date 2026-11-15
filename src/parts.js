@@ -20,10 +20,10 @@ const tankCap=(w,h,fk)=>(RHO_FUEL[fk]||RHO_P)*Math.PI*(w*UM/2)**2*(h*UM);
 // the bottom 2 m is the nozzle, so it holds no propellant
 const RHO_S=900,SRB_NZ=20,SRB_REF=18;   // SRB_REF: a booster this wide pushes its listed thrust × MK (real SLS boosters: ~15 MN at 3.7 m)
 const srbCap=(w,h)=>RHO_S*Math.PI*(w*UM/2)**2*(Math.max(0,h-SRB_NZ)*UM);
-const capOf=p=>p.t==="tank"?tankCap(p.w,p.h,p.fk):p.t==="srb"?srbCap(p.w,p.h):0;
+const capOf=p=>p.t==="tank"?tankCap(p.w,p.h,p.fk)*(p.v==="ball"?0.66:1):p.t==="srb"?srbCap(p.w,p.h):0;
 const hasProp=p=>p.t==="tank"||p.t==="srb";
 const isEng=p=>p.t==="engine"||p.t==="srb";
-const isBrain=p=>p.t==="probe"||p.t==="capsule";   // a capsule is a probe core with a heat shield, parachutes and a crew
+const isBrain=p=>p.t==="probe"||p.t==="capsule"||p.t==="nose"&&p.v==="cockpit";   // a capsule is a probe core with a heat shield, parachutes and a crew
 // engine clusters: an engine part can hold k engines side by side under one thrust plate (like SLS 4, New Glenn 7, Falcon 9 9).
 // Up to 3 sit in one row; more go in two rows (the back row is drawn behind, a little higher). Each engine is ew wide.
 function clusterGeo(p){const k=Math.max(1,p.k||1),E=ENG[engKey(p)],rows=k<=3?1:2,front=Math.ceil(k/rows),ew=k===1?p.w:Math.min(p.w*0.96/front,E.w*1.15),plate=k>1?5:0;
@@ -50,15 +50,35 @@ const PT={
   capsule:{name:"Crew capsule",   ws:[50], wr:[16,120], h:w=>Math.round(w*0.66), m:w=>9*MK*A2(w,50), desc:"Orion-style capsule: the brain (like a probe core) with a heat shield underneath and parachutes (P). Come home heat-shield first."},
   les:    {name:"Escape tower",   ws:[14], wr:[6,60],  h:w=>Math.round(w*4.4), m:w=>6*MK*A2(w,14), desc:"Launch escape tower: goes on top of the capsule. ABORT (Backspace) fires it and pulls the capsule away from the rocket. It drops off by itself in space."},
   leg:    {name:"Landing leg",    ws:[30],              h:()=>90, m:()=>2.5*MK, radial:1, desc:"G deploys. Lets you land at up to 9 m/s instead of about 3."},
+  // v1.37
+  solar:  {name:"Solar panel",    ws:[10],              h:()=>40, m:()=>0.4*MK, radial:1, desc:"Folds flat against the side and opens out once you're in space. Makes a satellite look like one."},
+  light:  {name:"Floodlight",     ws:[8],               h:()=>10, m:()=>0.05*MK, radial:1, desc:"A bright lamp: it lights up at night and in the shadow, so you can see where you're landing."},
+  shield: {name:"Heat shield",    ws:[40], wr:[10,160], h:()=>5,  m:w=>1.2*MK*A2(w,40), desc:"A heat-shield plate for the bottom of anything you bring home. Coming in shield-first, it takes the re-entry heat, like a capsule's."},
 };
+// v1.37: variants: the same kind of part (same physics) in another design. Palette id "type:variant" → p.v; w, h: its default size
+const VARS={
+  "tank:ball":   {name:"Fuel spheres", w:40, h:()=>80, desc:"Round tanks in an open frame, like a lunar lander's. They hold about two-thirds of what a tank this size would."},
+  "fin:grid":    {name:"Grid fins",    w:22, h:()=>22, desc:"Lattice fins, like a returning booster's. Put them near the top: they steer a falling stage through the air."},
+  "fin:wing":    {name:"Wing",         w:90, h:()=>130,desc:"A big swept wing. Lots of grip on the air: for spaceplanes and very steady rockets."},
+  "probe:cabin": {name:"Lander cabin", w:60, h:w=>Math.round(w*0.8), desc:"Apollo-style lander cabin for a crew: it's the brain, light and gold-wrapped. No heat shield, so don't bring it home through the air."},
+  "nose:cockpit":{name:"Cockpit",      w:40, h:w=>Math.round(w*1.5), desc:"Spaceplane cockpit: a nose cone with a crew and windows. It's the brain, and it cuts drag like a nose."},
+  "capsule:dragon":{name:"Big capsule",w:70, h:w=>Math.round(w*0.72), desc:"Dragon-style capsule: wider and rounder, seats seven. Heat shield underneath and parachutes (P), like the small one."}};
+const varOf=p=>p.v&&VARS[p.t+":"+p.v]?VARS[p.t+":"+p.v]:null;
+// paint: tanks (p.sk) and nose cones; each as a base colour for the round-tube shading
+const SKIN_COL={white:[236,238,241],steel:[196,200,206],foam:[196,96,36],black:[44,46,52],stripes:[236,238,241],gold:[214,172,72]};
 // engines: your own (numbers from the test stand) and four ready-made ones, at their default size (w × h units).
 // Numbers here are at that size, in the old small units; engStat() scales them by MK and by the nozzle area of the actual part.
 const ENG={
   stand:{name:"Your engine",w:30,h:46,m:9,desc:"Your engine, with the thrust and Isp it made on the test stand, scaled up to this size."},
-  wren: {name:"Wren",w:22,h:32,m:5,sl:{F:1100,isp:285},vac:{F:1250,isp:322},desc:"Small and light, for sea level. Good for hoppers and landers."},
-  mule: {name:"Mule",w:32,h:46,m:12,sl:{F:3300,isp:305},vac:{F:3650,isp:338},desc:"The workhorse: lots of push at sea level for its size."},
-  bison:{name:"Bison",w:56,h:70,m:28,sl:{F:7500,isp:300},vac:{F:8300,isp:330},desc:"Big, powerful sea-level engine for heavy first stages."},
-  vac:  {name:"Lumen Vac",w:36,h:84,m:7,sl:{F:800,isp:140},vac:{F:2600,isp:445},desc:"Huge bell for space: best Isp of all, but weak at sea level (the exhaust is over-expanded)."},
+  wren: {name:"Wren",w:22,h:32,m:5,fuel:"kero",pf:0.6,sl:{F:1100,isp:285},vac:{F:1250,isp:322},desc:"Small and light, for sea level. Good for hoppers and landers."},
+  mule: {name:"Mule",w:32,h:46,m:12,fuel:"kero",sl:{F:3300,isp:305},vac:{F:3650,isp:338},desc:"The workhorse: lots of push at sea level for its size."},
+  bison:{name:"Bison",w:56,h:70,m:28,fuel:"kero",pf:0.88,sl:{F:7500,isp:300},vac:{F:8300,isp:330},desc:"Big, powerful sea-level engine for heavy first stages."},
+  vac:  {name:"Lumen Vac",w:36,h:84,m:7,pf:0.9,sl:{F:800,isp:140},vac:{F:2600,isp:445},desc:"Huge bell for space: best Isp of all, but weak at sea level (the exhaust is over-expanded)."},
+  // v1.37: four more, each a different kind of engine (fuel: what its tanks hold; pf: how wide the flame starts, of the part)
+  gnat: {name:"Gnat",w:12,h:18,m:1.2,fuel:"ch4",pf:0.6,sl:{F:180,isp:270},vac:{F:230,isp:320},desc:"Tiny methane thruster. For small landers and probes, or a cluster of them for fine control."},
+  spike:{name:"Spike",w:44,h:28,m:14,pf:0.9,sl:{F:3400,isp:330},vac:{F:3600,isp:352},desc:"Aerospike: no bell. The air itself shapes the exhaust, so it works almost as well at sea level as in space."},
+  condor:{name:"Condor",w:62,h:78,m:32,fuel:"ch4",pf:0.88,sl:{F:9800,isp:330},vac:{F:10600,isp:356},desc:"Huge full-flow methane engine (Raptor-style). The strongest engine for big boosters."},
+  atom: {name:"Atom",w:40,h:110,m:30,pf:0.7,sl:{F:250,isp:190},vac:{F:900,isp:820},desc:"Nuclear: a reactor heats hydrogen instead of burning it. Twice the Isp of any other engine, but heavy and weak: for space only."},
   lib:  {name:"Saved engine",w:30,h:46,m:9,desc:"An engine you tested and saved in the engine library, scaled up to this size."}};
 // solid boosters: what's inside the casing. "Your booster" = your last burn on the test stand; saved ones keep a copy of their numbers
 // on the part (p.n), so a rocket still flies the same after the library entry is deleted. The curve is thrust (relative to the
@@ -66,6 +86,9 @@ const ENG={
 const BOOST={
   stand:  {name:"Your booster",desc:"Your booster, with the thrust, Isp and thrust curve of your last full burn on the test stand."},
   thumper:{name:"Thumper",sl:{F:3400,isp:215},vac:{F:3750,isp:237},curve:[1.2,1.15,1.1,1.05,1,1,1,0.98,0.95,0.92,0.9,0.85],desc:"A ready-made booster: hard kick at lift-off that tapers off."},
+  // v1.37: two more with their own sizes (w × h) and looks
+  sprinter:{name:"Sprinter",w:30,h:180,sl:{F:5200,isp:205},vac:{F:5600,isp:228},curve:[1.5,1.45,1.35,1.2,1.05,0.95,0.85,0.8,0.75,0.7,0.65,0.6],desc:"Short and fierce: a huge kick off the pad that fades fast. Gets a heavy rocket moving."},
+  longhorn:{name:"Longhorn",w:40,h:520,sl:{F:2200,isp:240},vac:{F:2450,isp:262},curve:[0.9,0.95,1,1,1.02,1.02,1.03,1.03,1,1,0.98,0.95],desc:"Long and steady: a gentler push, but a long burn and the best Isp of the boosters."},
   lib:    {name:"Saved booster",desc:"A booster you burned on the test stand and saved in the engine library."}};
 const boostKey=p=>p.b&&BOOST[p.b]?p.b:"stand";
 function boostStat(p){const k=boostKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?boosterNums():BOOST[k],MK*A2(p.w,SRB_REF));}
@@ -73,18 +96,21 @@ function boostStat(p){const k=boostKey(p);return scaleStat(k==="lib"&&p.n?p.n:k=
 function scaleStat(E,k){const o=Object.assign({},E);o.sl=Object.assign({},E.sl,{F:E.sl.F*k});o.vac=Object.assign({},E.vac,{F:E.vac.F*k});return o;}
 // thrust multiplier when a fraction u of the propellant is gone (straight lines between the curve's samples)
 function curveAt(c,u){if(!c||c.length<2)return 1;const x=Math.max(0,Math.min(1,u))*(c.length-1),i=Math.min(c.length-2,Math.floor(x));return c[i]+(c[i+1]-c[i])*(x-i);}
-const ENG_ORDER=["stand","wren","mule","bison","vac"];
+const ENG_ORDER=["stand","gnat","wren","mule","spike","bison","condor","vac","atom"],BOOST_ORDER=["stand","thumper","sprinter","longhorn"];
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
 function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],MK*A2(clusterGeo(p).ew,ENG[k].w)*(p.k||1));}
-const PT_ORDER=["probe","nose","tank","adapter","engine:stand","engine:wren","engine:mule","engine:bison","engine:vac","engine:stand:4","srb:stand","srb:thumper","dec","sdec","fin","rcs","leg","capsule","les"];
+const PT_ORDER=["probe","probe:cabin","nose","nose:cockpit","tank","tank:ball","adapter","shield","engine:stand","engine:gnat","engine:wren","engine:mule","engine:spike","engine:bison","engine:condor","engine:vac","engine:atom","engine:stand:4",
+  "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","fin","fin:grid","fin:wing","rcs","leg","solar","light","capsule","capsule:dragon","les"];
 let partId=1;
 // t can carry a model: "engine:mule", "srb:thumper"; n = a saved library entry's numbers to copy onto the part
-function mkPart(t,w,h,e,n){let b,k=1;if(t.startsWith("engine:")){e=t.slice(7);t="engine";if(e.includes(":")){k=+e.split(":")[1];e=e.split(":")[0];}}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}const d=PT[t];
+function mkPart(t,w,h,e,n){let b,k=1;if(t.startsWith("engine:")){e=t.slice(7);t="engine";if(e.includes(":")){k=+e.split(":")[1];e=e.split(":")[0];}}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}let va;if(t.includes(":")){va=t.split(":")[1];t=t.split(":")[0];}const d=PT[t],V=va&&VARS[t+":"+va];if(V){w=w||V.w;h=h||V.h(w);}
   if(t==="engine"){e=e||"stand";const E=ENG[e];w=w||(k>1?Math.round(E.w*(k<=3?k:Math.ceil(k/2))*1.05):E.w);if(!h){h=engH({t,e,w,k});}}w=w||d.ws[0];const p={id:partId++,t,x:0,y:0,w,h:h||d.h(w),f:1,tw:0};if(e)p.e=e;if(t==="srb")p.b=b||"stand";
+  if(b&&BOOST[b]&&BOOST[b].w&&!p.n){if(!p.w||p.w===d.ws[0])p.w=BOOST[b].w;if(p.h===d.h(d.ws[0]))p.h=BOOST[b].h;}   // boosters with their own size
+  if(V)p.v=va;
   if(t==="adapter")p.w2=Math.round(w*0.48);if(k>1)p.k=k;
   if(n)p.n=JSON.parse(JSON.stringify(n));return p;}
 const partMass=p=>p.t==="engine"?ENG[engKey(p)].m*MK*A2(clusterGeo(p).ew,ENG[engKey(p)].w)*(p.k||1)+(p.k>1?0.6*MK*A2(p.w,40):0):PT[p.t].m(p.w,p.h);
-const partName=p=>p.t==="engine"?(engKey(p)==="lib"&&p.n?p.n.name:ENG[engKey(p)].name)+(p.k>1?" ×"+p.k:""):p.t==="srb"?(boostKey(p)==="lib"&&p.n?p.n.name:BOOST[boostKey(p)].name):PT[p.t].name;
+const partName=p=>varOf(p)?varOf(p).name:p.t==="engine"?(engKey(p)==="lib"&&p.n?p.n.name:ENG[engKey(p)].name)+(p.k>1?" ×"+p.k:""):p.t==="srb"?(boostKey(p)==="lib"&&p.n?p.n.name:BOOST[boostKey(p)].name):PT[p.t].name;
 // a decoupler under an engine gets a shroud (interstage) that covers the engine until it separates
 function shroudsOf(ps){const out=[];ps.forEach((d,i)=>{if(d.t!=="dec"||d.shed)return;let top=-1e9;
   for(const e of ps)if(e.t==="engine"&&near(e.y,d.y+d.h)&&ovl(e.x-e.w/2,e.x+e.w/2,d.x-d.w/2,d.x+d.w/2)>0.5)top=Math.max(top,e.y+e.h);
@@ -93,7 +119,7 @@ function drawShroud(c,s,al){c.save();c.globalAlpha=al==null?1:al;const L=s.x-s.w
   c.fillStyle=cyl(c,L,R,[42,44,50]);c.fillRect(L,s.y0,s.w,s.y1-s.y0);c.fillStyle="rgba(255,255,255,.045)";for(let yy=s.y0+3;yy<s.y1;yy+=3)c.fillRect(L,yy,s.w,0.6);
   c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,s.y1-1.2,s.w,1.2);c.fillStyle="rgba(0,0,0,.4)";c.fillRect(s.x-0.5,s.y0,1,s.y1-s.y0);c.restore();}
 const isRad=p=>!!PT[p.t].radial;
-const topW=p=>p.t==="nose"||p.t==="les"?0:p.t==="capsule"?Math.round(p.w*0.34):p.t==="adapter"?(p.w2||Math.round(p.w*0.48)):p.w;
+const topW=p=>p.t==="nose"||p.t==="les"?0:p.t==="capsule"?Math.round(p.w*(p.v==="dragon"?0.5:0.34)):p.t==="probe"&&p.v==="cabin"?Math.round(p.w*0.5):p.t==="adapter"?(p.w2||Math.round(p.w*0.48)):p.w;
 const ovl=(a0,a1,b0,b1)=>Math.min(a1,b1)-Math.max(a0,b0);
 const near=(a,b)=>Math.abs(a-b)<0.01;
 function touching(a,b){
@@ -122,7 +148,7 @@ function split(ps,adj,inSet,decs,root){const D=new Set(decs);
 // stage-by-stage Δv: burn until whatever the next decoupler drops has run dry, drop it, repeat
 // which fuel an engine burns: the kerosene workhorses (Wren, Mule, Bison), your engine = what you last tested on the stand,
 // a saved engine = what it was saved with, the rest hydrogen
-function engFuel(p){const k=engKey(p);return k==="wren"||k==="mule"||k==="bison"?"kero":k==="lib"?(p.n&&p.n.fuel)||"h2":k==="stand"&&typeof engineNums==="function"?engineNums().fuel||"h2":"h2";}
+function engFuel(p){const k=engKey(p);return ENG[k].fuel?ENG[k].fuel:k==="lib"?(p.n&&p.n.fuel)||"h2":k==="stand"&&typeof engineNums==="function"?engineNums().fuel||"h2":"h2";}
 // mark each tank with the fuel of the engines it feeds (a tank shared by two kinds takes the denser one). In flight the marks are
 // kept (a dropped tank keeps what's in it); in the editor they're redone, since engines get swapped.
 function tagTanks(ps,adj,redo){const all=new Set(ps.keys());if(redo)for(const p of ps)if(p.t==="tank")delete p.fk;
@@ -166,8 +192,9 @@ function metal(c,L,R,a,b,cA,cB){const g=c.createLinearGradient(L,0,R,0);g.addCol
 // cylinder lighting: dark at both edges, a soft highlight a third of the way across (light from the upper left), so a flat
 // rectangle reads as a round tube
 // tank finish: chosen per tank in the editor (p.sk); otherwise narrow tanks are white and wide ones orange foam
-const TANK_SKINS=[["white","White"],["steel","Stainless"],["foam","Orange foam"]];
+const TANK_SKINS=[["white","White"],["steel","Stainless"],["foam","Orange foam"],["black","Carbon black"],["stripes","Black & white"],["gold","Gold foil"]];
 const tankSkin=p=>p.sk||(p.w>=120?"foam":"white");
+const NOSE_SKINS=[["white","White"],["black","Black"],["steel","Steel"],["foam","Orange"],["gold","Gold"]];
 function cyl(c,L,R,col){const g=c.createLinearGradient(L,0,R,0),sh=m=>`rgb(${col.map(v=>Math.max(0,Math.min(255,Math.round(v*m)))).join()})`;
   g.addColorStop(0,sh(0.52));g.addColorStop(0.1,sh(0.8));g.addColorStop(0.32,sh(1.07));g.addColorStop(0.48,sh(1));g.addColorStop(0.78,sh(0.76));g.addColorStop(1,sh(0.48));return g;}
 // a real nozzle bell: from the throat (half-width tw at yt) it flares fast, then straightens toward the exit (half-width ew at ye).
@@ -185,6 +212,31 @@ function drawEngine(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[1
   const pipe=(pts,wd,col)=>{c.strokeStyle=col;c.lineWidth=wd;c.lineCap="round";c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.stroke();c.lineCap="butt";};
   const box=(x0,y0,bw,bh,col)=>{c.fillStyle=cyl(c,x0,x0+bw,col);c.fillRect(x0,y0,bw,bh);};
   const mount=(yb,hw)=>{c.beginPath();c.moveTo(x-w*0.36,T);c.lineTo(x+w*0.36,T);c.lineTo(x+hw,yb);c.lineTo(x-hw,yb);c.closePath();c.fillStyle=cyl(c,x-w*0.36,x+w*0.36,dk);c.fill();};
+  if(k==="gnat"){   // tiny thruster: a gold-foil valve block and a short shiny bell
+    const yt=y+h*0.55;mount(y+h*0.86,w*0.14);box(x-w*0.22,y+h*0.6,w*0.44,h*0.26,[196,160,70]);
+    c.fillStyle="rgba(255,240,180,.25)";c.fillRect(x-w*0.22,y+h*0.72,w*0.44,0.6);
+    bell(c,x,yt,y,w*0.09,w*0.36,[150,152,160],[200,204,212],0.6);return;}
+  if(k==="spike"){   // aerospike: a ring of small chambers round the top, and a plug tapering down; the air outside is its "bell"
+    mount(y+h*0.9,w*0.44);c.fillStyle=cyl(c,x-w*0.48,x+w*0.48,[70,72,80]);c.fillRect(x-w*0.48,y+h*0.7,w*0.96,h*0.2);   // the chamber ring
+    c.fillStyle="#1b1d22";for(let q=-0.4;q<=0.41;q+=0.16)c.fillRect(x+q*w-1,y+h*0.68,2,2);
+    c.beginPath();c.moveTo(x-w*0.44,y+h*0.7);c.bezierCurveTo(x-w*0.4,y+h*0.4,x-w*0.22,y+h*0.12,x-w*0.16,y);c.lineTo(x+w*0.16,y);c.bezierCurveTo(x+w*0.22,y+h*0.12,x+w*0.4,y+h*0.4,x+w*0.44,y+h*0.7);c.closePath();
+    c.fillStyle=cyl(c,x-w*0.44,x+w*0.44,[176,108,62]);c.fill();c.save();c.clip();c.strokeStyle="rgba(0,0,0,.2)";c.lineWidth=0.5;
+    for(let t=-0.9;t<=0.9;t+=0.15){c.beginPath();c.moveTo(x+t*w*0.44,y+h*0.7);c.lineTo(x+t*w*0.16,y);c.stroke();}c.restore();
+    c.fillStyle="rgba(40,40,46,.9)";c.fillRect(x-w*0.16,y,w*0.32,1.6);return;}
+  if(k==="condor"){   // full-flow methane engine: two big pumps either side, thick hot-gas ducts, a stubby dark bell with a bright rim
+    const yt=y+h*0.6;mount(y+h*0.92,w*0.14);
+    for(const sd of[-1,1]){box(x+sd*w*0.17-(sd<0?w*0.16:0),y+h*0.64,w*0.16,h*0.26,[150,154,162]);
+      pipe([[x+sd*w*0.25,y+h*0.64],[x+sd*w*0.25,y+h*0.6],[x+sd*w*0.1,y+h*0.58]],3.2,"#565a63");pipe([[x+sd*w*0.22,y+h*0.86],[x+sd*w*0.07,y+h*0.82]],2.2,"#9a9ea8");}
+    box(x-w*0.11,yt,w*0.22,h*0.3,[170,172,178]);
+    bell(c,x,yt,y,w*0.08,w*0.46,[44,45,50],[120,96,80],0.82);c.fillStyle="rgba(230,232,236,.7)";c.fillRect(x-w*0.46,y,w*0.92,1.2);return;}
+  if(k==="atom"){   // nuclear: a fat reactor drum (with the radiation sign), shielding on top, one pump, then a long bell
+    const yt=y+h*0.5;mount(y+h*0.96,w*0.18);box(x-w*0.3,y+h*0.9,w*0.6,h*0.04,[60,62,68]);
+    box(x-w*0.24,y+h*0.6,w*0.48,h*0.3,[150,154,160]);c.fillStyle="rgba(0,0,0,.18)";for(let q=0.64;q<0.9;q+=0.05)c.fillRect(x-w*0.24,y+h*q,w*0.48,0.5);
+    const cx=x,cy=y+h*0.75,R=w*0.12;c.fillStyle="#f2c230";c.beginPath();c.arc(cx,cy,R,0,6.2832);c.fill();c.fillStyle="#1d1d1d";
+    for(let a=0;a<3;a++){const a0=a*2.094+Math.PI/2-0.52;c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,R*0.85,a0,a0+1.05);c.closePath();c.fill();}
+    c.fillStyle="#f2c230";c.beginPath();c.arc(cx,cy,R*0.24,0,6.2832);c.fill();c.fillStyle="#1d1d1d";c.beginPath();c.arc(cx,cy,R*0.14,0,6.2832);c.fill();
+    box(x-w*0.08,yt,w*0.16,h*0.1,ch);box(x+w*0.12,y+h*0.52,w*0.1,h*0.07,[120,124,132]);
+    bell(c,x,yt,y,w*0.06,w*0.44,[58,60,66],[96,98,106],0.75);return;}
   if(k==="vac"){   // vacuum engine (MVac-style): small regen chamber on top, then a huge, thin, dark radiatively cooled extension
     const yt=y+h*0.74;mount(y+h*0.92,w*0.1);box(x+w*0.06,y+h*0.76,w*0.12,h*0.13,[120,124,132]);
     box(x-w*0.09,yt,w*0.18,h*0.18,ch);
@@ -220,6 +272,17 @@ function drawPart(c,p,o={}){
   c.lineJoin="round";
   switch(p.t){
     case"tank":{const sk=tankSkin(p);
+      if(p.v==="ball"){   // fuel spheres in an open frame (Apollo lander / Starliner style): one ball per tank-width of height
+        const n=Math.max(1,Math.round(h/w)),r=Math.min(w/2,h/n/2)*0.94,col=SKIN_COL[sk]||SKIN_COL.white,sh=m=>`rgb(${col.map(v=>Math.max(0,Math.min(255,Math.round(v*m)))).join()})`;
+        c.strokeStyle="#5d636c";c.lineWidth=Math.max(1,w*0.04);c.strokeRect(L+1,y+1,w-2,h-2);c.lineWidth=Math.max(0.6,w*0.02);c.beginPath();c.moveTo(L+1,y+1);c.lineTo(R-1,T-1);c.moveTo(R-1,y+1);c.lineTo(L+1,T-1);c.stroke();
+        for(let i=0;i<n;i++){const cy=y+h*(i+0.5)/n,g=c.createRadialGradient(x-r*0.35,cy+r*0.35,r*0.1,x,cy,r);g.addColorStop(0,sh(1.12));g.addColorStop(0.7,sh(0.86));g.addColorStop(1,sh(0.5));
+          c.fillStyle=g;c.beginPath();c.arc(x,cy,r,0,6.2832);c.fill();c.strokeStyle="rgba(0,0,0,.25)";c.lineWidth=0.6;c.beginPath();c.moveTo(x-r,cy);c.lineTo(x+r,cy);c.stroke();}   // weld seam round the middle
+        c.fillStyle="#3a3f46";c.fillRect(L,y,w,2);c.fillRect(L,T-2,w,2);break;}   // mounting rings top and bottom
+      if(sk==="black"||sk==="gold"||sk==="stripes"){c.fillStyle=cyl(c,L,R,SKIN_COL[sk]);c.fillRect(L,y,w,h);
+        if(sk==="black"){c.fillStyle="rgba(255,255,255,.04)";for(let yy=y+3;yy<T;yy+=3)c.fillRect(L,yy,w,0.6);for(let xx=L+2;xx<R;xx+=4)c.fillRect(xx,y,0.5,h);}   // carbon weave
+        if(sk==="stripes"){const bh=Math.max(10,w*0.5);let i=0;c.fillStyle=cyl(c,L,R,[30,32,36]);for(let yy=y;yy<T;yy+=bh,i++)c.fillRect(i%2?x:L,yy,w/2,Math.min(bh,T-yy));}   // Saturn-style roll pattern: you can see it spin
+        if(sk==="gold"){c.save();c.beginPath();c.rect(L,y,w,h);c.clip();for(let i=0,n=w*h/60;i<n;i++){const px=L+(i*41.3)%w,py=y+(i*29.7)%h;c.fillStyle=i%2?"rgba(255,240,170,.25)":"rgba(90,60,10,.18)";c.beginPath();c.moveTo(px,py);c.lineTo(px+3+(i%4),py+1.5);c.lineTo(px+1,py+3+(i%3));c.closePath();c.fill();}c.restore();}   // crinkled foil
+        c.fillStyle="rgba(0,0,0,.2)";c.fillRect(L,y+2.5,w,1);c.fillRect(L,T-3.5,w,1);if(o.frost>0&&sk!=="gold")frost(c,L,w,y,h,o.fuel,o.frost);break;}
       if(sk==="steel"){   // bare stainless steel, Starship-style: a sharp mirror highlight, brushed grain, welded rings with a slight heat tint
         const g=c.createLinearGradient(L,0,R,0);[[0,"#4b4f56"],[0.07,"#8f949c"],[0.2,"#dfe2e6"],[0.28,"#fbfcfd"],[0.34,"#c7cbd1"],[0.55,"#8d9299"],[0.8,"#b3b7be"],[0.92,"#7d8289"],[1,"#41454c"]].forEach(([q,cc])=>g.addColorStop(q,cc));
         c.fillStyle=g;c.fillRect(L,y,w,h);
@@ -241,7 +304,15 @@ function drawPart(c,p,o={}){
         c.fillStyle="rgba(0,0,0,.18)";c.fillRect(rx+4,y+5,0.8,h-10);}
       if(o.frost>0)frost(c,L,w,y,h,o.fuel,o.frost);
       break;}
-    case"probe":{   // avionics ring in black carbon composite, an access hatch and two vents
+    case"probe":if(p.v==="cabin"){   // Apollo-style lander cabin: gold-foil base, grey angled crew cabin with triangle windows, hatch on top
+        c.beginPath();c.moveTo(L,y);c.lineTo(R,y);c.lineTo(R,y+h*0.6);c.lineTo(x+w*0.25,T-2);c.lineTo(x-w*0.25,T-2);c.lineTo(L,y+h*0.6);c.closePath();c.fillStyle=cyl(c,L,R,[188,190,196]);c.fill();
+        c.save();c.clip();c.fillStyle=cyl(c,L,R,SKIN_COL.gold);c.fillRect(L,y,w,h*0.32);
+        for(let i=0,n=w*h*0.32/50;i<n;i++){const px=L+(i*41.3)%w,py=y+(i*29.7)%(h*0.32);c.fillStyle=i%2?"rgba(255,240,170,.3)":"rgba(90,60,10,.2)";c.beginPath();c.moveTo(px,py);c.lineTo(px+3+(i%4),py+1.5);c.lineTo(px+1,py+3+(i%3));c.closePath();c.fill();}
+        c.strokeStyle="rgba(0,0,0,.15)";c.lineWidth=0.5;for(let yy=y+h*0.4;yy<T;yy+=h*0.12){c.beginPath();c.moveTo(L,yy);c.lineTo(R,yy);c.stroke();}c.restore();
+        c.fillStyle="#1d2128";for(const sd of[-1,1]){c.beginPath();c.moveTo(x+sd*w*0.06,y+h*0.62);c.lineTo(x+sd*w*0.24,y+h*0.62);c.lineTo(x+sd*w*0.06,y+h*0.78);c.closePath();c.fill();}
+        c.fillStyle=cyl(c,x-w*0.25,x+w*0.25,[120,124,132]);c.fillRect(x-w*0.25,T-2.4,w*0.5,2.4);
+        c.strokeStyle="#c9ccd1";c.lineWidth=0.7;c.beginPath();c.moveTo(R-w*0.12,y+h*0.6);c.lineTo(R-w*0.02,y+h*0.86);c.stroke();c.beginPath();c.arc(R-w*0.02,y+h*0.86,w*0.06,Math.PI*0.9,Math.PI*1.9);c.stroke();break;}   // antenna dish
+    {   // avionics ring in black carbon composite, an access hatch and two vents
       c.fillStyle=cyl(c,L,R,[44,46,52]);c.fillRect(L,y,w,h);
       c.fillStyle="rgba(255,255,255,.05)";for(let yy=y+3;yy<T;yy+=3)c.fillRect(L,yy,w,0.6);
       c.fillStyle="rgba(255,255,255,.14)";c.fillRect(L,y,w,1.2);c.fillRect(L,T-1.2,w,1.2);
@@ -249,7 +320,11 @@ function drawPart(c,p,o={}){
       c.fillStyle="rgba(0,0,0,.4)";for(const q of[-0.32,-0.24])c.fillRect(x+w*q,y+h*0.62,2.5,2);break;}   // two vent holes
     case"nose":{   // payload fairing: a smooth white ogive with the split line down the middle (or a straight cone: SLS booster tips)
       c.beginPath();if(p.ns==="cone"){c.moveTo(L,y);c.lineTo(x-w*0.04,T-1.5);c.quadraticCurveTo(x,T+0.5,x+w*0.04,T-1.5);c.lineTo(R,y);c.closePath();}else{c.moveTo(L,y);c.bezierCurveTo(L,y+h*0.42,x-w*0.22,y+h*0.86,x-w*0.03,T-0.6);c.quadraticCurveTo(x,T+0.3,x+w*0.03,T-0.6);c.bezierCurveTo(x+w*0.22,y+h*0.86,R,y+h*0.42,R,y);c.closePath();}
-      c.fillStyle=cyl(c,L,R,[240,241,244]);c.fill();c.save();c.clip();
+      c.fillStyle=cyl(c,L,R,p.v!=="cockpit"&&SKIN_COL[p.sk]||[240,241,244]);c.fill();c.save();c.clip();
+      if(p.v==="cockpit"){   // a crew cockpit: a wrap-around windscreen, a red cheat line and black tiles underneath
+        const wy=y+h*0.52,g=c.createLinearGradient(0,wy,0,wy+h*0.13);g.addColorStop(0,"#0f1218");g.addColorStop(1,"#3b4656");c.fillStyle=g;c.fillRect(L,wy,w,h*0.13);
+        c.fillStyle="rgba(255,255,255,.35)";for(const q of[-0.25,0,0.25])c.fillRect(x+q*w-0.4,wy,0.8,h*0.13);c.fillStyle="#c23b2e";c.fillRect(L,y+h*0.3,w,Math.max(1,h*0.025));
+        c.fillStyle="#1c1e22";c.fillRect(L,y,w,h*0.08);}
       c.fillStyle="rgba(0,0,0,.18)";c.fillRect(x-0.5,y,1,h);c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,y,w,2);
       c.fillStyle="rgba(0,0,0,.05)";c.fillRect(L,y+h*0.3,w,0.8);c.restore();break;}
     case"adapter":{   // carbon interstage cone
@@ -259,7 +334,13 @@ function drawPart(c,p,o={}){
     case"engine":{const g=clusterGeo(p);if(g.k===1){drawEngine(c,x,y,w,h,engKey(p));break;}
       for(const[ex,row]of g.xs.slice().sort((a,b)=>b[1]-a[1])){c.save();if(row){c.globalAlpha=0.75;}drawEngine(c,x+ex+(row?g.ew*0.51:0),y+(row?2:0),g.ew,g.eh,engKey(p));c.restore();}
       c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,T-g.plate,w,g.plate);c.fillStyle="rgba(0,0,0,.35)";c.fillRect(L,T-g.plate,w,0.8);break;}   // thrust plate on top
-    case"capsule":{   // Orion-style: a blunt cone of white panels, dark heat shield underneath, two windows, docking ring on top
+    case"capsule":if(p.v==="dragon"){   // Dragon-style: rounder sides, four square windows, little side thrusters, black heat shield, grey nose ring
+        const tw=topW(p)/2;c.beginPath();c.moveTo(L,y+2);c.bezierCurveTo(L+w*0.02,y+h*0.6,x-tw-w*0.06,T-2,x-tw,T-2);c.lineTo(x+tw,T-2);c.bezierCurveTo(x+tw+w*0.06,T-2,R-w*0.02,y+h*0.6,R,y+2);c.closePath();
+        c.fillStyle=cyl(c,L,R,[232,234,237]);c.fill();c.save();c.clip();c.fillStyle="rgba(0,0,0,.08)";c.fillRect(L,y+h*0.42,w,0.8);c.restore();
+        c.fillStyle="#1d2128";for(const q of[-0.3,-0.1,0.1,0.3])c.fillRect(x+q*w-w*0.035,y+h*0.52,w*0.07,w*0.07);
+        c.fillStyle="#2a2d33";for(const sd of[-1,1])for(const q of[0.25,0.32])c.fillRect(sd>0?R-w*0.06-sd*0:L+w*0.02,y+h*q,w*0.04,1.6);
+        c.fillStyle="#2b2723";c.fillRect(L-0.5,y,w+1,2.5);c.fillStyle=cyl(c,x-tw,x+tw,[90,94,102]);c.fillRect(x-tw,T-2.6,tw*2,2.6);break;}
+    {   // Orion-style: a blunt cone of white panels, dark heat shield underneath, two windows, docking ring on top
       const tw=topW(p)/2;c.beginPath();c.moveTo(L,y+2);c.lineTo(x-tw,T-2);c.lineTo(x+tw,T-2);c.lineTo(R,y+2);c.closePath();c.fillStyle=cyl(c,L,R,[226,228,232]);c.fill();
       c.save();c.clip();c.strokeStyle="rgba(0,0,0,.12)";c.lineWidth=0.5;for(let yy=y+6;yy<T;yy+=5){c.beginPath();c.moveTo(L,yy);c.lineTo(R,yy);c.stroke();}c.restore();
       c.fillStyle="#2b2723";c.beginPath();c.moveTo(L-0.5,y);c.lineTo(R+0.5,y);c.lineTo(R,y+2.5);c.lineTo(L,y+2.5);c.closePath();c.fill();   // heat shield
@@ -272,8 +353,11 @@ function drawPart(c,p,o={}){
       c.fillStyle="#c23b2e";c.fillRect(x-mw/2,y+h*0.74,mw,1.2);c.fillStyle="#d8dade";c.beginPath();c.moveTo(x-mw/2,y+h*0.82);c.lineTo(x,T);c.lineTo(x+mw/2,y+h*0.82);c.fill();break;}
     case"srb":{const cy=y+SRB_NZ;   // SLS-style solid booster: white steel segments, an aft skirt, and a gimballed nozzle
       bell(c,x,cy-2,y,w*0.12,w*0.36,[60,62,68],[92,88,84]);
-      c.fillStyle=cyl(c,L,R,[236,237,240]);c.fillRect(L,cy,w,T-cy);
-      c.fillStyle=cyl(c,L-2,R+2,[214,216,222]);c.fillRect(L,cy,w,10);                                // aft skirt
+      const bk=boostKey(p),body=bk==="sprinter"?[40,42,48]:bk==="longhorn"?[178,182,188]:[236,237,240];   // Sprinter black with yellow bands, Longhorn bare steel
+      c.fillStyle=cyl(c,L,R,body);c.fillRect(L,cy,w,T-cy);
+      if(bk==="sprinter"){c.fillStyle="#e8b923";for(const q of[0.2,0.55,0.9]){const yy=cy+(T-cy)*q;c.fillRect(L,yy-3,w,6);}}
+      if(bk==="longhorn"){for(let i=0;i<w*1.2;i++){const xx=L+(i*37.31)%w;c.fillStyle=i%3?"rgba(255,255,255,.05)":"rgba(0,0,0,.05)";c.fillRect(xx,cy,0.5,T-cy);}}
+      c.fillStyle=cyl(c,L-2,R+2,bk==="sprinter"?[60,62,68]:[214,216,222]);c.fillRect(L,cy,w,10);                                // aft skirt
       c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,cy+10,w,1);
       const seg=T-cy-10;c.fillStyle="rgba(60,64,72,.55)";for(const k of[0.25,0.5,0.75]){const yy=cy+10+seg*k;c.fillRect(L,yy-1.5,w,3);}   // field joints between the segments
       c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,T-3,w,3);
@@ -284,13 +368,33 @@ function drawPart(c,p,o={}){
     case"sdec":{   // side attach strut with its separation bolts
       c.fillStyle=cyl(c,L,R,[64,67,74]);c.fillRect(L+2,y+6,w-4,h-12);c.fillStyle=cyl(c,L,R,[150,154,162]);c.fillRect(L,y+4,w,5);c.fillRect(L,T-9,w,5);
       c.fillStyle="rgba(255,255,255,.75)";c.fillRect(L+2,y+h/2-0.6,w-4,1.2);break;}
-    case"fin":{const ix=f>0?L:R,ox=f>0?R:L;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.18);c.lineTo(ox,y);c.lineTo(ix,y);c.closePath();
+    case"fin":if(p.v==="grid"){   // grid fin: a titanium frame full of little square cells
+        c.fillStyle="rgba(150,154,160,.25)";c.fillRect(L,y,w,h);c.strokeStyle="#9aa0a8";c.lineWidth=Math.max(0.5,w*0.035);
+        c.beginPath();for(let k=0;k<=1.001;k+=0.2){c.moveTo(L+w*k,y);c.lineTo(L+w*k,T);c.moveTo(L,y+h*k);c.lineTo(R,y+h*k);}c.stroke();
+        c.strokeStyle="#5d636c";c.lineWidth=Math.max(1,w*0.08);c.strokeRect(L,y,w,h);c.fillStyle="#3a3f46";c.fillRect(f>0?L-1:R-2,y+h*0.35,3,h*0.3);break;}
+      else if(p.v==="wing"){   // swept wing: white top, black tiles along the bottom edge, a grey leading edge and an elevon at the back
+        const ix=f>0?L:R,ox=f>0?R:L;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.28);c.lineTo(ox,y+h*0.1);c.lineTo(ix+(ox-ix)*0.2,y);c.lineTo(ix,y);c.closePath();
+        c.fillStyle=cyl(c,Math.min(ix,ox),Math.max(ix,ox),[234,236,240]);c.fill();c.save();c.clip();c.fillStyle="#1c1e22";c.fillRect(L,y,w,h*0.06);
+        c.fillStyle="rgba(0,0,0,.15)";c.fillRect(L,y+h*0.12,w,0.8);c.restore();c.strokeStyle="#9aa0a8";c.lineWidth=2;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.28);c.stroke();break;}
+    {const ix=f>0?L:R,ox=f>0?R:L;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.18);c.lineTo(ox,y);c.lineTo(ix,y);c.closePath();
       c.fillStyle=cyl(c,Math.min(ix,ox),Math.max(ix,ox),[58,61,68]);c.fill();c.strokeStyle="rgba(210,214,222,.7)";c.lineWidth=1.5;   // carbon fin, titanium leading edge
       c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.18);c.stroke();c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=1;c.beginPath();c.moveTo(ix,y);c.lineTo(ox,y);c.stroke();break;}
     case"rcs":{const ix=f>0?L:R,ox=f>0?R:L,cx=(L+R)/2;c.fillStyle=cyl(c,L,R,[228,230,234]);c.fillRect(L,y+6,w,h-12);c.fillStyle="rgba(0,0,0,.2)";c.fillRect(ix,y+6,f*2,h-12);   // white thruster pod (Dragon-style)
       c.fillStyle="#1b1e26";for(const[ax,ay,bx,by]of[[cx,y+6,cx,y],[cx,T-6,cx,T],[ox-f*2,y+h/2,ox+f*4,y+h/2]]){const nx=by===ay?0:3,ny=by===ay?3:0;c.beginPath();c.moveTo(ax-nx*0.6,ay-ny*0.6);c.lineTo(bx-nx,by-ny);c.lineTo(bx+nx,by+ny);c.lineTo(ax+nx*0.6,ay+ny*0.6);c.closePath();c.fill();}
       if(o.puff)for(const[px,py,dx,dy]of o.puff){c.fillStyle="rgba(240,244,255,.75)";c.beginPath();c.moveTo(px,py);c.lineTo(px+dx*16-dy*5,py+dy*16-dx*5);c.lineTo(px+dx*16+dy*5,py+dy*16+dx*5);c.closePath();c.fill();}
       break;}
+    case"solar":{const ix=f>0?L:R,ox=f>0?R:L,open=o.open!=null?o.open:o.legs;
+      if(!open){c.fillStyle="#1f3b6e";c.fillRect(L+1,y,w-2,h);c.strokeStyle="#c9ccd1";c.lineWidth=0.6;c.strokeRect(L+1,y,w-2,h);   // folded flat: a stack of panels
+        c.strokeStyle="rgba(255,255,255,.18)";c.beginPath();for(let yy=y+5;yy<T;yy+=5){c.moveTo(L+1,yy);c.lineTo(R-1,yy);}c.stroke();break;}
+      const len=h*2.4,a=Math.min(ox+f*6,ox+f*(6+len)),b=Math.max(ox+f*6,ox+f*(6+len)),ph=h*0.7,py=y+h*0.15;   // open: a boom out, then a wide blue panel
+      c.fillStyle="#5d636c";c.fillRect(Math.min(ix,ox),y+h*0.4,w,h*0.2);c.strokeStyle="#8a919b";c.lineWidth=1.2;c.beginPath();c.moveTo(ox,y+h/2);c.lineTo(ox+f*6,y+h/2);c.stroke();
+      const g=c.createLinearGradient(0,py+ph,0,py);g.addColorStop(0,"#14284d");g.addColorStop(1,"#2f5596");c.fillStyle=g;c.fillRect(a,py,b-a,ph);
+      c.strokeStyle="rgba(200,220,255,.25)";c.lineWidth=0.4;c.beginPath();for(let xx=a+5;xx<b;xx+=5){c.moveTo(xx,py);c.lineTo(xx,py+ph);}c.moveTo(a,py+ph/2);c.lineTo(b,py+ph/2);c.stroke();
+      c.strokeStyle="#c9ccd1";c.lineWidth=0.7;c.strokeRect(a,py,b-a,ph);break;}
+    case"light":{c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle=o.lamp?"#fff6d8":"#aab0b8";c.fillRect(f>0?R-2:L,y+1,2,h-2);   // housing and lens
+      if(o.lamp){c.fillStyle="rgba(255,246,216,.5)";c.beginPath();c.arc(f>0?R:L,y+h/2,h*0.9,0,6.2832);c.fill();}break;}
+    case"shield":{c.fillStyle=cyl(c,L,R,[58,48,40]);c.fillRect(L,y,w,h);c.fillStyle="rgba(0,0,0,.25)";for(let xx=L+3;xx<R;xx+=4)c.fillRect(xx,y,0.6,h);   // ablative tiles
+      c.fillStyle="rgba(255,200,150,.12)";c.fillRect(L,T-1,w,1);break;}
     case"leg":{const ix=f>0?L:R,dep=o.legs,hx=ix,hy=y+5;
       const quad=(ax,ay,bx,by,wa,wb,col)=>{const dx=bx-ax,dy=by-ay,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;c.beginPath();c.moveTo(ax+nx*wa/2,ay+ny*wa/2);c.lineTo(bx+nx*wb/2,by+ny*wb/2);c.lineTo(bx-nx*wb/2,by-ny*wb/2);c.lineTo(ax-nx*wa/2,ay-ny*wa/2);c.closePath();c.fillStyle=col;c.fill();};
       if(!dep){   // folded flat against the tank, foot at the top (like a Falcon 9 leg)
@@ -313,7 +417,7 @@ function drawPart(c,p,o={}){
 // A rocket is stable in the air when the centre of lift is BELOW the centre of mass (like the feathers on an arrow).
 function centres(ps){if(!ps.length)return null;let m=0,mx=0,my=0,A=0,ax=0,ay=0,F=0,fx=0,fy=0;const adj=adjOf(ps),all=new Set(ps.keys());
   ps.forEach((p,i)=>{const pm=partMass(p)+(p.fuel!=null?p.fuel:capOf(p));m+=pm;mx+=pm*p.x;my+=pm*(p.y+p.h/2);
-    const a=p.w*p.h*(p.t==="fin"?2:p.t==="nose"||p.t==="les"?0.5:p.t==="engine"||p.t==="srb"&&false?0.6:1)*(p.t==="rcs"?0.3:1);A+=a;ax+=a*p.x;ay+=a*(p.y+p.h*(p.t==="nose"?0.33:0.5));
+    const a=p.w*p.h*(p.t==="fin"?(p.v==="grid"?0.5:2):p.t==="solar"||p.t==="light"?0.3:p.t==="nose"||p.t==="les"?0.5:p.t==="engine"||p.t==="srb"&&false?0.6:1)*(p.t==="rcs"?0.3:1);A+=a;ax+=a*p.x;ay+=a*(p.y+p.h*(p.t==="nose"?0.33:0.5));
     if(isEng(p)&&engOn(ps,adj,i,all)){const f=engStat(p).sl.F;F+=f;fx+=f*p.x;fy+=f*p.y;}});
   return{com:[mx/m,my/m],col:A?[ax/A,ay/A]:null,cot:F?[fx/F,fy/F]:null};}
 // draw the three markers (in part units; k = how many part units one screen pixel is, so the markers stay the same size on screen)
@@ -416,4 +520,10 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
     const ad=add("adapter",0,y,C,50);ad.w2=50;y+=50;
     y=stack(y,[["dec",50],["engine:vac",28],["tank",50,80],["dec",50],["engine:wren",22],["tank",50,18],["dec",50],["capsule",50],["les",14]]);
     const bw=37,bx=C/2+3+bw/2;pair("sdec",C/2+1.5,200);pair("srb:thumper",bx,0,bw,440);pair("nose",bx,440,bw,80);for(const p of A)if(p.t==="nose"&&p.w===bw)p.ns="cone";}
+  else if(name==="pathfinder"){   // v1.37 showcase: a steel methane booster with grid fins, a nuclear upper stage on gold-foil tanks,
+    // solar panels and floodlights, and a Dragon-style capsule on top
+    const S=62;let y=stack(0,[["engine:condor",S],["tank",S,230]]);A[1].sk="steel";pair("fin:grid",S/2+11,y-30);pair("fin:wing",S/2+45,0);
+    y=stack(y,[["dec",S],["adapter",S]]);A[A.length-1].w2=W;
+    const at=add("engine:atom",0,y,W);y+=at.h;const ut=add("tank",0,y,W,260);ut.sk="gold";y+=260;pair("solar",W/2+5,y-120);pair("light",W/2+4,y-150);
+    y=stack(y,[["dec",W],["shield",W],["capsule:dragon",W]]);}
   return A;}

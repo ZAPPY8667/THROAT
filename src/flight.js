@@ -65,7 +65,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   v.fins=ps.filter(p=>p.t==="fin").length;v.finA=v.fins*ps.filter(p=>p.t==="fin").reduce((a,p)=>a+p.w*p.h*UM*UM*0.5,0)/Math.max(1,v.fins);v.Af=Math.PI*(v.W/2)**2;v.As=v.H*v.W;v.Lr=Math.max(0.3,v.H*0.45);
   v.wheel=ps.filter(isBrain).reduce((a,p)=>a+1.2e7*A2(p.w,40),0);   // reaction wheels: 12 MN·m for a 4 m probe, more for wider ones (big rockets still turn slower)
   // capsule: heat shield works only if nothing hangs below it; escape tower; parachutes
-  {const ci=ps.findIndex(p=>p.t==="capsule"),lo=Math.min(...ps.filter(p=>!isRad(p)).map(p=>p.y));v.hasCap=ci>=0;v.capBottom=ci>=0&&Math.abs(ps[ci].y-lo)<0.5;v.hasLes=ps.some(p=>p.t==="les");
+  {const ci=ps.findIndex(p=>p.t==="capsule"),lo=Math.min(...ps.filter(p=>!isRad(p)).map(p=>p.y));v.hasCap=ci>=0;v.capBottom=ci>=0&&Math.abs(ps[ci].y-lo)<0.5||ps.some(p=>p.t==="shield"&&Math.abs(p.y-lo)<0.5);/* a heat-shield plate at the bottom counts too (v1.37) */v.hasLes=ps.some(p=>p.t==="les");
     v.capW=ci>=0?ps[ci].w*UM:0;}
   v.rcs=ps.filter(p=>p.t==="rcs");for(const p of v.rcs)if(p.mono==null)p.mono=RCS_MONO;
   v.rcsArm=v.rcs.reduce((a,p)=>a+Math.max(0.2,Math.abs(p.y+p.h/2-npy)*UM),0);   // turning: side jets far from the centre of mass turn hardest
@@ -389,7 +389,7 @@ const PAL={
   kero:{edge:[255,90,25],  mid:[255,170,60], core:[255,248,215],dia:[255,250,225],glow:[255,145,55], turb:0.20,ang:0.05,dias:0.45,soot:0.5,body:1},
   srb: {edge:[245,125,45], mid:[255,215,140],core:[255,253,242],dia:[255,255,240],glow:[255,230,180],turb:0.14,ang:0.04,dias:0.2, soot:0.7,body:1}};
 // your engine burns whatever it burned on the test stand; a saved engine keeps the fuel it was saved with
-const fireKind=(k,p)=>k==="wren"||k==="mule"||k==="bison"?"kero":k==="stand"?engineNums().fuel:k==="lib"&&p&&p.n&&p.n.fuel?p.n.fuel:"h2";
+const fireKind=(k,p)=>ENG[k].fuel?ENG[k].fuel:k==="stand"?engineNums().fuel:k==="lib"&&p&&p.n&&p.n.fuel?p.n.fuel:"h2";
 function flame(ctx,x0,y0,w,thr,a,bright,kind,vacEng,bd){   // in the rocket's frame (y up): exhaust goes down; sizes scale with the bell width w
   if(thr<=0.01)return;
   const P=PAL[kind],T=performance.now()/1000,vac=1-a,fl=0.95+Math.random()*0.1,seed=x0*0.37;
@@ -439,19 +439,26 @@ function drawVessel(c,v,bright,plumesOnly){
   // curved flame behind it; in air a sideways wind blows the far end back. Real exhaust is fast (~3 km/s) and would barely curve,
   // so the flame is drawn as if it were ~60 m/s: you can see the rocket steer. g is the nozzle swivel (up to ~8°).
   const lat=v.vx*Math.cos(v.phi)-v.vy*Math.sin(v.phi),bd={g:(v.gim||0)*0.14,k:Math.max(-0.0015,Math.min(0.0015,(v.om||0)/600-lat*v.a/36000))};
-  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright,bd);return;}const fk=fireKind(k,p);const g=clusterGeo(p),pf=(k==="vac"?0.9:k==="wren"?0.6:k==="bison"?0.88:0.8);if(g.k>1){for(const[ex,row]of g.xs)if(!row)plume(c,p.x+ex,p.y,g.ew*pf,v.thr,v.a,bright,k==="vac",bd,fk);return;}plume(c,p.x,p.y,p.w*pf,v.thr,v.a,bright,k==="vac",bd,fk);}});
+  v.eng.forEach((i,n)=>{if(v.lit[n]){const p=v.ps[i],k=engKey(p);if(p.t==="srb"){srbPlume(c,p.x,p.y,p.w*0.72,v.a,bright,bd);return;}const fk=fireKind(k,p);const g=clusterGeo(p),pf=ENG[k].pf||0.8;if(g.k>1){for(const[ex,row]of g.xs)if(!row)plume(c,p.x+ex,p.y,g.ew*pf,v.thr,v.a,bright,k==="vac",bd,fk);return;}plume(c,p.x,p.y,p.w*pf,v.thr,v.a,bright,k==="vac",bd,fk);}});
   const rp=v.rcsOn&&(v.puff||v.puffR)?v:null;
   if(v.sepT>0)for(const p of v.ps)if(p.t==="srb"){const sd=v.sepSide,xi=p.x-sd*p.w/2,k=Math.min(1,v.sepT/SEP_T*1.5);   // separation motors
     for(const[yy,ang]of[[p.y+p.h*0.92,-sd*2.2],[p.y+p.h*0.1,-sd*1.0]]){c.save();c.translate(xi,yy);c.rotate(ang);c.globalAlpha=k;srbPlume(c,0,0,p.w*0.55,Math.max(0.35,v.a),bright);c.restore();}}
   for(const p of v.ps)if(p.t==="les"&&v.lesT>0)for(const sd of[-1,1]){c.save();c.translate(p.x+sd*p.w*0.42,p.y+p.h*0.5);c.rotate(sd*2.4);srbPlume(c,0,0,p.w*0.35,v.a,bright);c.restore();}
-  if(plumesOnly){c.restore();return;}
+  if(plumesOnly){if(nightK>0.25)for(const p of v.ps)if(p.t==="light")drawBeam(c,p,nightK);c.restore();return;}
   if(v.chute===1&&v.chuteK>0){const cp=v.ps.find(p=>p.t==="capsule");if(cp){const top=cp.y+cp.h,k=v.chuteK,L=cp.w*3.2*k,R2=cp.w*1.5*k;   // three main canopies on long lines
     for(const[ox,oy]of[[-R2*1.25,L*0.92],[0,L],[R2*1.25,L*0.92]]){c.strokeStyle="rgba(220,220,220,.7)";c.lineWidth=0.5;c.beginPath();c.moveTo(cp.x,top);c.lineTo(cp.x+ox-R2,top+oy);c.moveTo(cp.x,top);c.lineTo(cp.x+ox+R2,top+oy);c.stroke();
       c.beginPath();c.ellipse(cp.x+ox,top+oy,R2,R2*0.6,0,0,Math.PI);c.closePath();const gg=c.createLinearGradient(cp.x+ox-R2,0,cp.x+ox+R2,0);gg.addColorStop(0,"#d9472f");gg.addColorStop(0.33,"#d9472f");gg.addColorStop(0.34,"#f2f2f2");gg.addColorStop(0.66,"#f2f2f2");gg.addColorStop(0.67,"#d9472f");c.fillStyle=gg;c.fill();}}}
-  for(const p of v.ps)drawPart(c,p,{fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
+  const vOpen=v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP,lamp=nightK>0.25;   // v1.37: solar panels open in space; floodlights on in the dark
+  if(lamp)for(const p of v.ps)if(p.t==="light")drawBeam(c,p,nightK*0.5);
+  for(const p of v.ps)drawPart(c,p,{open:vOpen,lamp,fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
   if(showCen&&v===AV){const T=c.getTransform(),sc=Math.hypot(T.a,T.b)||1;drawCentres(c,centres(v.ps),1/sc,false);}   // C: centre of mass / lift / thrust
   c.restore();}
+// a floodlight's beam: a soft cone shining out and down at 45° (in part units, about 40 m long). k: how bright
+let nightK=0;   // how dark it is this frame (0 day … 1 night or in the shadow), set before the craft are drawn
+function drawBeam(c,p,k){const f=p.f>0?1:-1,x0=p.x+f*p.w/2,y0=p.y+p.h/2,L=400,dx=f*0.71,dy=-0.71,sp=0.35;c.save();c.globalCompositeOperation="lighter";
+  const g=c.createLinearGradient(x0,y0,x0+dx*L,y0+dy*L);g.addColorStop(0,`rgba(255,240,200,${0.5*k})`);g.addColorStop(1,"rgba(255,240,200,0)");c.fillStyle=g;c.beginPath();c.moveTo(x0,y0);
+  c.lineTo(x0+(dx-dy*sp)*L,y0+(dy+dx*sp)*L);c.lineTo(x0+(dx+dy*sp)*L,y0+(dy-dx*sp)*L);c.closePath();c.fill();c.restore();}
 // which jets on this block are firing: opposite to the push asked for, and sideways ones for turning (in part cm, y up)
 function rcsPuffs(v,p){const out=[],cx=p.x,f=p.f>0?1:-1,ox=p.x+f*p.w/2,above=p.y+p.h/2>v.py,t=v.puff||[0,0];
   if(t[1]>0)out.push([cx,p.y,0,-1]);if(t[1]<0)out.push([cx,p.y+p.h,0,1]);
@@ -480,6 +487,7 @@ function renderFlight(dt){
   if(mapView){renderMap(c);return;}
   // sky: blue by day, orange at sunrise and sunset, navy at night, grey under rain clouds, black in space (always on the Moon)
   const now=performance.now()/1000,sun=r.body===0?(()=>{const sy=skyFor(psi,h,FT,true);return sy;})():skyFor(psi,h,FT,false),sk=sun.sk,bright=(1-sk)*sun.day,top=sun.top,bot=sun.bot;
+  nightK=Math.max(0,1-sun.light);   // floodlights (v1.37)
   const g=c.createLinearGradient(0,0,0,FH);g.addColorStop(0,col(top,1));g.addColorStop(1,col(bot,1));c.fillStyle=g;c.fillRect(0,0,FW,FH);
   if(sun.stars>0.25){c.fillStyle=`rgba(255,255,255,${(sun.stars-0.25)*0.9*(1-0.8*Math.min(1,wx.cl-0.5)*(1-sk))})`;for(let i=0;i<160;i++){const sx=(i*9301+49297)%233280/233280*FW,sy=(i*4673+12345)%93179/93179*FH;c.fillRect(sx,sy,i%7?1.2:2,i%7?1.2:2);}}
   // camera: the craft in the middle, local "up" pointing up the screen
@@ -711,4 +719,4 @@ if(JX&&typeof foldUI==="function")foldUI($("flight"),"flight",[{el:$("fpOrbit"),
 function cleanView(on){const f=$("flight");on=on===undefined?!f.classList.contains("clean"):on;f.classList.toggle("clean",on);const b=$("fClean");b.classList.toggle("on",on);
   icoBtn(b,on?"eyeoff":"eye");b.title=on?"Show the displays again (V)":"Clean view: hide every display so only the rocket shows (V)";}
 $("fClean").onclick=()=>cleanView();
-window.__flt={get QL(){return QL;},setQL:q=>{QL=q;},predict,moonAt,get FT(){return FT;},setFT:t=>{FT=t;},get flyers(){return flyers;},get VS(){return VS;},get AV(){return AV;},doStage,switchV,orbitOf,setWarp:w=>{warp=w;},get said(){return said;}};
+window.__flt={get QL(){return QL;},setQL:q=>{QL=q;},predict,moonAt,get FT(){return FT;},setFT:t=>{FT=t;},get flyers(){return flyers;},get VS(){return VS;},get AV(){return AV;},doStage,switchV,orbitOf,setWarp:w=>{warp=w;},get said(){return said;},release:()=>release(false),setZoom:z=>{zoomF=z;}};
