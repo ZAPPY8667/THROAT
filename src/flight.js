@@ -330,8 +330,8 @@ function padEmit(dt){const v=AV;if(!v||v.body!==0||dt<=0)return;const fx=padFx()
   const near=Math.abs(Math.atan2(v.x,v.y)*PR)<400&&hAG<300;
   if(near&&v.F>0){const k=Math.min(1,v.F/((v.m||1)*9.81))*(1-hAG/300),n=Math.min(10,Math.random()<k*dt*70?1+((k*dt*70)|0):0);
     const tg=trenchGeo(launchW,launchH);
-    for(let i=0;i<n&&steam.length<340*QPUFF[QL];i++){const sd=Math.random()<0.5?-1:1,x0=sd*tg.xe;   // out of the duct mouths on the mound's slopes, heading up and away at 45°
-      steam.push({x:x0,y:PR+PADH+tg.ye+1+Math.random()*3,vx:sd*(14+Math.random()*24),vy:10+Math.random()*12,t:0,life:22+Math.random()*25,r0:4+Math.random()*4,r1:(25+Math.random()*55)*Math.max(0.6,launchH/60),g:0.85+Math.random()*0.15});}}
+    for(let i=0;i<n&&steam.length<340*QPUFF[QL];i++){const sd=Math.random()<0.5?-1:1,x0=sd*tg.xe;   // out of the tunnel mouths at the foot of the mound, rolling out along the ground
+      steam.push({x:x0,y:PR+PADH+tg.ye+1+Math.random()*3,vx:sd*(18+Math.random()*30),vy:3+Math.random()*7,t:0,life:22+Math.random()*25,r0:4+Math.random()*4,r1:(25+Math.random()*55)*Math.max(0.6,launchH/60),g:0.85+Math.random()*0.15});}}
   for(const q of steam){q.t+=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(0.55,dt);q.vy=q.vy*Math.pow(0.7,dt)+0.4*dt;q.x+=windDir*wx.wind*dt*0.3;}
   steam=steam.filter(q=>q.t<q.life);}
 // ---------- the loop ----------

@@ -260,6 +260,9 @@ made on the test stand.
   `padMound` in `terrH` (12 m high, flat ±44 m, smooth slopes out to ±74 m, `PADH/PADT/PADS`), so it's physical ground too;
   `padAt` now uses the real ground height; the deck never overhangs the mound. Tests: world.js expects the 12 m mound,
   clamps.js measures the rocket's height from the pad, not sea level. Altitude on the pad now reads ~12 m more (it's above sea level).
+- Third version (Wyatt didn't like the V): the wedge's two 45° faces turn the flame sideways into **two flat tunnels at ground
+  level** that come out through the foot of the mound (`trenchGeo`: floor at -PADH, tunnel height `th`, mouth `xe/ye`); fire and
+  steam roll out along the ground.
 - **Tower in the background**: the launch tower is drawn at half strength (hazy), so the rocket stands out in front; the deck stays solid.
 - **Clean view**: a button in the top-right corner (or V) hides every display (`#flight.clean`) so only the rocket shows.
 - **More fold-away tabs** on the right: GAUGES (speed/altitude dials), TIMELINE (clock + events), STEER (heading ring + SAS
