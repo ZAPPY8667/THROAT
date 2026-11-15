@@ -290,6 +290,19 @@ made on the test stand.
   (part gallery screenshots), `__flt` `release`/`setZoom`.
 - Bit us again: a `// comment` added before more code on the same line hid `v.hasLes` (abort test caught it). Use `/* */` mid-line.
 
+## v1.38: tech tree
+- Agreed with Wyatt: **science from firsts**, a **small starter kit**, and an **"Unlock everything" switch** (THROAT stays a sandbox).
+- Science = the goals: each goal in `GOALS` (juice.js) got a 4th field, its science (5–60; 305 in all). It isn't stored: it's
+  worked out from the goals done (`JX.science()`), so goals done before v1.38 count. The goal toast and the goals card show "+N".
+- `tech.js`: `techStart()` (probe, nose, tank, your engine, Wren, decoupler, fin, your booster), `techNodes()` (15 nodes in six
+  lines: engines, space engines, boosters, landing/landers/spaceplanes, crew, control/power; 295 science for all), state
+  `throat.tech.v1` `{got, all}`. `techOK(id)` for palette ids (`partKey(p)` for placed parts; library parts always OK; kits need
+  all their parts), `techMissing(ps)` blocks Launch with a note in the tree card. Locked palette items show dimmed with a lock
+  (click opens the tree); locked engine/booster models are disabled in the inspector; clusters need Heavy lift.
+- Editor bar: Tech button with the science left and a red dot when something can be unlocked. Tree card: nodes with part icons,
+  Unlock buttons, "Needs …"; Esc closes it (the editor's capture key handler swallows keys, so it closes the card itself).
+- The demo/title flights use `tpl()` directly and ignore the tree.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

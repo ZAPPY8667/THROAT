@@ -225,6 +225,22 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .gi{display:grid;grid-template-columns:24px 1fr;gap:1px 8px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:13px;align-items:center}
 .gi b{grid-row:span 2;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line2);font-size:0;align-self:start;margin-top:1px}
 .gi.done b{border-color:var(--good);background:var(--good) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%2305070b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat}
+.gi .gsc{grid-column:3;grid-row:1;font:600 10.5px var(--mono);color:var(--dim);font-style:normal}.gi{grid-template-columns:24px 1fr auto}
+/* tech tree (v1.38) */
+.help.tech{position:fixed;z-index:55}.help.tech .card{max-width:1180px}
+.tsci{margin:2px 0 12px}.tmsg{margin:-4px 0 12px;padding:8px 10px;border-left:2px solid var(--red);background:var(--redbg);font-size:12.5px}.tsci b{font:300 26px var(--sans);color:#fff;margin-right:6px}
+.tgrid{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:10px}
+.tcol{display:flex;flex-direction:column;gap:10px}
+.tnode{border:1px solid var(--line2);border-radius:var(--r);padding:9px 10px;display:flex;flex-direction:column;gap:5px;background:rgba(255,255,255,.02);position:relative}
+.tcol .tnode+.tnode::before{content:"";position:absolute;left:50%;top:-11px;height:10px;border-left:1px solid var(--line2)}
+.tnode b{font:600 13px var(--sans);color:#fff}.tnode .tip{font-size:11.5px;line-height:1.3}
+.tnode .ticons{display:flex;gap:4px;flex-wrap:wrap}.tnode .ticons canvas{width:40px;height:40px;background:rgba(0,0,0,.25);border-radius:2px}
+.tnode .tfoot{margin-top:auto}.tnode .tfoot .b{width:100%;justify-content:center}.tnode .ok{color:var(--ok,#5fd38d);font:600 12px var(--sans)}
+.tnode.have{border-color:rgba(95,211,141,.45)}.tnode.can{border-color:var(--red);box-shadow:inset 0 0 0 1px rgba(255,59,47,.25)}.tnode.shut{opacity:.5}
+.tall{display:flex;gap:7px;align-items:center;font:600 12.5px var(--sans);cursor:pointer}
+.vpart.vlock{opacity:.38;filter:grayscale(1)}.vpart .vlk{position:absolute;top:4px;right:4px;opacity:1}.vpart .vlk .ic{width:13px;height:13px}.vpart{position:relative}
+#vTech.ping{position:relative}#vTech.ping::after{content:"";position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red)}
+@media (max-width:700px){.tgrid{grid-template-columns:repeat(2,1fr)}}
 .gi.done span{color:var(--dim)}.gi small{color:var(--dim);font-size:11.5px;grid-column:2}
 /* first-time tutorial: a coach card plus a ring around the thing to press (clicks pass through the ring) */
 .tut{position:fixed;z-index:58;width:min(340px,calc(100vw - 24px));background:var(--panel2);border:1px solid var(--line2);border-top:2px solid var(--acc);border-radius:var(--r);
@@ -493,7 +509,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>
   <div class="vpanel vbar">
     <select id="vLoad" aria-label="Load a rocket"></select>
-    <button class="b" id="vSaveB" title="Save under this name" data-ic="save">Save</button><button class="b ico" id="vDelB" title="Delete the saved rocket with this name" data-ic="trash"></button><button class="b" id="vShare" title="Share this rocket as a code, or load one someone sent you" data-ic="share">Share</button>
+    <button class="b" id="vSaveB" title="Save under this name" data-ic="save">Save</button><button class="b ico" id="vDelB" title="Delete the saved rocket with this name" data-ic="trash"></button><button class="b" id="vShare" title="Share this rocket as a code, or load one someone sent you" data-ic="share">Share</button><button class="b" id="vTech" title="Tech tree: unlock new parts with the science you earn from goals"></button>
     <button class="b on" id="vMirror" title="Place parts in mirrored pairs (M)"></button><button class="b" id="vLegs" title="Show landing legs folded or deployed"></button><button class="b" id="vCen" title="Show the centre of mass (yellow), lift (blue) and thrust (red) (C)"></button>
     <button class="b ico" id="vUndoB" title="Undo (Ctrl+Z)" data-ic="undo"></button><button class="b ico" id="vRedoB" title="Redo (Ctrl+Shift+Z)" data-ic="redo"></button><button class="b ico" id="vFit" title="Fit the view (F)" data-ic="fit"></button><button class="b" id="vClear" data-ic="trash">Clear</button>
     <button class="b go" id="vGo" style="font-size:13px;padding:0 16px" title="Launch (Enter)" data-ic="rocket">Launch</button><button class="b" id="vBack" data-ic="back">Test stand</button>

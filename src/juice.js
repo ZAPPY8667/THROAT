@@ -65,24 +65,25 @@ const JUICE=(()=>{
   requestAnimationFrame(loop);
   // ---------- goals ----------
   const GK="throat.goals.v1";let done=store.get(GK,{});
+  // each goal is also a "first" that earns science for the tech tree (v1.38): [id, name, hint, science]
   const GOALS=[
-    ["light","Light the engine","Test stand: press 2 for the torch, then 1 to open the main valves."],
-    ["vac","Fire it in vacuum","Switch the outside air to Vacuum (A) and run the engine. Watch the plume balloon."],
-    ["srb","Burn a solid booster","Pick “Solid booster” from the scenario list and press 1."],
-    ["launch","Launch a rocket","🚀 Rocket → pick or build one → Launch, then Z for full throttle."],
-    ["km10","Climb to 10 km","Fly straight up first, then lean over gently."],
-    ["stage","Drop a stage","Space throws away the empty stage."],
-    ["space","Reach space","Get above 40 km, where the air ends."],
-    ["orbit","Get into orbit","Lean east as you climb, then burn sideways at the top until the periapsis is above 40 km."],
-    ["pad","Land on the landing zone","It's 2 km west of the launch pad (or use the LAND autopilot). Legs down (G), touch down slower than 9 m/s."],
-    ["moonsoi","Reach the Moon","From orbit, burn prograde until the map shows a Moon encounter."],
-    ["moonland","Land on the Moon","Kill your sideways speed, legs down, come in gently."],
-    ["abort","Abort!","Launch the Super Heavy (it has a crew capsule), then press Backspace: the escape tower pulls the capsule away."],
-    ["chutes","Come home under parachutes","Capsule falling below 280 m/s in the air: press P, then touch down slower than 10 m/s."],
-    ["splash","Splash down","Come down in the sea slower than 12 m/s (the ocean starts just east of the pad)."],
-    ["ap_ascent","Autopilot to orbit","Flight: open the ASCENT tab on the left and press Engage. It even starts the countdown."],
-    ["ap_node","Fly a planned burn","In orbit: NODE tab → pick a burn (e.g. To the Moon) → Execute."],
-    ["ap_land","Autopilot landing","LAND tab → Engage while falling toward the ground (needs legs and some fuel)."]];
+    ["light","Light the engine","Test stand: press 2 for the torch, then 1 to open the main valves.",5],
+    ["vac","Fire it in vacuum","Switch the outside air to Vacuum (A) and run the engine. Watch the plume balloon.",5],
+    ["srb","Burn a solid booster","Pick “Solid booster” from the scenario list and press 1.",10],
+    ["launch","Launch a rocket","🚀 Rocket → pick or build one → Launch, then Z for full throttle.",10],
+    ["km10","Climb to 10 km","Fly straight up first, then lean over gently.",10],
+    ["stage","Drop a stage","Space throws away the empty stage.",10],
+    ["space","Reach space","Get above 40 km, where the air ends.",20],
+    ["orbit","Get into orbit","Lean east as you climb, then burn sideways at the top until the periapsis is above 40 km.",30],
+    ["pad","Land on the landing zone","It's 2 km west of the launch pad (or use the LAND autopilot). Legs down (G), touch down slower than 9 m/s.",20],
+    ["moonsoi","Reach the Moon","From orbit, burn prograde until the map shows a Moon encounter.",40],
+    ["moonland","Land on the Moon","Kill your sideways speed, legs down, come in gently.",60],
+    ["abort","Abort!","Launch the Super Heavy (it has a crew capsule), then press Backspace: the escape tower pulls the capsule away.",10],
+    ["chutes","Come home under parachutes","Capsule falling below 280 m/s in the air: press P, then touch down slower than 10 m/s.",15],
+    ["splash","Splash down","Come down in the sea slower than 12 m/s (the ocean starts just east of the pad).",10],
+    ["ap_ascent","Autopilot to orbit","Flight: open the ASCENT tab on the left and press Engage. It even starts the countdown.",10],
+    ["ap_node","Fly a planned burn","In orbit: NODE tab → pick a burn (e.g. To the Moon) → Execute.",15],
+    ["ap_land","Autopilot landing","LAND tab → Engage while falling toward the ground (needs legs and some fuel).",15]];
   let toasts=[],toastEl=null;
   function toast(html){toasts.push(html);if(!toastEl)nextToast();}
   function nextToast(){const h=toasts.shift();if(!h){toastEl=null;return;}
@@ -91,13 +92,13 @@ const JUICE=(()=>{
     setTimeout(()=>{el.classList.remove("in");setTimeout(()=>{el.remove();nextToast();},350);},3800);}
   const count=()=>GOALS.filter(g=>done[g[0]]).length;
   function goal(id){if(done[id]||api.quiet)return;const g=GOALS.find(x=>x[0]===id);if(!g)return;done[id]=Date.now();store.set(GK,done);
-    const n=count();toast(`<small>Goal ${n===GOALS.length?"— ALL DONE! 🎉":`${n} of ${GOALS.length}`}</small>🏆 ${g[1]}`);snd.chime();btns();if(gl&&gl.classList.contains("show"))list();}
+    const n=count();toast(`<small>Goal ${n===GOALS.length?"— ALL DONE! 🎉":`${n} of ${GOALS.length}`} · +${g[3]} science</small>🏆 ${g[1]}`);if(typeof techChanged==="function")techChanged();snd.chime();btns();if(gl&&gl.classList.contains("show"))list();}
   // the goals card: what's done, and a hint for each thing still to do
   const gl=document.createElement("div");gl.className="help goals";gl.innerHTML='<div class="card"><h2>Goals</h2><div class="glist"></div><div class="row" style="margin-top:10px"><span class="tip">Hints show for goals you haven\'t done yet. Esc to close.</span><button class="b" style="margin-left:auto">Reset goals</button></div></div>';
   document.body.appendChild(gl);gl.onclick=e=>{if(e.target===gl)gl.classList.remove("show");};
   gl.querySelector("button").onclick=()=>{if(confirm("Start the goals over?")){done={};store.set(GK,done);list();btns();}};
   function list(){const el=gl.querySelector(".glist");el.innerHTML="";
-    for(const[id,name,hint]of GOALS){const r=document.createElement("div");r.className="gi"+(done[id]?" done":"");r.innerHTML=`<b>${done[id]?"✓":"○"}</b><span></span><small></small>`;
+    for(const[id,name,hint,sc]of GOALS){const r=document.createElement("div");r.className="gi"+(done[id]?" done":"");r.innerHTML=`<b>${done[id]?"✓":"○"}</b><span></span><small></small><i class="gsc">+${sc}</i>`;
       r.querySelector("span").textContent=name;r.querySelector("small").textContent=done[id]?"":hint;el.appendChild(r);}}
   function openGoals(){list();gl.classList.add("show");}
   addEventListener("keydown",e=>{const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT"||e.ctrlKey||e.metaKey)return;
@@ -108,6 +109,7 @@ const JUICE=(()=>{
     const g=$("bGoals");if(g)g.innerHTML=ico("trophy")+`<b>${count()}/${GOALS.length}</b>`;}
   for(const id of["bSnd","fSnd"])$(id).onclick=()=>snd.toggle();$("bGoals").onclick=openGoals;btns();
   window.__juice={get audio(){return A&&A.state;},get roar(){return roarG?+roarG.gain.value.toFixed(3):null;},get cutoff(){return roarF?Math.round(roarF.frequency.value):null;},stand,fly,get done(){return done;}};   // for browser tests
-  const api={snd,goal,stand,fly,openGoals,toast,GOALS,get done(){return done;},quiet:false};   // quiet: the demo is flying, no goals
+  const science=()=>GOALS.reduce((a,g)=>a+(done[g[0]]?g[3]:0),0);   // science earned so far: every goal done counts, old ones too
+  const api={snd,goal,stand,fly,openGoals,toast,GOALS,science,get done(){return done;},quiet:false};   // quiet: the demo is flying, no goals
   return api;
 })();

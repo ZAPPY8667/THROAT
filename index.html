@@ -227,6 +227,22 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .gi{display:grid;grid-template-columns:24px 1fr;gap:1px 8px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:13px;align-items:center}
 .gi b{grid-row:span 2;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line2);font-size:0;align-self:start;margin-top:1px}
 .gi.done b{border-color:var(--good);background:var(--good) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%2305070b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat}
+.gi .gsc{grid-column:3;grid-row:1;font:600 10.5px var(--mono);color:var(--dim);font-style:normal}.gi{grid-template-columns:24px 1fr auto}
+/* tech tree (v1.38) */
+.help.tech{position:fixed;z-index:55}.help.tech .card{max-width:1180px}
+.tsci{margin:2px 0 12px}.tmsg{margin:-4px 0 12px;padding:8px 10px;border-left:2px solid var(--red);background:var(--redbg);font-size:12.5px}.tsci b{font:300 26px var(--sans);color:#fff;margin-right:6px}
+.tgrid{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:10px}
+.tcol{display:flex;flex-direction:column;gap:10px}
+.tnode{border:1px solid var(--line2);border-radius:var(--r);padding:9px 10px;display:flex;flex-direction:column;gap:5px;background:rgba(255,255,255,.02);position:relative}
+.tcol .tnode+.tnode::before{content:"";position:absolute;left:50%;top:-11px;height:10px;border-left:1px solid var(--line2)}
+.tnode b{font:600 13px var(--sans);color:#fff}.tnode .tip{font-size:11.5px;line-height:1.3}
+.tnode .ticons{display:flex;gap:4px;flex-wrap:wrap}.tnode .ticons canvas{width:40px;height:40px;background:rgba(0,0,0,.25);border-radius:2px}
+.tnode .tfoot{margin-top:auto}.tnode .tfoot .b{width:100%;justify-content:center}.tnode .ok{color:var(--ok,#5fd38d);font:600 12px var(--sans)}
+.tnode.have{border-color:rgba(95,211,141,.45)}.tnode.can{border-color:var(--red);box-shadow:inset 0 0 0 1px rgba(255,59,47,.25)}.tnode.shut{opacity:.5}
+.tall{display:flex;gap:7px;align-items:center;font:600 12.5px var(--sans);cursor:pointer}
+.vpart.vlock{opacity:.38;filter:grayscale(1)}.vpart .vlk{position:absolute;top:4px;right:4px;opacity:1}.vpart .vlk .ic{width:13px;height:13px}.vpart{position:relative}
+#vTech.ping{position:relative}#vTech.ping::after{content:"";position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red)}
+@media (max-width:700px){.tgrid{grid-template-columns:repeat(2,1fr)}}
 .gi.done span{color:var(--dim)}.gi small{color:var(--dim);font-size:11.5px;grid-column:2}
 /* first-time tutorial: a coach card plus a ring around the thing to press (clicks pass through the ring) */
 .tut{position:fixed;z-index:58;width:min(340px,calc(100vw - 24px));background:var(--panel2);border:1px solid var(--line2);border-top:2px solid var(--acc);border-radius:var(--r);
@@ -495,7 +511,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>
   <div class="vpanel vbar">
     <select id="vLoad" aria-label="Load a rocket"></select>
-    <button class="b" id="vSaveB" title="Save under this name" data-ic="save">Save</button><button class="b ico" id="vDelB" title="Delete the saved rocket with this name" data-ic="trash"></button><button class="b" id="vShare" title="Share this rocket as a code, or load one someone sent you" data-ic="share">Share</button>
+    <button class="b" id="vSaveB" title="Save under this name" data-ic="save">Save</button><button class="b ico" id="vDelB" title="Delete the saved rocket with this name" data-ic="trash"></button><button class="b" id="vShare" title="Share this rocket as a code, or load one someone sent you" data-ic="share">Share</button><button class="b" id="vTech" title="Tech tree: unlock new parts with the science you earn from goals"></button>
     <button class="b on" id="vMirror" title="Place parts in mirrored pairs (M)"></button><button class="b" id="vLegs" title="Show landing legs folded or deployed"></button><button class="b" id="vCen" title="Show the centre of mass (yellow), lift (blue) and thrust (red) (C)"></button>
     <button class="b ico" id="vUndoB" title="Undo (Ctrl+Z)" data-ic="undo"></button><button class="b ico" id="vRedoB" title="Redo (Ctrl+Shift+Z)" data-ic="redo"></button><button class="b ico" id="vFit" title="Fit the view (F)" data-ic="fit"></button><button class="b" id="vClear" data-ic="trash">Clear</button>
     <button class="b go" id="vGo" style="font-size:13px;padding:0 16px" title="Launch (Enter)" data-ic="rocket">Launch</button><button class="b" id="vBack" data-ic="back">Test stand</button>
@@ -1227,7 +1243,7 @@ const ICP={
   trophy:["M8 21h8","M12 17v4","M7 4h10v5a5 5 0 0 1-10 0z","M17 5h3v2a3 3 0 0 1-3 3","M7 5H4v2a3 3 0 0 0 3 3"],
   sound:["M11 5 6 9H3v6h3l5 4z","M15.5 8.5a5 5 0 0 1 0 7","M18.5 5.5a9 9 0 0 1 0 13"],mute:["M11 5 6 9H3v6h3l5 4z","M22 9l-6 6","M16 9l6 6"],
   help:["o 12 12 9","M9.6 9.2a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .8-1 1.6","M12 16.8v.2"],reload:["M20 12a8 8 0 1 1-2.4-5.7","M20 4v5h-5"],
-  pause:["M9 5v14","M15 5v14"],eye:["M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z","o 12 12 3"],eyeoff:["M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z","M4 20 20 4"],
+  pause:["M9 5v14","M15 5v14"],lock:["M6 11h12v10H6z","M8 11V7a4 4 0 0 1 8 0v4"],flask:["M9 3h6","M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3","M7.5 15h9"],eye:["M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z","o 12 12 3"],eyeoff:["M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z","M4 20 20 4"],
 play:["M8 5l11 7-11 7z"],globe:["o 12 12 9","M3 12h18","M12 3c-3 3.5-3 14.5 0 18","M12 3c3 3.5 3 14.5 0 18"],
   vacuum:["M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"],clear:["M3 8h10a3 3 0 1 0-3-3","M3 16h13a3 3 0 1 1-3 3","M3 12h17"],
   undo:["M9 14 4 9l5-5","M4 9h10a6 6 0 0 1 0 12h-3"],redo:["M15 14l5-5-5-5","M20 9H10a6 6 0 0 0 0 12h3"],
@@ -2162,24 +2178,25 @@ const JUICE=(()=>{
   requestAnimationFrame(loop);
   // ---------- goals ----------
   const GK="throat.goals.v1";let done=store.get(GK,{});
+  // each goal is also a "first" that earns science for the tech tree (v1.38): [id, name, hint, science]
   const GOALS=[
-    ["light","Light the engine","Test stand: press 2 for the torch, then 1 to open the main valves."],
-    ["vac","Fire it in vacuum","Switch the outside air to Vacuum (A) and run the engine. Watch the plume balloon."],
-    ["srb","Burn a solid booster","Pick “Solid booster” from the scenario list and press 1."],
-    ["launch","Launch a rocket","🚀 Rocket → pick or build one → Launch, then Z for full throttle."],
-    ["km10","Climb to 10 km","Fly straight up first, then lean over gently."],
-    ["stage","Drop a stage","Space throws away the empty stage."],
-    ["space","Reach space","Get above 40 km, where the air ends."],
-    ["orbit","Get into orbit","Lean east as you climb, then burn sideways at the top until the periapsis is above 40 km."],
-    ["pad","Land on the landing zone","It's 2 km west of the launch pad (or use the LAND autopilot). Legs down (G), touch down slower than 9 m/s."],
-    ["moonsoi","Reach the Moon","From orbit, burn prograde until the map shows a Moon encounter."],
-    ["moonland","Land on the Moon","Kill your sideways speed, legs down, come in gently."],
-    ["abort","Abort!","Launch the Super Heavy (it has a crew capsule), then press Backspace: the escape tower pulls the capsule away."],
-    ["chutes","Come home under parachutes","Capsule falling below 280 m/s in the air: press P, then touch down slower than 10 m/s."],
-    ["splash","Splash down","Come down in the sea slower than 12 m/s (the ocean starts just east of the pad)."],
-    ["ap_ascent","Autopilot to orbit","Flight: open the ASCENT tab on the left and press Engage. It even starts the countdown."],
-    ["ap_node","Fly a planned burn","In orbit: NODE tab → pick a burn (e.g. To the Moon) → Execute."],
-    ["ap_land","Autopilot landing","LAND tab → Engage while falling toward the ground (needs legs and some fuel)."]];
+    ["light","Light the engine","Test stand: press 2 for the torch, then 1 to open the main valves.",5],
+    ["vac","Fire it in vacuum","Switch the outside air to Vacuum (A) and run the engine. Watch the plume balloon.",5],
+    ["srb","Burn a solid booster","Pick “Solid booster” from the scenario list and press 1.",10],
+    ["launch","Launch a rocket","🚀 Rocket → pick or build one → Launch, then Z for full throttle.",10],
+    ["km10","Climb to 10 km","Fly straight up first, then lean over gently.",10],
+    ["stage","Drop a stage","Space throws away the empty stage.",10],
+    ["space","Reach space","Get above 40 km, where the air ends.",20],
+    ["orbit","Get into orbit","Lean east as you climb, then burn sideways at the top until the periapsis is above 40 km.",30],
+    ["pad","Land on the landing zone","It's 2 km west of the launch pad (or use the LAND autopilot). Legs down (G), touch down slower than 9 m/s.",20],
+    ["moonsoi","Reach the Moon","From orbit, burn prograde until the map shows a Moon encounter.",40],
+    ["moonland","Land on the Moon","Kill your sideways speed, legs down, come in gently.",60],
+    ["abort","Abort!","Launch the Super Heavy (it has a crew capsule), then press Backspace: the escape tower pulls the capsule away.",10],
+    ["chutes","Come home under parachutes","Capsule falling below 280 m/s in the air: press P, then touch down slower than 10 m/s.",15],
+    ["splash","Splash down","Come down in the sea slower than 12 m/s (the ocean starts just east of the pad).",10],
+    ["ap_ascent","Autopilot to orbit","Flight: open the ASCENT tab on the left and press Engage. It even starts the countdown.",10],
+    ["ap_node","Fly a planned burn","In orbit: NODE tab → pick a burn (e.g. To the Moon) → Execute.",15],
+    ["ap_land","Autopilot landing","LAND tab → Engage while falling toward the ground (needs legs and some fuel).",15]];
   let toasts=[],toastEl=null;
   function toast(html){toasts.push(html);if(!toastEl)nextToast();}
   function nextToast(){const h=toasts.shift();if(!h){toastEl=null;return;}
@@ -2188,13 +2205,13 @@ const JUICE=(()=>{
     setTimeout(()=>{el.classList.remove("in");setTimeout(()=>{el.remove();nextToast();},350);},3800);}
   const count=()=>GOALS.filter(g=>done[g[0]]).length;
   function goal(id){if(done[id]||api.quiet)return;const g=GOALS.find(x=>x[0]===id);if(!g)return;done[id]=Date.now();store.set(GK,done);
-    const n=count();toast(`<small>Goal ${n===GOALS.length?"— ALL DONE! 🎉":`${n} of ${GOALS.length}`}</small>🏆 ${g[1]}`);snd.chime();btns();if(gl&&gl.classList.contains("show"))list();}
+    const n=count();toast(`<small>Goal ${n===GOALS.length?"— ALL DONE! 🎉":`${n} of ${GOALS.length}`} · +${g[3]} science</small>🏆 ${g[1]}`);if(typeof techChanged==="function")techChanged();snd.chime();btns();if(gl&&gl.classList.contains("show"))list();}
   // the goals card: what's done, and a hint for each thing still to do
   const gl=document.createElement("div");gl.className="help goals";gl.innerHTML='<div class="card"><h2>Goals</h2><div class="glist"></div><div class="row" style="margin-top:10px"><span class="tip">Hints show for goals you haven\'t done yet. Esc to close.</span><button class="b" style="margin-left:auto">Reset goals</button></div></div>';
   document.body.appendChild(gl);gl.onclick=e=>{if(e.target===gl)gl.classList.remove("show");};
   gl.querySelector("button").onclick=()=>{if(confirm("Start the goals over?")){done={};store.set(GK,done);list();btns();}};
   function list(){const el=gl.querySelector(".glist");el.innerHTML="";
-    for(const[id,name,hint]of GOALS){const r=document.createElement("div");r.className="gi"+(done[id]?" done":"");r.innerHTML=`<b>${done[id]?"✓":"○"}</b><span></span><small></small>`;
+    for(const[id,name,hint,sc]of GOALS){const r=document.createElement("div");r.className="gi"+(done[id]?" done":"");r.innerHTML=`<b>${done[id]?"✓":"○"}</b><span></span><small></small><i class="gsc">+${sc}</i>`;
       r.querySelector("span").textContent=name;r.querySelector("small").textContent=done[id]?"":hint;el.appendChild(r);}}
   function openGoals(){list();gl.classList.add("show");}
   addEventListener("keydown",e=>{const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT"||e.ctrlKey||e.metaKey)return;
@@ -2205,7 +2222,8 @@ const JUICE=(()=>{
     const g=$("bGoals");if(g)g.innerHTML=ico("trophy")+`<b>${count()}/${GOALS.length}</b>`;}
   for(const id of["bSnd","fSnd"])$(id).onclick=()=>snd.toggle();$("bGoals").onclick=openGoals;btns();
   window.__juice={get audio(){return A&&A.state;},get roar(){return roarG?+roarG.gain.value.toFixed(3):null;},get cutoff(){return roarF?Math.round(roarF.frequency.value):null;},stand,fly,get done(){return done;}};   // for browser tests
-  const api={snd,goal,stand,fly,openGoals,toast,GOALS,get done(){return done;},quiet:false};   // quiet: the demo is flying, no goals
+  const science=()=>GOALS.reduce((a,g)=>a+(done[g[0]]?g[3]:0),0);   // science earned so far: every goal done counts, old ones too
+  const api={snd,goal,stand,fly,openGoals,toast,GOALS,science,get done(){return done;},quiet:false};   // quiet: the demo is flying, no goals
   return api;
 })();
 
@@ -3256,7 +3274,9 @@ vcv.addEventListener("wheel",e=>{e.preventDefault();const i=vsel?vById(vsel):-1;
   if((e.ctrlKey||e.metaKey)&&i>=0&&canWiden(vps[i])){vWiden(i,e.deltaY<0?2:-2);return;}
   const q=vEvXY(e),k=e.deltaY<0?1.15:1/1.15,s2=Math.max(0.15*VDS,Math.min(12*VDS,vv.s*k)),kk=s2/vv.s;vv.ox=q.X-(q.X-vv.ox)*kk;vv.oy=q.Y-(q.Y-vv.oy)*kk;vv.s=s2;},{passive:false});
 // ---------- keys (while the editor is open, the sandbox doesn't hear them) ----------
-addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT"||tg==="TEXTAREA")return;
+addEventListener("keydown",e=>{if(!vab.classList.contains("show"))return;
+  if(techEl&&techEl.classList.contains("show")){if(e.key==="Escape")techEl.classList.remove("show");e.stopImmediatePropagation();return;}   // the tech tree card is open: keys are for it
+  const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT"||tg==="TEXTAREA")return;
   const k=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey)&&k==="z"){e.shiftKey?vRedo():vUndo();e.preventDefault();}
   else if((e.ctrlKey||e.metaKey)&&k==="y"){vRedo();e.preventDefault();}
@@ -3276,9 +3296,10 @@ function kitIcon(k){const c=document.createElement("canvas");c.width=c.height=88
 function partIcon(t){if(t.startsWith("kit:"))return kitIcon(t.slice(4));const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
   if(t==="tank")p.h=90;const sc=Math.min(70/p.w,70/p.h,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*p.h/2);p.x=0;p.y=0;drawPart(g,p,{legs:false});return c;}
 function vPalUI(){const box=$("vParts");box.innerHTML="";
-  const item=(t,name,desc,cls)=>{const b=document.createElement("button");b.className="vpart"+cls;b.title=desc;
-    b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=name;b.appendChild(s);
-    b.addEventListener("pointerdown",e=>{startCarry(t,e);});box.appendChild(b);};
+  const item=(t,name,desc,cls)=>{const b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+cls+(ok?"":" vlock");
+    b.title=ok?desc:`Locked: unlock “${tn?tn.name:"?"}” in the Tech tree (${tn?tn.cost:"?"} science). ${desc}`;   // locked parts show, dimmed: click opens the tree
+    b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=name;b.appendChild(s);if(!ok){const l=document.createElement("i");l.className="vlk";l.innerHTML=ico("lock");b.appendChild(l);}
+    b.addEventListener("pointerdown",e=>{if(!ok){e.preventDefault();techOpen();return;}startCarry(t,e);});box.appendChild(b);};
   for(const t of PT_ORDER){const ek=t.startsWith("engine:")?t.slice(7).split(":"):null,en=ek?ENG[ek[0]]:t.startsWith("srb:")?BOOST[t.slice(4)]:null,cl=ek&&ek[1];
     const V=VARS[t];item(t,cl?"Engine cluster":en?en.name:V?V.name:PT[t].name,cl?`${ek[1]} engines side by side under one thrust plate (like SLS). Pick the count and type in its settings.`:en?en.desc:V?V.desc:PT[t].desc,en?" veng":"");}
   for(const k in KITS)item("kit:"+k,KITS[k].name,KITS[k].desc," vkit");
@@ -3293,10 +3314,10 @@ function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.di
   let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fM(partMass(p)+cap)}${cap?` (${fM(cap)} ${p.t==="tank"?FUEL_NAME[p.fk||"h2"]+" + oxygen":"propellant"})`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:isS?BOOST[boostKey(p)].desc:varOf(p)?varOf(p).desc:d.desc}</div>`;
   if(isS){const B=E,k=boostKey(p),bt=cap*B.sl.isp*G0/B.sl.F;
     h+=`<div class="tip" style="margin-top:4px">Sea level <b>${fF(B.sl.F)} · ${Math.round(B.sl.isp)} s</b>${B.sl.est?" (est.)":""}<br>Vacuum <b>${fF(B.vac.F)} · ${Math.round(B.vac.isp)} s</b>${B.vac.est?" (est.)":""}<br>Burns about <b>${Math.round(bt)} s</b> ${curveSvg(B.curve)}${k==="stand"?`<br>${B.src==="tested"?"From your last booster burn on the test stand.":"Not burned yet: these are the Thumper's numbers until you fire a booster on the test stand."}`:""}</div>
-    <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${BOOST_ORDER.map(q=>`<button class="b${k===q?" on":""}" data-bo="${q}">${BOOST[q].name}</button>`).join("")}${lib.filter(e=>e.kind==="solid").map(e=>`<button class="b${k==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-bo="${e.id}"></button>`).join("")}</div>`;}
+    <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${BOOST_ORDER.map(q=>`<button class="b${k===q?" on":""}" data-bo="${q}"${techOK("srb:"+q)?"":` disabled title="Locked: see the Tech tree"`}>${BOOST[q].name}</button>`).join("")}${lib.filter(e=>e.kind==="solid").map(e=>`<button class="b${k==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-bo="${e.id}"></button>`).join("")}</div>`;}
   if(isE)h+=`<div class="tip" style="margin-top:4px">Sea level <b>${fF(E.sl.F)} · ${Math.round(E.sl.isp)} s</b>${E.sl.est?" (est.)":""}<br>Vacuum <b>${fF(E.vac.F)} · ${Math.round(E.vac.isp)} s</b>${E.vac.est?" (est.)":""}${engKey(p)==="stand"?`<br>${E.src==="tested"?"From your test stand runs.":"Not tested yet: fire your engine on the stand to record its real numbers."}`:""}</div>
-    <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${ENG_ORDER.map(k=>`<button class="b${engKey(p)===k?" on":""}" data-e="${k}">${ENG[k].name}</button>`).join("")}${lib.filter(e=>e.kind!=="solid").map(e=>`<button class="b${engKey(p)==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-le="${e.id}"></button>`).join("")}</div>`;
-  if(p.t==="engine")h+=`<div class="row" style="margin-top:6px;gap:4px;align-items:center"><span class="tip">Engines</span><button class="b" data-k="-1">−</button><b style="min-width:18px;text-align:center">${p.k||1}</b><button class="b" data-k="1">+</button><span class="tip">side by side under one thrust plate (SLS 4, New Glenn 7, Falcon 9 9)</span></div>`;
+    <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${ENG_ORDER.map(k=>`<button class="b${engKey(p)===k?" on":""}" data-e="${k}"${techOK("engine:"+k)?"":` disabled title="Locked: see the Tech tree"`}>${ENG[k].name}</button>`).join("")}${lib.filter(e=>e.kind!=="solid").map(e=>`<button class="b${engKey(p)==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-le="${e.id}"></button>`).join("")}</div>`;
+  if(p.t==="engine")h+=`<div class="row" style="margin-top:6px;gap:4px;align-items:center"><span class="tip">Engines</span><button class="b" data-k="-1">−</button><b style="min-width:18px;text-align:center">${p.k||1}</b><button class="b" data-k="1"${(p.k||1)===1&&!techOK("engine:stand:4")?` disabled title="Clusters: unlock Heavy lift in the Tech tree"`:""}>+</button><span class="tip">side by side under one thrust plate (SLS 4, New Glenn 7, Falcon 9 9)</span></div>`;
   if(p.t==="nose")h+=`<div class="row" style="margin-top:6px;gap:4px"><button class="b${p.ns!=="cone"?" on":""}" data-ns="ogive">Rounded</button><button class="b${p.ns==="cone"?" on":""}" data-ns="cone">Pointed</button></div>`;
   if(p.t==="nose"&&p.v!=="cockpit")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${NOSE_SKINS.map(([k,n])=>`<button class="b${(p.sk||"white")===k?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
   if(p.t==="tank")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${TANK_SKINS.map(([k,n])=>`<button class="b${tankSkin(p)===k?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
@@ -3332,7 +3353,7 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;
     for(const b of el.querySelectorAll("[data-r]")){const u=b.dataset.u||"";roll("vs"+b.dataset.r,b,+b.dataset.v,u==="mass"?fM:x=>fmt(x)+u);}}   // numbers roll to their new values
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
-function vBarUI(){$("vCen").classList.toggle("on",vCentres);icoBtn($("vCen"),"centre","Centres");$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
+function vBarUI(){techBtn();$("vCen").classList.toggle("on",vCentres);icoBtn($("vCen"),"centre","Centres");$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
   const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:sls">Super Heavy (SLS-shaped, 91 m)</option><option value="t:pathfinder">Pathfinder (new parts: methane booster, nuclear upper stage)</option><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
   sel.innerHTML=h;$("vName").value=vName;}
@@ -3349,7 +3370,8 @@ $("vMirror").onclick=()=>{vMirror=!vMirror;store.set("throat.vmirror",vMirror);v
 $("vLegs").onclick=()=>{vLegsOut=!vLegsOut;vBarUI();vInspUI();};$("vUndoB").onclick=vUndo;$("vRedoB").onclick=vRedo;$("vFit").onclick=vFitView;
 $("vClear").onclick=()=>{if(!vps.length)return;vPush();vps=[];vsel=null;vChanged();vMsg("Cleared. Ctrl+Z brings it back.");};
 $("vBack").onclick=()=>closeVab();
-$("vGo").onclick=()=>{const a=analyze(vps,engineNums());if(a.root<0||!a.stages.length||a.stages[0].twr<=1)return;closeVab(true);startFlight(vps,vName);};
+$("vGo").onclick=()=>{const miss=techMissing(vps);if(miss.length){techOpen(`This rocket uses parts you haven't unlocked yet: ${miss.join(", ")}. Unlock them below, or tick “Unlock everything”.`);return;}   // tech tree (v1.38)
+  const a=analyze(vps,engineNums());if(a.root<0||!a.stages.length||a.stages[0].twr<=1)return;closeVab(true);startFlight(vps,vName);};
 function openVab(){FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();vOldMsg();requestAnimationFrame(vFrame);}
 function closeVab(toFlight){FLT.vab=false;vab.classList.remove("show");vcarry=null;if(!toFlight)enter($("stage"));if(!toFlight){S.paused=$("bPause").classList.contains("on");cfg();}}
 $("bLaunch").onclick=openVab;$("vCen").onclick=()=>{vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();};
@@ -4535,6 +4557,77 @@ for(const[id,k]of[["lEngN","liquid"],["lSrbN","solid"]])$(id).addEventListener("
 $("bLib").onclick=()=>{libUI();lbx.classList.add("show");};
 lbx.onclick=e=>{if(e.target===lbx)lbx.classList.remove("show");};
 addEventListener("keydown",e=>{if(e.key==="Escape"&&lbx.classList.contains("show")){lbx.classList.remove("show");e.stopImmediatePropagation();}},true);
+
+// ================= TECH TREE (v1.38) =================
+// Wyatt's idea: you don't get every part at once. You start with a small kit (probe, nose cone, tank, the Wren, a fin, a
+// decoupler, and the engine and booster you built yourself on the test stand) and earn science by doing things for the first
+// time: every goal is a "first" worth some science (juice.js, GOALS). Spend it in the tree to unlock more parts. THROAT stays
+// a sandbox: one switch, "Unlock everything", opens the whole catalogue (and that's what the test stand's own engine always is).
+// Saved in throat.tech.v1: {got: [node ids], all: true/false}. Science isn't stored: it's worked out from the goals done.
+const TECH_KEY="throat.tech.v1";
+function techSt(){if(!techSt.s){techSt.s=store.get(TECH_KEY,{got:[],all:false});if(!Array.isArray(techSt.s.got))techSt.s.got=[];}return techSt.s;}
+function techSave(){store.set(TECH_KEY,techSt());}
+// what you start with (palette ids); your own engine and booster are always yours
+function techStart(){return["probe","nose","tank","engine:stand","engine:wren","dec","fin","srb:stand"];}
+// the tree: six lines of nodes, each needing the one above it. col: which line; need: the node before it
+function techNodes(){return[
+  {id:"work",  col:0,name:"Workhorse engines",cost:5, parts:["engine:mule","adapter"],          desc:"A stronger sea-level engine, and adapters to change the width of a stack."},
+  {id:"heavy", col:0,name:"Heavy lift",       cost:15,parts:["engine:bison","engine:stand:4"],need:"work",desc:"A big first-stage engine, and clusters: several engines under one plate."},
+  {id:"ch4",   col:0,name:"Methane",          cost:25,parts:["engine:condor","engine:gnat"],  need:"heavy",desc:"The strongest engine there is, and a tiny one for landers."},
+  {id:"vac",   col:1,name:"Space engines",    cost:15,parts:["engine:vac"],                   need:"work",desc:"A huge bell made for vacuum: the best Isp of the chemical engines."},
+  {id:"spike", col:1,name:"Aerospike",        cost:25,parts:["engine:spike"],                 need:"vac",desc:"Works almost as well at sea level as in space."},
+  {id:"atom",  col:1,name:"Nuclear",          cost:50,parts:["engine:atom"],                  need:"spike",desc:"Twice the Isp of anything else. For long trips in space."},
+  {id:"srb",   col:2,name:"Strap-on boosters",cost:10,parts:["srb:thumper","sdec"],                     desc:"A ready-made booster and side decouplers to hang boosters on a core."},
+  {id:"srb2",  col:2,name:"Booster family",   cost:25,parts:["srb:sprinter","srb:longhorn"],  need:"srb",desc:"A short fierce booster and a long steady one."},
+  {id:"land",  col:3,name:"Landing",          cost:10,parts:["leg","fin:grid"],                         desc:"Landing legs, and grid fins to steer a falling stage."},
+  {id:"lander",col:3,name:"Landers",          cost:15,parts:["tank:ball","probe:cabin"],      need:"land",desc:"Fuel spheres and a crew cabin: build a Moon lander."},
+  {id:"plane", col:3,name:"Spaceplanes",      cost:20,parts:["fin:wing","nose:cockpit"],      need:"land",desc:"Wings and a cockpit."},
+  {id:"crew",  col:4,name:"Crew",             cost:20,parts:["capsule","les","shield"],                 desc:"A crew capsule with parachutes, its escape tower, and heat-shield plates."},
+  {id:"crew2", col:4,name:"Big capsule",      cost:35,parts:["capsule:dragon"],               need:"crew",desc:"A wider, rounder capsule."},
+  {id:"ctrl",  col:5,name:"Control",          cost:10,parts:["rcs","light"],                            desc:"RCS thrusters to turn and nudge in space, and floodlights for the dark."},
+  {id:"power", col:5,name:"Power",            cost:15,parts:["solar"],                        need:"ctrl",desc:"Solar panels that open in space."}];}
+const techScience=()=>JX?JX.science():0;
+const techSpent=()=>techNodes().reduce((a,n)=>a+(techSt().got.includes(n.id)?n.cost:0),0);
+const techLeft=()=>Math.max(0,techScience()-techSpent());
+// can this palette id be used? (saved-library parts are your own, so always)
+function techOK(id){const st=techSt();if(st.all||!JX||id.startsWith("lib:")||techStart().includes(id))return true;
+  if(id.startsWith("kit:")){const B=KITS[id.slice(4)];if(!B)return true;const pid=partId,L=B.build();partId=pid;return L.every(p=>techOK(partKey(p)));}   // a kit: all its parts
+  return techNodes().some(n=>st.got.includes(n.id)&&n.parts.includes(id));}
+function techNodeOf(id){return techNodes().find(n=>n.parts.includes(id));}
+// a placed part's palette id: "engine:mule", "srb:thumper", "fin:grid", "tank"…
+function partKey(p){if(p.t==="engine")return p.e==="lib"?"lib:x":"engine:"+(p.e||"stand");if(p.t==="srb")return p.b==="lib"?"lib:x":"srb:"+(p.b||"stand");return p.v?p.t+":"+p.v:p.t;}
+// the parts of a rocket you haven't unlocked yet (names, once each). Clusters also need Heavy lift.
+function techMissing(ps){const out=new Set();for(const p of ps){const k=partKey(p);if(!techOK(k))out.add(partName(p));if(p.t==="engine"&&p.k>1&&!techOK("engine:stand:4"))out.add("Engine clusters");}return[...out];}
+function techUnlock(id){const n=techNodes().find(q=>q.id===id),st=techSt();if(!n||st.got.includes(id)||n.need&&!st.got.includes(n.need)||techLeft()<n.cost)return false;
+  st.got.push(id);techSave();if(JX){JX.toast(`<small>Unlocked · −${n.cost} science</small>🔓 ${n.name}`);JX.snd.chime();}techChanged();return true;}
+// called when science or unlocks change: refresh the editor's palette, its Tech button and the open tree
+function techChanged(){techBtn();if(typeof vab!=="undefined"&&vab.classList.contains("show")){vPalUI();vInspUI();}if(techEl&&techEl.classList.contains("show"))techList();}
+function techBtn(){const b=$("vTech");if(!b)return;const st=techSt(),can=!st.all&&techNodes().some(n=>!st.got.includes(n.id)&&(!n.need||st.got.includes(n.need))&&n.cost<=techLeft());
+  b.innerHTML=ico("flask")+`<span>${st.all?"All parts":techLeft()+" science"}</span>`;b.classList.toggle("ping",can);}   // a red dot when something can be unlocked
+// ---------- the tree card ----------
+let techEl=null;
+function techOpen(why){if(!techEl){techEl=document.createElement("div");techEl.className="help tech";
+    techEl.innerHTML=`<div class="card"><h2>Tech tree</h2><div class="tsci"></div><div class="tmsg"></div><div class="tgrid"></div>
+      <div class="row" style="margin-top:12px;align-items:center"><label class="tall"><input type="checkbox" id="tAll"> Unlock everything (sandbox)</label><span class="tip" style="margin-left:auto">Earn science by doing goals for the first time (🏆). Esc to close.</span></div></div>`;
+    document.body.appendChild(techEl);techEl.onclick=e=>{if(e.target===techEl)techEl.classList.remove("show");};
+    techEl.querySelector("#tAll").onchange=e=>{techSt().all=e.target.checked;techSave();techChanged();};
+    addEventListener("keydown",e=>{if(e.key==="Escape"&&techEl.classList.contains("show")){techEl.classList.remove("show");e.stopImmediatePropagation();}},true);}
+  const m=techEl.querySelector(".tmsg");m.textContent=why||"";m.style.display=why?"":"none";techList();techEl.classList.add("show");}
+function techList(){const st=techSt(),left=techLeft(),g=techEl.querySelector(".tgrid");techEl.querySelector("#tAll").checked=!!st.all;
+  techEl.querySelector(".tsci").innerHTML=st.all?`<b>Everything is unlocked</b> <span class="tip">(sandbox). Untick the box below to go back to earning parts.</span>`:
+    `<b>${left}</b> science to spend <span class="tip">· ${techScience()} earned from ${JX?JX.GOALS.filter(q=>JX.done[q[0]]).length:0} goals · you started with: probe, nose cone, tank, Wren, fin, decoupler, your own engine and booster</span>`;
+  g.innerHTML="";const cols=[[],[],[],[],[],[]];for(const n of techNodes())cols[n.col].push(n);
+  for(const col of cols){const c=document.createElement("div");c.className="tcol";g.appendChild(c);
+    for(const n of col){const have=st.all||st.got.includes(n.id),open=!n.need||st.got.includes(n.need)||st.all,d=document.createElement("div");
+      d.className="tnode"+(have?" have":open?(n.cost<=left?" can":""):" shut");
+      d.innerHTML=`<b></b><span class="tip"></span><div class="ticons"></div><div class="tfoot"></div>`;d.querySelector("b").textContent=n.name;d.querySelector(".tip").textContent=n.desc;
+      for(const id of n.parts){const ic=partIcon(id);ic.title=VARS[id]?VARS[id].name:id.startsWith("engine:")?(id.split(":")[2]?"Engine cluster":ENG[id.split(":")[1]].name):id.startsWith("srb:")?BOOST[id.slice(4)].name:PT[id].name;d.querySelector(".ticons").appendChild(ic);}
+      const f=d.querySelector(".tfoot");
+      if(have)f.innerHTML=`<span class="ok">✓ Unlocked</span>`;
+      else if(!open)f.innerHTML=`<span class="tip">Needs ${techNodes().find(q=>q.id===n.need).name}</span>`;
+      else{const b=document.createElement("button");b.className="b"+(n.cost<=left?" go":"");b.disabled=n.cost>left;b.innerHTML=`Unlock · ${n.cost}`;b.onclick=()=>techUnlock(n.id);f.appendChild(b);}
+      c.appendChild(d);}}}
+$("vTech").onclick=()=>techOpen();
 
 // ================= FIRST-TIME TUTORIAL =================
 // A few coach cards that walk a newcomer through the whole game once: light the engine on the test stand, build a rocket
