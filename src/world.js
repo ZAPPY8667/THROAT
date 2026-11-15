@@ -77,13 +77,17 @@ function skyFor(ang,h,t,atm){const el=sunEl(ang,t)+sunDip(h),day=Math.max(0,Math
 // px = screen pixels per metre, t = game time, now = real time (for waves and swaying trees, which shouldn't speed up with warp)
 function drawEarth(c,sc,px,t,now){
   const span=Math.min(Math.PI,Math.hypot(FW,FH)/px*0.75/PR+0.002),full=span>=Math.PI-1e-6,a0=sc/PR-span,
-    N=Math.max(200,Math.min(2600,Math.round(span*2*PR*px/3))),da=span*2/N,deep=Math.max(4,9/px);
+    N=Math.max(200,Math.min(2600,Math.round(span*2*PR*px/3))),da=span*2/N,deep=Math.max(4,(px*PR<1150?2.5:9)/px);   // the soil band: 9 px on screen up close, a thin line over the globe
   const ang=[],H=[];for(let i=0;i<=N;i++){const a=a0+i*da;ang.push(a);H.push(terrH(a*PR));}
   const P=(a,r)=>[Math.sin(a)*r,Math.cos(a)*r];
   // rock underneath everything
-  const far=px*PR<5000;   // far enough to see the planet as a ball: paint the globe under the real rim
-  if(far)drawGlobe(c,PR-1500,true);
-  c.fillStyle="#3b3128";if(full&&!far){c.beginPath();c.arc(0,0,PR-3200,0,6.2832);c.fill();}
+  // v1.41: zoomed right out (the whole ball on screen) the painted globe; closer, the inside of the planet shows as a cut-away
+  // slice (the game is a slice through it): crust, mantle and a glowing core. They cross-fade, so zooming out never shows an
+  // empty ring of crust with the globe's sea or the sky inside it (before, the globe was used up close too and looked blocky)
+  const G=px*PR,far=G<1000;   // G: the planet's radius in screen pixels
+  if(G<1150)drawGlobe(c,PR-1500,true);
+  {const k=Math.max(0,Math.min(1,(G-1000)/150));if(k>0)drawInterior(c,k);}
+  c.fillStyle="#3b3128";
   c.beginPath();for(let i=0;i<=N;i++){const[x,y]=P(ang[i],PR+H[i]);i?c.lineTo(x,y):c.moveTo(x,y);}
   for(let i=N;i>=0;i-=Math.max(1,N>>6)){const[x,y]=P(ang[i],PR-(far?Math.max(3400,12/px):3400));c.lineTo(x,y);}c.closePath();if(!far)c.fill();
   // soil / sand / snow band along the top, coloured by biome; snow on high ground
@@ -162,6 +166,12 @@ let lightT=5,lightF=0;
 function drawEarthShadow(c,psi,h,px){if(h<15000)return;const sg=sunAng(FT),k=Math.min(1,(h-15000)/40000);c.save();
   for(const[off,al]of[[0,0.55],[0.05,0.15],[-0.05,0.15]]){c.beginPath();c.moveTo(0,0);c.arc(0,0,PR+3000,-sg-Math.PI+off,-sg-off*0);c.closePath();c.fillStyle=`rgba(2,6,18,${al*k})`;c.fill();}
   c.restore();}
+// the planet cut open: layers from the crust down to a white-hot inner core (radial gradient, then faint layer lines). k: opacity
+function drawInterior(c,k){const R=PR-3000,g=c.createRadialGradient(0,0,0,0,0,R);
+  [[0,"#fff4cf"],[0.12,"#ffd879"],[0.2,"#f0a338"],[0.36,"#d86d22"],[0.42,"#a8461a"],[0.6,"#7c3216"],[0.85,"#5b2a18"],[0.95,"#46301f"],[1,"#3b3128"]].forEach(([q,col])=>g.addColorStop(q,col));
+  c.save();c.globalAlpha=k;c.fillStyle=g;c.beginPath();c.arc(0,0,R,0,6.2832);c.fill();
+  c.lineWidth=R*0.004;for(const[q,col]of[[0.2,"rgba(255,240,200,.35)"],[0.42,"rgba(255,200,140,.25)"],[0.95,"rgba(0,0,0,.25)"]]){c.strokeStyle=col;c.beginPath();c.arc(0,0,R*q,0,6.2832);c.stroke();}
+  c.restore();}
 // ================= the launch tower (umbilical tower) =================
 // A thick steel lattice tower west of the rocket, a bit taller than it: two heavy corner columns with X-bracing in every bay,
 // a platform every 8 m, an elevator shaft and stairs inside, a lightning mast on top, and swing arms out to the rocket:
@@ -211,7 +221,7 @@ function vn3(x,y,z){const X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z),fx=x-X
   return L(L(L(c(0,0,0),c(1,0,0),u),L(c(0,1,0),c(1,1,0),u),v),L(L(c(0,0,1),c(1,0,1),u),L(c(0,1,1),c(1,1,1),u),v),w);}
 function fbm3(x,y,z,o){let a=0.5,s=0,f=1;for(let i=0;i<o;i++){s+=a*vn3(x*f,y*f,z*f);f*=2.03;a*=0.5;}return s;}
 let globeTex=null,cloudTex=null;
-function makeGlobe(){const N=640,cv=document.createElement("canvas"),cc=document.createElement("canvas");cv.width=cv.height=cc.width=cc.height=N;
+function makeGlobe(){const N=1024,cv=document.createElement("canvas"),cc=document.createElement("canvas");cv.width=cv.height=cc.width=cc.height=N;
   const g=cv.getContext("2d"),gc=cc.getContext("2d"),im=g.createImageData(N,N),ic=gc.createImageData(N,N),d=im.data,dc=ic.data;
   const C=(hex)=>hexRGB(hex),ICE=C("#e8eef3"),TUN=C("#7d8467"),FOR=C("#355f2e"),GRA=C("#6b8f45"),DES=C("#d2b274"),JUN=C("#2a5a24"),ROCK=C("#6f665a"),SNOW=C("#f2f5f8");
   const DEEP=[10,38,72],MIDS=[20,70,120],SHAL=[44,130,160];
@@ -219,7 +229,7 @@ function makeGlobe(){const N=640,cv=document.createElement("canvas"),cc=document
     const z=Math.sqrt(Math.max(0,1-r*r)),X=x*1.7,Y=y*1.7,Z=z*1.7;
     const wx=fbm3(X+3.1,Y,Z,3)-0.5,wy=fbm3(X,Y+5.7,Z,3)-0.5;   // domain warp: twisty, believable coastlines
     let n=fbm3(X+wx*1.6,Y+wy*1.6,Z,6),land=n-0.52;
-    const ang=Math.atan2(x,y),sx=ang*PR,th=terrH(sx),b=biomeAt(sx),wr=Math.max(0,Math.min(1,(r-0.9)/0.08))**2;   // near the rim: the real coast and biome
+    const ang=Math.atan2(x,y),sx=ang*PR,th=terrH(sx),b=biomeAt(sx),wr=Math.max(0,Math.min(1,(r-0.975)/0.02))**2;   // right at the rim: the real coast and biome (v1.41: a thin edge, not a wide strip that looked like a ring of crust)
     land=land*(1-wr)+(th>=0?0.06:-0.06)*wr;
     let col;
     if(land<0){const dp=Math.min(1,-land*7);col=dp<0.25?mixC(SHAL,MIDS,dp/0.25):mixC(MIDS,DEEP,(dp-0.25)/0.75);}
@@ -235,7 +245,7 @@ function makeGlobe(){const N=640,cv=document.createElement("canvas"),cc=document
 // draw the globe at radius R (world coordinates, y up), with its clouds and a thin glow of air around it
 function drawGlobe(c,R,clouds){if(!globeTex){if(typeof document==="undefined")return;makeGlobe();}
   const g=c.createRadialGradient(0,0,R,0,0,R*1.035);g.addColorStop(0,"rgba(110,170,255,.55)");g.addColorStop(1,"rgba(110,170,255,0)");c.fillStyle=g;c.beginPath();c.arc(0,0,R*1.035,0,6.2832);c.fill();
-  c.save();c.scale(1,-1);c.drawImage(globeTex,-R,-R,2*R,2*R);if(clouds)c.drawImage(cloudTex,-R,-R,2*R,2*R);c.restore();}
+  c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality="high";c.scale(1,-1);c.drawImage(globeTex,-R,-R,2*R,2*R);if(clouds)c.drawImage(cloudTex,-R,-R,2*R,2*R);c.restore();}
 
 // hold-down clamps: four heavy jaws on the pad that grip the bottom of the rocket while the engines spool up. open: 0 shut → 1 open
 function drawClamps(c,rw,open){for(const sd of[-1,1]){const x=sd*(rw/2+1.2);c.save();c.translate(x,0);c.fillStyle="#4a4f57";c.fillRect(-1.4,0,2.8,2.6);

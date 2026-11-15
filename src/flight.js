@@ -596,6 +596,43 @@ const SAS_INFO=[["stab","STB","Stability","hold the heading you're on"],["pro","
   ["radout","R+","Radial out","square to your path, away from the planet"],["radin","R−","Radial in","square to your path, toward the planet"],
   ["sfpro","S+","Surface prograde","along your path over the ground"],["sfretro","S−","Surface retro","against your path over the ground: for landings"],
   ["hzE","E","Horizon east","flat along the ground, heading east"],["hzW","W","Horizon west","flat along the ground, heading west"]];
+// ---------- navball (v1.41) ----------
+// Like KSP's, flattened for a 2D game: the ball turns so the sky (blue) and ground (brown) sit where they really are around
+// your nose, which is the orange mark fixed in the middle pointing up. Round the edge: prograde (yellow, circle with three
+// ticks: where you're going), retrograde (yellow, circle with an X: where you came from), radial out/in (cyan), and the
+// SAS hold (red). The SAS buttons use the same marks, so you learn them once.
+const NB_Y="#f2d23c",NB_C="#4fd2e8",NB_G="#7fdc6a";
+function sasIcon(m,bare){const S=(col,body)=>bare?`<g stroke="${col}" color="${col}" fill="none" stroke-width="1.6" stroke-linecap="round">${body}</g>`:`<svg class="sic" viewBox="-10 -10 20 20" aria-hidden="true"><g stroke="${col}" color="${col}" fill="none" stroke-width="1.6" stroke-linecap="round">${body}</g></svg>`;
+  const pro='<circle r="4.5"/><path d="M0-4.5V-8.5M-4.5 0H-8.5M4.5 0H8.5"/><circle r=".8" fill="currentColor"/>',
+    ret='<circle r="4.5"/><path d="M-3.2-3.2L3.2 3.2M3.2-3.2L-3.2 3.2M0 4.5V8.5M-3.2-3.2L-6.2-6.2M3.2-3.2L6.2-6.2"/>',
+    rout='<circle r="3.5"/><path d="M2.5-2.5L6-6M-2.5-2.5L-6-6M2.5 2.5L6 6M-2.5 2.5L-6 6"/>',
+    rin='<circle r="6.5"/><path d="M4.6-4.6L1.8-1.8M-4.6-4.6L-1.8-1.8M4.6 4.6L1.8 1.8M-4.6 4.6L-1.8 1.8"/>';
+  switch(m){case"pro":return S(NB_Y,pro);case"retro":return S(NB_Y,ret);case"sfpro":return S(NB_G,pro);case"sfretro":return S(NB_G,ret);
+    case"radout":return S(NB_C,rout);case"radin":return S(NB_C,rin);
+    case"hzE":return S("#e8eaee",'<path d="M-8 3H8M3-2L8 3"/><path d="M-6-3H2" stroke-opacity=".5"/>');case"hzW":return S("#e8eaee",'<path d="M8 3H-8M-3-2L-8 3"/><path d="M6-3H-2" stroke-opacity=".5"/>');
+    default:return S("#e8eaee",'<circle r="6.5"/><path d="M-6.5 0H6.5M0-2V2"/>');}}   // stability: a gyro
+function navInit(){const el=$("fNav");if(!el||el.dataset.ok)return;el.dataset.ok=1;
+  let lad="";for(let k=-3;k<=3;k++){if(!k)continue;const y=50-k*11,w=k%2?10:16;lad+=`<path d="M${50-w} ${y}H${50+w}" stroke="${k>0?"rgba(255,255,255,.45)":"rgba(255,255,255,.3)"}" stroke-width=".7"/>`;}
+  el.innerHTML=`<defs><clipPath id="nbClip"><circle cx="50" cy="50" r="45"/></clipPath>
+      <radialGradient id="nbSky" cx="50%" cy="100%" r="100%"><stop offset="0" stop-color="#7fb6ec"/><stop offset="1" stop-color="#2d5f9e"/></radialGradient>
+      <radialGradient id="nbGnd" cx="50%" cy="0%" r="100%"><stop offset="0" stop-color="#8a5a32"/><stop offset="1" stop-color="#4a2e18"/></radialGradient>
+      <radialGradient id="nbShade" cx="40%" cy="35%" r="65%"><stop offset=".55" stop-color="rgba(0,0,0,0)"/><stop offset="1" stop-color="rgba(0,0,0,.55)"/></radialGradient></defs>
+    <circle cx="50" cy="50" r="48" fill="#111317" stroke="rgba(255,255,255,.25)"/>
+    <g clip-path="url(#nbClip)"><g id="nbW"><rect x="-30" y="-30" width="160" height="80" fill="url(#nbSky)"/><rect x="-30" y="50" width="160" height="80" fill="url(#nbGnd)"/>
+      <path d="M-30 50H130" stroke="#fff" stroke-width="1.2"/>${lad}<text x="90" y="47" fill="rgba(255,255,255,.7)" font-size="6" text-anchor="end" font-family="sans-serif">E</text><text x="10" y="47" fill="rgba(255,255,255,.7)" font-size="6" font-family="sans-serif">W</text></g>
+      <circle cx="50" cy="50" r="45" fill="url(#nbShade)"/></g>
+    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,.35)"/>
+    ${["pro","retro","radout","radin"].map(m=>`<g id="nb_${m}" class="nbm">${sasIcon(m,true)}</g>`).join("")}
+    <g id="nb_hold" class="nbm"><path d="M0 -4L-4 3H4z" fill="var(--red)" stroke="none"/></g>
+    <path d="M28 52H40L50 44L60 52H72" fill="none" stroke="#ff9d2e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="50" cy="50" r="1.6" fill="#ff9d2e"/>`;}
+let nbSig="";
+function navUpdate(r,psi,sp){const W=$("nbW");if(!W)return;const deg=a=>wrapA(a)*180/Math.PI,R=36;
+  W.setAttribute("transform",`rotate(${deg(psi-r.phi).toFixed(1)} 50 50)`);   // the world turns the other way to your nose
+  const put=(id,a,on)=>{const g=$(id);if(!g)return;g.style.opacity=on?1:0;if(!on)return;const t=wrapA(a-r.phi);g.setAttribute("transform",`translate(${(50+R*Math.sin(t)).toFixed(1)} ${(50-R*Math.cos(t)).toFixed(1)})`);};
+  const vel=Math.atan2(r.vx,r.vy),moving=sp>1&&!r.landed;
+  put("nb_pro",vel,moving);put("nb_retro",vel+Math.PI,moving);
+  const up=Math.atan2(r.x,r.y),side=wrapA(up-vel)>0?1:-1;put("nb_radout",vel+side*Math.PI/2,moving);put("nb_radin",vel-side*Math.PI/2,moving);   // square to the path, the side away from the planet = out
+  put("nb_hold",r.hold==null?r.phi:r.hold,r.sas&&r.sas!=="stab"&&r.hold!=null);}
 function toggleRcs(){if(!AV||AV.crashed)return;if(!AV.rcs.length){msg="No RCS thrusters on this craft. Add them in the editor.";msgT=2.5;return;}
   AV.rcsOn=!AV.rcsOn;msg=AV.rcsOn?"RCS on: helps turning. I / K forward / back, J / L sideways.":"RCS off";msgT=2.5;}
 const clockStr=h=>String(Math.floor(h)).padStart(2,"0")+":"+String(Math.floor(h%1*60)).padStart(2,"0");
@@ -626,8 +663,9 @@ function buildRows(){
     ["-","Weather"],["tWx","Sky"],["tWind","Wind","Scenery only: it moves clouds, smoke, trees and waves, not the rocket"],["-","Warp"],["tWarp","Time warp"]]);
   for(const b of $("fWarpTo").querySelectorAll("[data-wt]"))b.onclick=()=>warpToEvent(b.dataset.wt);
   mk("fData",[["dAp","Ap"],["dPe","Pe"],["dTwr","TWR"],["dDv","Δv"],["dFuel","Fuel"],["dNext","Next"]]);
-  $("fSasB").innerHTML=SAS_INFO.map(([m,t,n],i)=>`<button type="button" data-sas="${m}" title="${n} (${i+1})">${t}</button>`).join("");
-  $("fSasL").innerHTML=SAS_INFO.map(([m,t,n,d],i)=>`<button type="button" data-sas="${m}"><kbd>${i+1}</kbd>${n}<small>${d}</small></button>`).join("");
+  $("fSasB").innerHTML=SAS_INFO.map(([m,t,n,d],i)=>`<button type="button" data-sas="${m}" title="${n}: ${d} (${i+1})" aria-label="${n}">${sasIcon(m)}</button>`).join("");   // icons, KSP-style: the same marks as on the navball
+  $("fSasL").innerHTML=SAS_INFO.map(([m,t,n,d],i)=>`<button type="button" data-sas="${m}"><kbd>${i+1}</kbd>${sasIcon(m)}<span>${n}</span><small>${d}</small></button>`).join("");
+  navInit();
   for(const b of document.querySelectorAll("[data-sas]"))b.onclick=()=>setSas(b.dataset.sas);
   rowsBuilt=true;}
 // time to the next apoapsis / periapsis, from where we are on the ellipse (Kepler's equation)
@@ -662,10 +700,7 @@ function hudFlight(dt){
     EV.forEach((e,i)=>{const d=document.createElement("i");d.className="ev"+(e.t!=null?" done":i===last+1?" next":"");d.style.left=(n>1?i/(n-1)*100:0)+"%";
       d.innerHTML=`<em>${e.l}</em>`;if(e.t!=null&&T0!=null)d.title="T+"+clk(e.t-T0);box.appendChild(d);});
     $("fTlFill").style.width=(last<0?0:n>1?last/(n-1)*100:100)+"%";}
-  // --- heading ring: your nose, where you're going, and the SAS hold (red)
-  const deg=a=>wrapA(a)*180/Math.PI,rot=(id,a,on)=>{const g=$(id);g.style.transform=`rotate(${deg(a)}deg)`;g.style.opacity=on?1:0;};
-  rot("hgNose",r.phi-psi,true);rot("hgPro",Math.atan2(r.vx,r.vy)-psi,sp>1);rot("hgRet",Math.atan2(-r.vx,-r.vy)-psi,sp>1);
-  rot("hgHold",(r.hold==null?r.phi:r.hold)-psi,r.sas&&r.sas!=="stab"&&r.hold!=null);
+  navUpdate(r,psi,sp);
   const sm=r.sas||"stab";if(sm!==sasSig){sasSig=sm;for(const b of document.querySelectorAll("[data-sas]"))b.classList.toggle("on",b.dataset.sas===sm);}
   // --- pull-out panels: only worked out while they're open
   const open=id=>!$(id).classList.contains("folded");

@@ -331,6 +331,8 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .call.go{animation:callIn 3.2s var(--ease) forwards}
 @keyframes callIn{0%{opacity:0;transform:translateY(10px);letter-spacing:.6em}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
 .sasbox{position:absolute;right:20px;bottom:20px;display:flex;align-items:flex-end;gap:10px}
+.navb{width:136px;height:136px;filter:drop-shadow(0 4px 14px rgba(0,0,0,.5))}
+.navb .nbm{transition:opacity .2s}.sasb button svg.sic{width:18px;height:18px;display:block;margin:auto}.saslist button svg.sic{width:20px;height:20px;grid-row:span 2;align-self:center}
 .ring{width:118px;height:118px}
 .ring .r0{fill:rgba(0,0,0,.25);stroke:rgba(255,255,255,.3);stroke-width:1}
 .ring .up,.ring .tk{stroke:rgba(255,255,255,.6);stroke-width:1.5}.ring .tk{stroke:rgba(255,255,255,.3)}
@@ -346,6 +348,8 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .saslist button{display:grid;grid-template-columns:22px 1fr;gap:2px 8px;text-align:left;border:1px solid var(--line);background:transparent;color:var(--txt);padding:5px 8px;border-radius:2px;cursor:pointer;font:600 12px var(--sans)}
 .saslist button kbd{grid-row:span 2;align-self:center}.saslist button small{color:var(--dim);font-weight:500;font-size:11px}
 .saslist button.on{border-color:var(--red);background:var(--redbg)}
+#fSasL button{grid-template-columns:22px 24px 1fr;text-align:left;justify-items:start}#fSasL button span{grid-column:3;grid-row:1}#fSasL button small{grid-column:3;grid-row:2}
+#fSasL button kbd{grid-column:1;grid-row:1/3}#fSasL button svg.sic{grid-column:2;grid-row:1/3}
 .flight .fbt{top:12px;bottom:auto;padding:5px 6px;gap:4px}
 .flight .fbt label.sl{grid-template-columns:auto 120px 38px;gap:6px;font:600 10px var(--sans);letter-spacing:.2em}
 .flight .fbt output{font:600 11.5px var(--mono);color:#fff}
@@ -363,7 +367,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 @media (max-width:700px){
   .dials{left:8px;bottom:84px;gap:6px}.dial{width:96px;height:96px}.dial .dv b{font-size:19px}.dial>span{font-size:8px;bottom:2px}
   .tline{bottom:8px;width:calc(100vw - 20px)}.tclk{margin-bottom:6px}.tclk b{font-size:17px}.tl .ev em{font-size:7px;letter-spacing:.08em}
-  .sasbox{right:6px;bottom:84px;flex-direction:column;align-items:flex-end;gap:4px}.ring{width:80px;height:80px}.sasb{grid-template-columns:repeat(3,30px)}.sasb button{height:24px}
+  .sasbox{right:6px;bottom:84px;flex-direction:column;align-items:flex-end;gap:4px}.ring{width:80px;height:80px}.navb{width:96px;height:96px}.sasb{grid-template-columns:repeat(3,30px)}.sasb button{height:24px}
   .flight .fbt{top:auto;bottom:auto;top:34px;left:6px;right:6px;transform:none;width:auto;max-width:none}.flight .fbt label.sl{grid-template-columns:auto 1fr 34px;flex:1}
   .live{top:8px;left:8px}.flight .etabs{top:120px}.fdrawer{top:120px;bottom:200px;width:auto}.fdrawer.l{left:30px;right:30px}.fdrawer.r{right:30px;left:30px;bottom:200px}
   .call b{font-size:24px;letter-spacing:.24em}.fmapbar{top:auto;bottom:200px}
@@ -526,10 +530,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="tline" id="fTline"><div class="tclk"><b id="fClock">T+00:00:00</b><span id="fStageN"></span></div><div class="tl" id="fTl"><div class="tlbar"><i id="fTlFill"></i></div></div></div>
   <div class="call" id="fCall"><b></b><small></small></div>
   <button class="b go cdbtn" id="fCount" data-ic="play" style="display:none" title="Start the 10-second countdown (Space)">Start countdown</button>
-  <div class="sasbox" id="fSas"><svg class="ring" viewBox="0 0 100 100" aria-label="Heading ring">
-      <circle cx="50" cy="50" r="41" class="r0"/><path d="M50 4v8" class="up"/><path d="M50 96v-5M4 50h5M96 50h-5" class="tk"/>
-      <g id="hgPro"><circle cx="50" cy="13" r="4" class="pro"/></g><g id="hgRet"><path d="M46 9l8 8M54 9l-8 8" class="ret"/></g>
-      <g id="hgHold"><path d="M50 15l-5-8h10z" class="hold"/></g><g id="hgNose"><path d="M50 26v48M44 32l6-8 6 8" class="nose"/></g></svg>
+  <div class="sasbox" id="fSas"><svg class="navb" id="fNav" viewBox="0 0 100 100" aria-label="Navball: sky and ground around your nose, with markers for where you're going"></svg>
     <div class="sasb" id="fSasB"></div></div>
   <div class="fpanel fbt">
     <button class="b ico" id="fL" title="Turn left (A)" data-ic="rotl"></button><button class="b ico" id="fR" title="Turn right (D)" data-ic="rotr"></button>
@@ -2976,13 +2977,17 @@ function skyFor(ang,h,t,atm){const el=sunEl(ang,t)+sunDip(h),day=Math.max(0,Math
 // px = screen pixels per metre, t = game time, now = real time (for waves and swaying trees, which shouldn't speed up with warp)
 function drawEarth(c,sc,px,t,now){
   const span=Math.min(Math.PI,Math.hypot(FW,FH)/px*0.75/PR+0.002),full=span>=Math.PI-1e-6,a0=sc/PR-span,
-    N=Math.max(200,Math.min(2600,Math.round(span*2*PR*px/3))),da=span*2/N,deep=Math.max(4,9/px);
+    N=Math.max(200,Math.min(2600,Math.round(span*2*PR*px/3))),da=span*2/N,deep=Math.max(4,(px*PR<1150?2.5:9)/px);   // the soil band: 9 px on screen up close, a thin line over the globe
   const ang=[],H=[];for(let i=0;i<=N;i++){const a=a0+i*da;ang.push(a);H.push(terrH(a*PR));}
   const P=(a,r)=>[Math.sin(a)*r,Math.cos(a)*r];
   // rock underneath everything
-  const far=px*PR<5000;   // far enough to see the planet as a ball: paint the globe under the real rim
-  if(far)drawGlobe(c,PR-1500,true);
-  c.fillStyle="#3b3128";if(full&&!far){c.beginPath();c.arc(0,0,PR-3200,0,6.2832);c.fill();}
+  // v1.41: zoomed right out (the whole ball on screen) the painted globe; closer, the inside of the planet shows as a cut-away
+  // slice (the game is a slice through it): crust, mantle and a glowing core. They cross-fade, so zooming out never shows an
+  // empty ring of crust with the globe's sea or the sky inside it (before, the globe was used up close too and looked blocky)
+  const G=px*PR,far=G<1000;   // G: the planet's radius in screen pixels
+  if(G<1150)drawGlobe(c,PR-1500,true);
+  {const k=Math.max(0,Math.min(1,(G-1000)/150));if(k>0)drawInterior(c,k);}
+  c.fillStyle="#3b3128";
   c.beginPath();for(let i=0;i<=N;i++){const[x,y]=P(ang[i],PR+H[i]);i?c.lineTo(x,y):c.moveTo(x,y);}
   for(let i=N;i>=0;i-=Math.max(1,N>>6)){const[x,y]=P(ang[i],PR-(far?Math.max(3400,12/px):3400));c.lineTo(x,y);}c.closePath();if(!far)c.fill();
   // soil / sand / snow band along the top, coloured by biome; snow on high ground
@@ -3061,6 +3066,12 @@ let lightT=5,lightF=0;
 function drawEarthShadow(c,psi,h,px){if(h<15000)return;const sg=sunAng(FT),k=Math.min(1,(h-15000)/40000);c.save();
   for(const[off,al]of[[0,0.55],[0.05,0.15],[-0.05,0.15]]){c.beginPath();c.moveTo(0,0);c.arc(0,0,PR+3000,-sg-Math.PI+off,-sg-off*0);c.closePath();c.fillStyle=`rgba(2,6,18,${al*k})`;c.fill();}
   c.restore();}
+// the planet cut open: layers from the crust down to a white-hot inner core (radial gradient, then faint layer lines). k: opacity
+function drawInterior(c,k){const R=PR-3000,g=c.createRadialGradient(0,0,0,0,0,R);
+  [[0,"#fff4cf"],[0.12,"#ffd879"],[0.2,"#f0a338"],[0.36,"#d86d22"],[0.42,"#a8461a"],[0.6,"#7c3216"],[0.85,"#5b2a18"],[0.95,"#46301f"],[1,"#3b3128"]].forEach(([q,col])=>g.addColorStop(q,col));
+  c.save();c.globalAlpha=k;c.fillStyle=g;c.beginPath();c.arc(0,0,R,0,6.2832);c.fill();
+  c.lineWidth=R*0.004;for(const[q,col]of[[0.2,"rgba(255,240,200,.35)"],[0.42,"rgba(255,200,140,.25)"],[0.95,"rgba(0,0,0,.25)"]]){c.strokeStyle=col;c.beginPath();c.arc(0,0,R*q,0,6.2832);c.stroke();}
+  c.restore();}
 // ================= the launch tower (umbilical tower) =================
 // A thick steel lattice tower west of the rocket, a bit taller than it: two heavy corner columns with X-bracing in every bay,
 // a platform every 8 m, an elevator shaft and stairs inside, a lightning mast on top, and swing arms out to the rocket:
@@ -3110,7 +3121,7 @@ function vn3(x,y,z){const X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z),fx=x-X
   return L(L(L(c(0,0,0),c(1,0,0),u),L(c(0,1,0),c(1,1,0),u),v),L(L(c(0,0,1),c(1,0,1),u),L(c(0,1,1),c(1,1,1),u),v),w);}
 function fbm3(x,y,z,o){let a=0.5,s=0,f=1;for(let i=0;i<o;i++){s+=a*vn3(x*f,y*f,z*f);f*=2.03;a*=0.5;}return s;}
 let globeTex=null,cloudTex=null;
-function makeGlobe(){const N=640,cv=document.createElement("canvas"),cc=document.createElement("canvas");cv.width=cv.height=cc.width=cc.height=N;
+function makeGlobe(){const N=1024,cv=document.createElement("canvas"),cc=document.createElement("canvas");cv.width=cv.height=cc.width=cc.height=N;
   const g=cv.getContext("2d"),gc=cc.getContext("2d"),im=g.createImageData(N,N),ic=gc.createImageData(N,N),d=im.data,dc=ic.data;
   const C=(hex)=>hexRGB(hex),ICE=C("#e8eef3"),TUN=C("#7d8467"),FOR=C("#355f2e"),GRA=C("#6b8f45"),DES=C("#d2b274"),JUN=C("#2a5a24"),ROCK=C("#6f665a"),SNOW=C("#f2f5f8");
   const DEEP=[10,38,72],MIDS=[20,70,120],SHAL=[44,130,160];
@@ -3118,7 +3129,7 @@ function makeGlobe(){const N=640,cv=document.createElement("canvas"),cc=document
     const z=Math.sqrt(Math.max(0,1-r*r)),X=x*1.7,Y=y*1.7,Z=z*1.7;
     const wx=fbm3(X+3.1,Y,Z,3)-0.5,wy=fbm3(X,Y+5.7,Z,3)-0.5;   // domain warp: twisty, believable coastlines
     let n=fbm3(X+wx*1.6,Y+wy*1.6,Z,6),land=n-0.52;
-    const ang=Math.atan2(x,y),sx=ang*PR,th=terrH(sx),b=biomeAt(sx),wr=Math.max(0,Math.min(1,(r-0.9)/0.08))**2;   // near the rim: the real coast and biome
+    const ang=Math.atan2(x,y),sx=ang*PR,th=terrH(sx),b=biomeAt(sx),wr=Math.max(0,Math.min(1,(r-0.975)/0.02))**2;   // right at the rim: the real coast and biome (v1.41: a thin edge, not a wide strip that looked like a ring of crust)
     land=land*(1-wr)+(th>=0?0.06:-0.06)*wr;
     let col;
     if(land<0){const dp=Math.min(1,-land*7);col=dp<0.25?mixC(SHAL,MIDS,dp/0.25):mixC(MIDS,DEEP,(dp-0.25)/0.75);}
@@ -3134,7 +3145,7 @@ function makeGlobe(){const N=640,cv=document.createElement("canvas"),cc=document
 // draw the globe at radius R (world coordinates, y up), with its clouds and a thin glow of air around it
 function drawGlobe(c,R,clouds){if(!globeTex){if(typeof document==="undefined")return;makeGlobe();}
   const g=c.createRadialGradient(0,0,R,0,0,R*1.035);g.addColorStop(0,"rgba(110,170,255,.55)");g.addColorStop(1,"rgba(110,170,255,0)");c.fillStyle=g;c.beginPath();c.arc(0,0,R*1.035,0,6.2832);c.fill();
-  c.save();c.scale(1,-1);c.drawImage(globeTex,-R,-R,2*R,2*R);if(clouds)c.drawImage(cloudTex,-R,-R,2*R,2*R);c.restore();}
+  c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality="high";c.scale(1,-1);c.drawImage(globeTex,-R,-R,2*R,2*R);if(clouds)c.drawImage(cloudTex,-R,-R,2*R,2*R);c.restore();}
 
 // hold-down clamps: four heavy jaws on the pad that grip the bottom of the rocket while the engines spool up. open: 0 shut → 1 open
 function drawClamps(c,rw,open){for(const sd of[-1,1]){const x=sd*(rw/2+1.2);c.save();c.translate(x,0);c.fillStyle="#4a4f57";c.fillRect(-1.4,0,2.8,2.6);
@@ -4115,6 +4126,43 @@ const SAS_INFO=[["stab","STB","Stability","hold the heading you're on"],["pro","
   ["radout","R+","Radial out","square to your path, away from the planet"],["radin","R−","Radial in","square to your path, toward the planet"],
   ["sfpro","S+","Surface prograde","along your path over the ground"],["sfretro","S−","Surface retro","against your path over the ground: for landings"],
   ["hzE","E","Horizon east","flat along the ground, heading east"],["hzW","W","Horizon west","flat along the ground, heading west"]];
+// ---------- navball (v1.41) ----------
+// Like KSP's, flattened for a 2D game: the ball turns so the sky (blue) and ground (brown) sit where they really are around
+// your nose, which is the orange mark fixed in the middle pointing up. Round the edge: prograde (yellow, circle with three
+// ticks: where you're going), retrograde (yellow, circle with an X: where you came from), radial out/in (cyan), and the
+// SAS hold (red). The SAS buttons use the same marks, so you learn them once.
+const NB_Y="#f2d23c",NB_C="#4fd2e8",NB_G="#7fdc6a";
+function sasIcon(m,bare){const S=(col,body)=>bare?`<g stroke="${col}" color="${col}" fill="none" stroke-width="1.6" stroke-linecap="round">${body}</g>`:`<svg class="sic" viewBox="-10 -10 20 20" aria-hidden="true"><g stroke="${col}" color="${col}" fill="none" stroke-width="1.6" stroke-linecap="round">${body}</g></svg>`;
+  const pro='<circle r="4.5"/><path d="M0-4.5V-8.5M-4.5 0H-8.5M4.5 0H8.5"/><circle r=".8" fill="currentColor"/>',
+    ret='<circle r="4.5"/><path d="M-3.2-3.2L3.2 3.2M3.2-3.2L-3.2 3.2M0 4.5V8.5M-3.2-3.2L-6.2-6.2M3.2-3.2L6.2-6.2"/>',
+    rout='<circle r="3.5"/><path d="M2.5-2.5L6-6M-2.5-2.5L-6-6M2.5 2.5L6 6M-2.5 2.5L-6 6"/>',
+    rin='<circle r="6.5"/><path d="M4.6-4.6L1.8-1.8M-4.6-4.6L-1.8-1.8M4.6 4.6L1.8 1.8M-4.6 4.6L-1.8 1.8"/>';
+  switch(m){case"pro":return S(NB_Y,pro);case"retro":return S(NB_Y,ret);case"sfpro":return S(NB_G,pro);case"sfretro":return S(NB_G,ret);
+    case"radout":return S(NB_C,rout);case"radin":return S(NB_C,rin);
+    case"hzE":return S("#e8eaee",'<path d="M-8 3H8M3-2L8 3"/><path d="M-6-3H2" stroke-opacity=".5"/>');case"hzW":return S("#e8eaee",'<path d="M8 3H-8M-3-2L-8 3"/><path d="M6-3H-2" stroke-opacity=".5"/>');
+    default:return S("#e8eaee",'<circle r="6.5"/><path d="M-6.5 0H6.5M0-2V2"/>');}}   // stability: a gyro
+function navInit(){const el=$("fNav");if(!el||el.dataset.ok)return;el.dataset.ok=1;
+  let lad="";for(let k=-3;k<=3;k++){if(!k)continue;const y=50-k*11,w=k%2?10:16;lad+=`<path d="M${50-w} ${y}H${50+w}" stroke="${k>0?"rgba(255,255,255,.45)":"rgba(255,255,255,.3)"}" stroke-width=".7"/>`;}
+  el.innerHTML=`<defs><clipPath id="nbClip"><circle cx="50" cy="50" r="45"/></clipPath>
+      <radialGradient id="nbSky" cx="50%" cy="100%" r="100%"><stop offset="0" stop-color="#7fb6ec"/><stop offset="1" stop-color="#2d5f9e"/></radialGradient>
+      <radialGradient id="nbGnd" cx="50%" cy="0%" r="100%"><stop offset="0" stop-color="#8a5a32"/><stop offset="1" stop-color="#4a2e18"/></radialGradient>
+      <radialGradient id="nbShade" cx="40%" cy="35%" r="65%"><stop offset=".55" stop-color="rgba(0,0,0,0)"/><stop offset="1" stop-color="rgba(0,0,0,.55)"/></radialGradient></defs>
+    <circle cx="50" cy="50" r="48" fill="#111317" stroke="rgba(255,255,255,.25)"/>
+    <g clip-path="url(#nbClip)"><g id="nbW"><rect x="-30" y="-30" width="160" height="80" fill="url(#nbSky)"/><rect x="-30" y="50" width="160" height="80" fill="url(#nbGnd)"/>
+      <path d="M-30 50H130" stroke="#fff" stroke-width="1.2"/>${lad}<text x="90" y="47" fill="rgba(255,255,255,.7)" font-size="6" text-anchor="end" font-family="sans-serif">E</text><text x="10" y="47" fill="rgba(255,255,255,.7)" font-size="6" font-family="sans-serif">W</text></g>
+      <circle cx="50" cy="50" r="45" fill="url(#nbShade)"/></g>
+    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,.35)"/>
+    ${["pro","retro","radout","radin"].map(m=>`<g id="nb_${m}" class="nbm">${sasIcon(m,true)}</g>`).join("")}
+    <g id="nb_hold" class="nbm"><path d="M0 -4L-4 3H4z" fill="var(--red)" stroke="none"/></g>
+    <path d="M28 52H40L50 44L60 52H72" fill="none" stroke="#ff9d2e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="50" cy="50" r="1.6" fill="#ff9d2e"/>`;}
+let nbSig="";
+function navUpdate(r,psi,sp){const W=$("nbW");if(!W)return;const deg=a=>wrapA(a)*180/Math.PI,R=36;
+  W.setAttribute("transform",`rotate(${deg(psi-r.phi).toFixed(1)} 50 50)`);   // the world turns the other way to your nose
+  const put=(id,a,on)=>{const g=$(id);if(!g)return;g.style.opacity=on?1:0;if(!on)return;const t=wrapA(a-r.phi);g.setAttribute("transform",`translate(${(50+R*Math.sin(t)).toFixed(1)} ${(50-R*Math.cos(t)).toFixed(1)})`);};
+  const vel=Math.atan2(r.vx,r.vy),moving=sp>1&&!r.landed;
+  put("nb_pro",vel,moving);put("nb_retro",vel+Math.PI,moving);
+  const up=Math.atan2(r.x,r.y),side=wrapA(up-vel)>0?1:-1;put("nb_radout",vel+side*Math.PI/2,moving);put("nb_radin",vel-side*Math.PI/2,moving);   // square to the path, the side away from the planet = out
+  put("nb_hold",r.hold==null?r.phi:r.hold,r.sas&&r.sas!=="stab"&&r.hold!=null);}
 function toggleRcs(){if(!AV||AV.crashed)return;if(!AV.rcs.length){msg="No RCS thrusters on this craft. Add them in the editor.";msgT=2.5;return;}
   AV.rcsOn=!AV.rcsOn;msg=AV.rcsOn?"RCS on: helps turning. I / K forward / back, J / L sideways.":"RCS off";msgT=2.5;}
 const clockStr=h=>String(Math.floor(h)).padStart(2,"0")+":"+String(Math.floor(h%1*60)).padStart(2,"0");
@@ -4145,8 +4193,9 @@ function buildRows(){
     ["-","Weather"],["tWx","Sky"],["tWind","Wind","Scenery only: it moves clouds, smoke, trees and waves, not the rocket"],["-","Warp"],["tWarp","Time warp"]]);
   for(const b of $("fWarpTo").querySelectorAll("[data-wt]"))b.onclick=()=>warpToEvent(b.dataset.wt);
   mk("fData",[["dAp","Ap"],["dPe","Pe"],["dTwr","TWR"],["dDv","Δv"],["dFuel","Fuel"],["dNext","Next"]]);
-  $("fSasB").innerHTML=SAS_INFO.map(([m,t,n],i)=>`<button type="button" data-sas="${m}" title="${n} (${i+1})">${t}</button>`).join("");
-  $("fSasL").innerHTML=SAS_INFO.map(([m,t,n,d],i)=>`<button type="button" data-sas="${m}"><kbd>${i+1}</kbd>${n}<small>${d}</small></button>`).join("");
+  $("fSasB").innerHTML=SAS_INFO.map(([m,t,n,d],i)=>`<button type="button" data-sas="${m}" title="${n}: ${d} (${i+1})" aria-label="${n}">${sasIcon(m)}</button>`).join("");   // icons, KSP-style: the same marks as on the navball
+  $("fSasL").innerHTML=SAS_INFO.map(([m,t,n,d],i)=>`<button type="button" data-sas="${m}"><kbd>${i+1}</kbd>${sasIcon(m)}<span>${n}</span><small>${d}</small></button>`).join("");
+  navInit();
   for(const b of document.querySelectorAll("[data-sas]"))b.onclick=()=>setSas(b.dataset.sas);
   rowsBuilt=true;}
 // time to the next apoapsis / periapsis, from where we are on the ellipse (Kepler's equation)
@@ -4181,10 +4230,7 @@ function hudFlight(dt){
     EV.forEach((e,i)=>{const d=document.createElement("i");d.className="ev"+(e.t!=null?" done":i===last+1?" next":"");d.style.left=(n>1?i/(n-1)*100:0)+"%";
       d.innerHTML=`<em>${e.l}</em>`;if(e.t!=null&&T0!=null)d.title="T+"+clk(e.t-T0);box.appendChild(d);});
     $("fTlFill").style.width=(last<0?0:n>1?last/(n-1)*100:100)+"%";}
-  // --- heading ring: your nose, where you're going, and the SAS hold (red)
-  const deg=a=>wrapA(a)*180/Math.PI,rot=(id,a,on)=>{const g=$(id);g.style.transform=`rotate(${deg(a)}deg)`;g.style.opacity=on?1:0;};
-  rot("hgNose",r.phi-psi,true);rot("hgPro",Math.atan2(r.vx,r.vy)-psi,sp>1);rot("hgRet",Math.atan2(-r.vx,-r.vy)-psi,sp>1);
-  rot("hgHold",(r.hold==null?r.phi:r.hold)-psi,r.sas&&r.sas!=="stab"&&r.hold!=null);
+  navUpdate(r,psi,sp);
   const sm=r.sas||"stab";if(sm!==sasSig){sasSig=sm;for(const b of document.querySelectorAll("[data-sas]"))b.classList.toggle("on",b.dataset.sas===sm);}
   // --- pull-out panels: only worked out while they're open
   const open=id=>!$(id).classList.contains("folded");

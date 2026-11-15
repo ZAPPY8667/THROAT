@@ -328,6 +328,19 @@ made on the test stand.
 - Solid boosters: a flared aft skirt with bolt pads, stiffener rings, raised field joints with a ring of pins, a forward attach
   ring, a highlight down the casing, the nozzle's exit lip.
 
+## v1.41: the planet has an inside, navball
+- Wyatt: zoomed out in flight the planet looked see-through, "just the crust". Before, only a 3.4 km band of rock was drawn under
+  the surface, and the painted globe (meant for whole-planet views) also showed up close, blocky, with a 100 km strip of rim
+  biomes painted round its edge that read as a ring of crust. Now (`drawEarth`, G = planet radius in screen pixels): G < 1,000
+  the globe (sharper: 1,024² texture, smoothing on; rim biomes only in the outer 2.5 %; the soil band a thin line); above
+  ~1,150 a cut-away of the inside (`drawInterior`: crust, mantle, outer core, white-hot inner core, faint layer lines), with a
+  short cross-fade between.
+- **Navball** (`navInit`/`navUpdate`, replaces the heading ring in the STEER box): sky and ground turn around your nose (the
+  orange wing mark fixed in the middle), horizon with a pitch ladder and E/W; markers round the edge in KSP shapes and colours:
+  prograde (yellow circle + three ticks), retrograde (yellow circle + X), radial out/in (cyan), SAS hold (red). The SAS buttons
+  and the SAS tab list show the same icons (`sasIcon`; surface modes green, horizon arrows white, stability a gyro), names in
+  the tooltip and the list.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

@@ -329,6 +329,8 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .call.go{animation:callIn 3.2s var(--ease) forwards}
 @keyframes callIn{0%{opacity:0;transform:translateY(10px);letter-spacing:.6em}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
 .sasbox{position:absolute;right:20px;bottom:20px;display:flex;align-items:flex-end;gap:10px}
+.navb{width:136px;height:136px;filter:drop-shadow(0 4px 14px rgba(0,0,0,.5))}
+.navb .nbm{transition:opacity .2s}.sasb button svg.sic{width:18px;height:18px;display:block;margin:auto}.saslist button svg.sic{width:20px;height:20px;grid-row:span 2;align-self:center}
 .ring{width:118px;height:118px}
 .ring .r0{fill:rgba(0,0,0,.25);stroke:rgba(255,255,255,.3);stroke-width:1}
 .ring .up,.ring .tk{stroke:rgba(255,255,255,.6);stroke-width:1.5}.ring .tk{stroke:rgba(255,255,255,.3)}
@@ -344,6 +346,8 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .saslist button{display:grid;grid-template-columns:22px 1fr;gap:2px 8px;text-align:left;border:1px solid var(--line);background:transparent;color:var(--txt);padding:5px 8px;border-radius:2px;cursor:pointer;font:600 12px var(--sans)}
 .saslist button kbd{grid-row:span 2;align-self:center}.saslist button small{color:var(--dim);font-weight:500;font-size:11px}
 .saslist button.on{border-color:var(--red);background:var(--redbg)}
+#fSasL button{grid-template-columns:22px 24px 1fr;text-align:left;justify-items:start}#fSasL button span{grid-column:3;grid-row:1}#fSasL button small{grid-column:3;grid-row:2}
+#fSasL button kbd{grid-column:1;grid-row:1/3}#fSasL button svg.sic{grid-column:2;grid-row:1/3}
 .flight .fbt{top:12px;bottom:auto;padding:5px 6px;gap:4px}
 .flight .fbt label.sl{grid-template-columns:auto 120px 38px;gap:6px;font:600 10px var(--sans);letter-spacing:.2em}
 .flight .fbt output{font:600 11.5px var(--mono);color:#fff}
@@ -361,7 +365,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 @media (max-width:700px){
   .dials{left:8px;bottom:84px;gap:6px}.dial{width:96px;height:96px}.dial .dv b{font-size:19px}.dial>span{font-size:8px;bottom:2px}
   .tline{bottom:8px;width:calc(100vw - 20px)}.tclk{margin-bottom:6px}.tclk b{font-size:17px}.tl .ev em{font-size:7px;letter-spacing:.08em}
-  .sasbox{right:6px;bottom:84px;flex-direction:column;align-items:flex-end;gap:4px}.ring{width:80px;height:80px}.sasb{grid-template-columns:repeat(3,30px)}.sasb button{height:24px}
+  .sasbox{right:6px;bottom:84px;flex-direction:column;align-items:flex-end;gap:4px}.ring{width:80px;height:80px}.navb{width:96px;height:96px}.sasb{grid-template-columns:repeat(3,30px)}.sasb button{height:24px}
   .flight .fbt{top:auto;bottom:auto;top:34px;left:6px;right:6px;transform:none;width:auto;max-width:none}.flight .fbt label.sl{grid-template-columns:auto 1fr 34px;flex:1}
   .live{top:8px;left:8px}.flight .etabs{top:120px}.fdrawer{top:120px;bottom:200px;width:auto}.fdrawer.l{left:30px;right:30px}.fdrawer.r{right:30px;left:30px;bottom:200px}
   .call b{font-size:24px;letter-spacing:.24em}.fmapbar{top:auto;bottom:200px}
@@ -524,10 +528,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="tline" id="fTline"><div class="tclk"><b id="fClock">T+00:00:00</b><span id="fStageN"></span></div><div class="tl" id="fTl"><div class="tlbar"><i id="fTlFill"></i></div></div></div>
   <div class="call" id="fCall"><b></b><small></small></div>
   <button class="b go cdbtn" id="fCount" data-ic="play" style="display:none" title="Start the 10-second countdown (Space)">Start countdown</button>
-  <div class="sasbox" id="fSas"><svg class="ring" viewBox="0 0 100 100" aria-label="Heading ring">
-      <circle cx="50" cy="50" r="41" class="r0"/><path d="M50 4v8" class="up"/><path d="M50 96v-5M4 50h5M96 50h-5" class="tk"/>
-      <g id="hgPro"><circle cx="50" cy="13" r="4" class="pro"/></g><g id="hgRet"><path d="M46 9l8 8M54 9l-8 8" class="ret"/></g>
-      <g id="hgHold"><path d="M50 15l-5-8h10z" class="hold"/></g><g id="hgNose"><path d="M50 26v48M44 32l6-8 6 8" class="nose"/></g></svg>
+  <div class="sasbox" id="fSas"><svg class="navb" id="fNav" viewBox="0 0 100 100" aria-label="Navball: sky and ground around your nose, with markers for where you're going"></svg>
     <div class="sasb" id="fSasB"></div></div>
   <div class="fpanel fbt">
     <button class="b ico" id="fL" title="Turn left (A)" data-ic="rotl"></button><button class="b ico" id="fR" title="Turn right (D)" data-ic="rotr"></button>
