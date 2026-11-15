@@ -53,6 +53,7 @@ const PT={
   // v1.37
   solar:  {name:"Solar panel",    ws:[10],              h:()=>40, m:()=>0.4*MK, radial:1, desc:"Folds flat against the side and opens out once you're in space. Makes a satellite look like one."},
   light:  {name:"Floodlight",     ws:[8],               h:()=>10, m:()=>0.05*MK, radial:1, desc:"A bright lamp: it lights up at night and in the shadow, so you can see where you're landing."},
+  fair:   {name:"Payload fairing",ws:[40], wr:[10,160], h:()=>4,  m:w=>0.5*MK*A2(w,40), desc:"Goes on the upper stage, with your payload on top of it. Its shell covers the payload like a nose cone (less drag) and splits open by itself in space. Set its height in the settings."},
   shield: {name:"Heat shield",    ws:[40], wr:[10,160], h:()=>5,  m:w=>1.2*MK*A2(w,40), desc:"A heat-shield plate for the bottom of anything you bring home. Coming in shield-first, it takes the re-entry heat, like a capsule's."},
 };
 // v1.37: variants: the same kind of part (same physics) in another design. Palette id "type:variant" → p.v; w, h: its default size
@@ -62,6 +63,7 @@ const VARS={
   "fin:wing":    {name:"Wing",         w:90, h:()=>130,desc:"A big swept wing. Lots of grip on the air: for spaceplanes and very steady rockets."},
   "probe:cabin": {name:"Lander cabin", w:60, h:w=>Math.round(w*0.8), desc:"Apollo-style lander cabin for a crew: it's the brain, light and gold-wrapped. No heat shield, so don't bring it home through the air."},
   "nose:cockpit":{name:"Cockpit",      w:40, h:w=>Math.round(w*1.5), desc:"Spaceplane cockpit: a nose cone with a crew and windows. It's the brain, and it cuts drag like a nose."},
+  "leg:big":     {name:"Big landing leg",w:54,h:()=>162,desc:"A long, wide-stance leg for big landers and boosters. G deploys. Same gentle landing speed, but it holds a heavy stage steady."},
   "capsule:dragon":{name:"Big capsule",w:70, h:w=>Math.round(w*0.72), desc:"Dragon-style capsule: wider and rounder, seats seven. Heat shield underneath and parachutes (P), like the small one."}};
 const varOf=p=>p.v&&VARS[p.t+":"+p.v]?VARS[p.t+":"+p.v]:null;
 // paint: tanks (p.sk) and nose cones; each as a base colour for the round-tube shading
@@ -99,17 +101,18 @@ function curveAt(c,u){if(!c||c.length<2)return 1;const x=Math.max(0,Math.min(1,u
 const ENG_ORDER=["stand","gnat","wren","mule","spike","bison","condor","vac","atom"],BOOST_ORDER=["stand","thumper","sprinter","longhorn"];
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
 function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],MK*A2(clusterGeo(p).ew,ENG[k].w)*(p.k||1));}
-const PT_ORDER=["probe","probe:cabin","nose","nose:cockpit","tank","tank:ball","adapter","shield","engine:stand","engine:gnat","engine:wren","engine:mule","engine:spike","engine:bison","engine:condor","engine:vac","engine:atom","engine:stand:4",
-  "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","fin","fin:grid","fin:wing","rcs","leg","solar","light","capsule","capsule:dragon","les"];
+const PT_ORDER=["probe","probe:cabin","nose","nose:cockpit","tank","tank:ball","adapter","fair","shield","engine:stand","engine:gnat","engine:wren","engine:mule","engine:spike","engine:bison","engine:condor","engine:vac","engine:atom","engine:stand:4",
+  "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","fin","fin:grid","fin:wing","rcs","leg","leg:big","solar","light","capsule","capsule:dragon","les"];
 let partId=1;
 // t can carry a model: "engine:mule", "srb:thumper"; n = a saved library entry's numbers to copy onto the part
 function mkPart(t,w,h,e,n){let b,k=1;if(t.startsWith("engine:")){e=t.slice(7);t="engine";if(e.includes(":")){k=+e.split(":")[1];e=e.split(":")[0];}}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}let va;if(t.includes(":")){va=t.split(":")[1];t=t.split(":")[0];}const d=PT[t],V=va&&VARS[t+":"+va];if(V){w=w||V.w;h=h||V.h(w);}
   if(t==="engine"){e=e||"stand";const E=ENG[e];w=w||(k>1?Math.round(E.w*(k<=3?k:Math.ceil(k/2))*1.05):E.w);if(!h){h=engH({t,e,w,k});}}w=w||d.ws[0];const p={id:partId++,t,x:0,y:0,w,h:h||d.h(w),f:1,tw:0};if(e)p.e=e;if(t==="srb")p.b=b||"stand";
   if(b&&BOOST[b]&&BOOST[b].w&&!p.n){if(!p.w||p.w===d.ws[0])p.w=BOOST[b].w;if(p.h===d.h(d.ws[0]))p.h=BOOST[b].h;}   // boosters with their own size
-  if(V)p.v=va;
+  if(V)p.v=va;if(t==="fair")p.fh=120;   // fairing shell height above its ring (12 m)
   if(t==="adapter")p.w2=Math.round(w*0.48);if(k>1)p.k=k;
   if(n)p.n=JSON.parse(JSON.stringify(n));return p;}
-const partMass=p=>p.t==="engine"?ENG[engKey(p)].m*MK*A2(clusterGeo(p).ew,ENG[engKey(p)].w)*(p.k||1)+(p.k>1?0.6*MK*A2(p.w,40):0):PT[p.t].m(p.w,p.h);
+const fairShell=p=>p.t==="fair"&&!p.open?0.02*(p.fh||120)*MK*A2(p.w,40):0;   // the shell's mass, gone once it opens
+const partMass=p=>fairShell(p)+(p.t==="engine"?ENG[engKey(p)].m*MK*A2(clusterGeo(p).ew,ENG[engKey(p)].w)*(p.k||1)+(p.k>1?0.6*MK*A2(p.w,40):0):PT[p.t].m(p.w,p.h));
 const partName=p=>varOf(p)?varOf(p).name:p.t==="engine"?(engKey(p)==="lib"&&p.n?p.n.name:ENG[engKey(p)].name)+(p.k>1?" ×"+p.k:""):p.t==="srb"?(boostKey(p)==="lib"&&p.n?p.n.name:BOOST[boostKey(p)].name):PT[p.t].name;
 // a decoupler under an engine gets a shroud (interstage) that covers the engine until it separates
 function shroudsOf(ps){const out=[];ps.forEach((d,i)=>{if(d.t!=="dec"||d.shed)return;let top=-1e9;
@@ -118,6 +121,13 @@ function shroudsOf(ps){const out=[];ps.forEach((d,i)=>{if(d.t!=="dec"||d.shed)re
 function drawShroud(c,s,al){c.save();c.globalAlpha=al==null?1:al;const L=s.x-s.w/2,R=s.x+s.w/2;   // black carbon interstage, like Falcon 9's
   c.fillStyle=cyl(c,L,R,[42,44,50]);c.fillRect(L,s.y0,s.w,s.y1-s.y0);c.fillStyle="rgba(255,255,255,.045)";for(let yy=s.y0+3;yy<s.y1;yy+=3)c.fillRect(L,yy,s.w,0.6);
   c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,s.y1-1.2,s.w,1.2);c.fillStyle="rgba(0,0,0,.4)";c.fillRect(s.x-0.5,s.y0,1,s.y1-s.y0);c.restore();}
+// payload fairing shell (v1.37+): white clamshell over whatever sits on the ring, an ogive top, the split line down the middle.
+// Drawn after the parts so it covers them (al < 1 in the editor so you can see the payload inside)
+function drawFairing(c,p,al){const L=p.x-p.w/2,R=p.x+p.w/2,y0=p.y+p.h,top=y0+(p.fh||120),nh=Math.min((p.fh||120)*0.6,p.w*1.3),yb=top-nh,x=p.x,w=p.w;
+  c.save();c.globalAlpha=al==null?1:al;c.beginPath();c.moveTo(L,y0);c.lineTo(L,yb);c.bezierCurveTo(L,yb+nh*0.42,x-w*0.22,yb+nh*0.86,x-w*0.03,top-0.6);c.quadraticCurveTo(x,top+0.3,x+w*0.03,top-0.6);
+  c.bezierCurveTo(x+w*0.22,yb+nh*0.86,R,yb+nh*0.42,R,yb);c.lineTo(R,y0);c.closePath();c.fillStyle=cyl(c,L,R,SKIN_COL[p.sk]||[240,241,244]);c.fill();
+  c.save();c.clip();c.fillStyle="rgba(0,0,0,.2)";c.fillRect(x-0.5,y0,1,top-y0);c.fillStyle="rgba(0,0,0,.07)";for(let yy=y0+30;yy<yb;yy+=30)c.fillRect(L,yy,w,0.8);
+  c.fillStyle="#c23b2e";c.fillRect(L,y0+2,w,1.2);c.restore();c.restore();}
 const isRad=p=>!!PT[p.t].radial;
 const topW=p=>p.t==="nose"||p.t==="les"?0:p.t==="capsule"?Math.round(p.w*(p.v==="dragon"?0.5:0.34)):p.t==="probe"&&p.v==="cabin"?Math.round(p.w*0.5):p.t==="adapter"?(p.w2||Math.round(p.w*0.48)):p.w;
 const ovl=(a0,a1,b0,b1)=>Math.min(a1,b1)-Math.max(a0,b0);
@@ -353,10 +363,11 @@ function drawPart(c,p,o={}){
       c.fillStyle="#c23b2e";c.fillRect(x-mw/2,y+h*0.74,mw,1.2);c.fillStyle="#d8dade";c.beginPath();c.moveTo(x-mw/2,y+h*0.82);c.lineTo(x,T);c.lineTo(x+mw/2,y+h*0.82);c.fill();break;}
     case"srb":{const cy=y+SRB_NZ;   // SLS-style solid booster: white steel segments, an aft skirt, and a gimballed nozzle
       bell(c,x,cy-2,y,w*0.12,w*0.36,[60,62,68],[92,88,84]);
-      const bk=boostKey(p),body=bk==="sprinter"?[40,42,48]:bk==="longhorn"?[178,182,188]:[236,237,240];   // Sprinter black with yellow bands, Longhorn bare steel
+      const bk=boostKey(p),body=p.sk&&SKIN_COL[p.sk]||(bk==="sprinter"?[40,42,48]:bk==="longhorn"?[178,182,188]:[236,237,240]);   // painted (p.sk), or the model's own look   // Sprinter black with yellow bands, Longhorn bare steel
       c.fillStyle=cyl(c,L,R,body);c.fillRect(L,cy,w,T-cy);
-      if(bk==="sprinter"){c.fillStyle="#e8b923";for(const q of[0.2,0.55,0.9]){const yy=cy+(T-cy)*q;c.fillRect(L,yy-3,w,6);}}
-      if(bk==="longhorn"){for(let i=0;i<w*1.2;i++){const xx=L+(i*37.31)%w;c.fillStyle=i%3?"rgba(255,255,255,.05)":"rgba(0,0,0,.05)";c.fillRect(xx,cy,0.5,T-cy);}}
+      if(p.sk==="stripes"){const bh=Math.max(10,w*0.6);let i=0;c.fillStyle=cyl(c,L,R,[30,32,36]);for(let yy=cy;yy<T;yy+=bh,i++)c.fillRect(i%2?x:L,yy,w/2,Math.min(bh,T-yy));}
+      if(bk==="sprinter"&&!p.sk){c.fillStyle="#e8b923";for(const q of[0.2,0.55,0.9]){const yy=cy+(T-cy)*q;c.fillRect(L,yy-3,w,6);}}
+      if(bk==="longhorn"&&!p.sk){for(let i=0;i<w*1.2;i++){const xx=L+(i*37.31)%w;c.fillStyle=i%3?"rgba(255,255,255,.05)":"rgba(0,0,0,.05)";c.fillRect(xx,cy,0.5,T-cy);}}
       c.fillStyle=cyl(c,L-2,R+2,bk==="sprinter"?[60,62,68]:[214,216,222]);c.fillRect(L,cy,w,10);                                // aft skirt
       c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,cy+10,w,1);
       const seg=T-cy-10;c.fillStyle="rgba(60,64,72,.55)";for(const k of[0.25,0.5,0.75]){const yy=cy+10+seg*k;c.fillRect(L,yy-1.5,w,3);}   // field joints between the segments
@@ -393,9 +404,13 @@ function drawPart(c,p,o={}){
       c.strokeStyle="#c9ccd1";c.lineWidth=0.7;c.strokeRect(a,py,b-a,ph);break;}
     case"light":{c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle=o.lamp?"#fff6d8":"#aab0b8";c.fillRect(f>0?R-2:L,y+1,2,h-2);   // housing and lens
       if(o.lamp){c.fillStyle="rgba(255,246,216,.5)";c.beginPath();c.arc(f>0?R:L,y+h/2,h*0.9,0,6.2832);c.fill();}break;}
+    case"fair":{c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.5,w,1);   // the base ring
+      if(o.shell&&!p.open)drawFairing(c,p,1);break;}
     case"shield":{c.fillStyle=cyl(c,L,R,[58,48,40]);c.fillRect(L,y,w,h);c.fillStyle="rgba(0,0,0,.25)";for(let xx=L+3;xx<R;xx+=4)c.fillRect(xx,y,0.6,h);   // ablative tiles
       c.fillStyle="rgba(255,200,150,.12)";c.fillRect(L,T-1,w,1);break;}
-    case"leg":{const ix=f>0?L:R,dep=o.legs,hx=ix,hy=y+5;
+    case"leg":if(p.v==="big"){const k=1.8,ix=f>0?L:R,sw=w/k,sh=h/k;   // the big leg is the normal one drawn 1.8× around its top hinge
+        c.save();c.translate(ix,T);c.scale(k,k);c.translate(-ix,-T);drawPart(c,Object.assign({},p,{v:undefined,w:sw,h:sh,x:ix+f*sw/2,y:T-sh}),{legs:o.legs});c.restore();break;}
+    {const ix=f>0?L:R,dep=o.legs,hx=ix,hy=y+5;
       const quad=(ax,ay,bx,by,wa,wb,col)=>{const dx=bx-ax,dy=by-ay,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;c.beginPath();c.moveTo(ax+nx*wa/2,ay+ny*wa/2);c.lineTo(bx+nx*wb/2,by+ny*wb/2);c.lineTo(bx-nx*wb/2,by-ny*wb/2);c.lineTo(ax-nx*wa/2,ay-ny*wa/2);c.closePath();c.fillStyle=col;c.fill();};
       if(!dep){   // folded flat against the tank, foot at the top (like a Falcon 9 leg)
         quad(hx+f*7,y+2,hx+f*6,T-12,13,8,"#2a2c31");c.fillStyle="#4b5263";c.fillRect(hx+f*7-1,y+10,2,h-26);
@@ -431,7 +446,7 @@ function drawCentres(c,cn,k,labels){if(!cn)return;const R=9*k;c.save();c.lineWid
   c.restore();}
 // lowest points of a rocket, for touching the ground (centimetres, local)
 function contactPts(ps,legs){const pts=[];
-  for(const p of ps){if(p.t==="leg"&&legs){pts.push([p.x+p.f*48,p.y-80,1]);continue;}
+  for(const p of ps){if(p.t==="leg"&&legs){const k=p.v==="big"?1.8:1,ix=p.x-p.f*p.w/2;pts.push([ix+p.f*63*k,p.y+p.h-170*k,1]);continue;}   // the foot, k× further out for a big leg
     if(p.t==="fin"||p.t==="leg")continue;
     pts.push([p.x-p.w/2,p.y,0],[p.x+p.w/2,p.y,0],[p.x-p.w/2,p.y+p.h,0],[p.x+p.w/2,p.y+p.h,0]);}
   return pts;}
@@ -526,4 +541,8 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
     y=stack(y,[["dec",S],["adapter",S]]);A[A.length-1].w2=W;
     const at=add("engine:atom",0,y,W);y+=at.h;const ut=add("tank",0,y,W,260);ut.sk="gold";y+=260;pair("solar",W/2+5,y-120);pair("light",W/2+4,y-150);
     y=stack(y,[["dec",W],["shield",W],["capsule:dragon",W]]);}
+  else if(name==="comsat"){   // a satellite launcher: kerosene first stage, vacuum upper stage, and a payload fairing with a small
+    // satellite inside (gold-foil tank, probe core, folded solar panels). Above the air the fairing splits open and the panels unfold.
+    let y=stack(0,[["engine:mule",32],["tank",W,140],["dec",W],["engine:vac",30],["tank",W,80]]);pair("fin",W/2+15,0);
+    const fr=add("fair",0,y,48);fr.fh=110;y+=fr.h;const st=add("tank",0,y,24,40);st.sk="gold";y+=40;add("probe",0,y,24);pair("solar",12+5,y-34);}
   return A;}

@@ -59,9 +59,9 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
   v.dry=ps.reduce((s,p)=>s+partMass(p),0);
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,W=0,top=null,I=0;
-  for(const p of ps){x0=Math.min(x0,p.x-p.w/2);x1=Math.max(x1,p.x+p.w/2);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y+p.h);if(!isRad(p))W=Math.max(W,p.w);
+  for(const p of ps){x0=Math.min(x0,p.x-p.w/2);x1=Math.max(x1,p.x+p.w/2);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y+p.h,p.t==="fair"&&!p.open?p.y+p.h+(p.fh||120):0);if(!isRad(p))W=Math.max(W,p.w);
     if(!isRad(p)&&(!top||p.y+p.h>top.y+top.h))top=p;const pm=partMass(p)+(p.fuel||0),dx=(p.x-npx)*UM,dy=(p.y+p.h/2-npy)*UM;I+=pm*(dx*dx+dy*dy+(p.w*p.w+p.h*p.h)*UM*UM/12);}
-  v.H=(y1-y0)*UM;v.W=Math.max(0.15,W*UM);v.Wall=(x1-x0)*UM;v.I=Math.max(I,1);v.nose=!!top&&top.t==="nose";
+  v.H=(y1-y0)*UM;v.W=Math.max(0.15,W*UM);v.Wall=(x1-x0)*UM;v.I=Math.max(I,1);v.nose=!!top&&top.t==="nose"||ps.some(p=>p.t==="fair"&&!p.open&&p.y+p.h+(p.fh||120)>=y1-1);/* a closed fairing over the top works like a nose cone */
   v.fins=ps.filter(p=>p.t==="fin").length;v.finA=v.fins*ps.filter(p=>p.t==="fin").reduce((a,p)=>a+p.w*p.h*UM*UM*0.5,0)/Math.max(1,v.fins);v.Af=Math.PI*(v.W/2)**2;v.As=v.H*v.W;v.Lr=Math.max(0.3,v.H*0.45);
   v.wheel=ps.filter(isBrain).reduce((a,p)=>a+1.2e7*A2(p.w,40),0);   // reaction wheels: 12 MN·m for a 4 m probe, more for wider ones (big rockets still turn slower)
   // capsule: heat shield works only if nothing hangs below it; escape tower; parachutes
@@ -82,7 +82,7 @@ let launchSeed=Date.now()%2147483647||7;
 function startFlight(ps,name,keepWx){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
   const a=analyze(launchPs,engineNums()),keep=a.root>=0?bfs(adjOf(launchPs),a.root,()=>true):new Set();
-  const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;}EN=engineNums();   // full tanks again on a retry
+  const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;delete p.open;}EN=engineNums();   // full tanks again on a retry
   const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)*UM);v.x=0;v.y=PR+terrH(0)-lo+0.005;v.landed=true;launchW=v.Wall;launchH=v.H;
   v.frost=1;if(JX){CD={s:"wait",t:10};v.clamped=true;}else CD={s:"go",t:0};tRel=0;steam=[];
   VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
@@ -163,6 +163,12 @@ function abort(){const v=AV;if(!v||v.crashed)return;const ci=v.ps.findIndex(p=>p
 // drop off: before v1.33 it kept "jettisoning itself", each copy did the same in the same loop, and the page ran out of memory
 // at 34 km on every Super Heavy flight. So: only craft with something besides the tower, and loop over a copy of the list.
 function lesCheck(){for(const v of VS.slice())if(v.hasLes&&!v.crashed&&!(v.lesT>0)&&v.ps.some(p=>p.t!=="les")&&((v.lesDone!=null&&v.t-v.lesDone>1.2)||(v.body===0&&Math.hypot(v.x,v.y)-PR>ATM_TOP*0.85)))jettisonLes(v,v.lesDone!=null?"":"not needed above the air");}
+// payload fairings split open by themselves once the craft is nearly out of the air: two halves tumble away, the craft gets lighter
+function fairCheck(){for(const v of VS){if(v.crashed||!(v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP*0.9))continue;let any=false;
+  for(const p of v.ps){if(p.t!=="fair"||p.open)continue;p.open=true;any=true;const fh=p.fh||120,c=Math.cos(v.phi),s=Math.sin(v.phi);
+    for(const side of[-1,1]){const[wx,wy]=loc(v,(p.x+side*p.w/4-v.px)*UM,(p.y+p.h+fh/2-v.py)*UM),out=4;
+      flyers.push({body:v.body,x:wx,y:wy,vx:v.vx+side*out*c,vy:v.vy-side*out*s,ang:v.phi,om:side*0.9,w:p.w/2*UM,h:fh*UM,side,t:0,wh:1});}}
+  if(any){derive(v,true);if(v===AV){callout("FAIRING SEP","the shell splits open");if(JX)JX.snd.clunk&&JX.snd.clunk();}}}}
 function jettisonLes(v,why){const li=v.ps.findIndex(p=>p.t==="les");if(li<0||v.ps.every(p=>p.t==="les"))return;splitOff(v,new Set([li]),"Escape tower",25);if(v===AV)callout("TOWER JETTISON",why||"");}
 function chutes(){const v=AV;if(!v||v.crashed)return;if(!v.hasCap){msg="Parachutes come with the crew capsule.";msgT=2.5;return;}
   if(v.chute){msg="Parachutes are already out.";msgT=1.5;return;}if(v.body!==0){msg="No air here: parachutes won't work.";msgT=2.5;return;}
@@ -340,7 +346,7 @@ function flightFrame(now){
   fitF();const dtR=Math.min(0.05,(now-lastFT)/1000);lastFT=now;
   if(AV){
     countFrame(dtR);padEmit(dtR);qualityTick(dtR);if(typeof demoStep==="function")demoStep(dtR);
-    lesCheck();
+    lesCheck();fairCheck();
     if(AP.mode&&(keys.has("shift")||keys.has("w")||keys.has("control")||keys.has("s")||keys.has("z")||keys.has("x")))apOff("you took over");
     if(!AV.crashed&&CD.s==="go"&&!AP.mode){if(keys.has("shift")||keys.has("w"))AV.thr=Math.min(1,AV.thr+0.9*dtR);
       if(keys.has("control")||keys.has("s"))AV.thr=Math.max(0,AV.thr-0.9*dtR);}
@@ -452,6 +458,7 @@ function drawVessel(c,v,bright,plumesOnly){
   if(lamp)for(const p of v.ps)if(p.t==="light")drawBeam(c,p,nightK*0.5);
   for(const p of v.ps)drawPart(c,p,{open:vOpen,lamp,fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
+  for(const p of v.ps)if(p.t==="fair"&&!p.open)drawFairing(c,p,1);
   if(showCen&&v===AV){const T=c.getTransform(),sc=Math.hypot(T.a,T.b)||1;drawCentres(c,centres(v.ps),1/sc,false);}   // C: centre of mass / lift / thrust
   c.restore();}
 // a floodlight's beam: a soft cone shining out and down at 45° (in part units, about 40 m long). k: how bright
@@ -539,7 +546,7 @@ function renderFlight(dt){
   // shroud halves tumbling away
   const dq=dt*(r.wv||1);for(const q of flyers){if(q.body!==r.body)continue;const Bq=BOD[q.body],rq=Math.hypot(q.x,q.y),g=-Bq.mu/(rq*rq)*dq;q.t+=dq;
     if(rq>Bq.R){q.vx+=g*q.x/rq;q.vy+=g*q.y/rq;const sp=Math.hypot(q.vx,q.vy),rho=Bq.atm?atmRho(rq-Bq.R):0,drag=Math.min(0.9,rho*sp*0.02*dq);q.vx*=1-drag;q.vy*=1-drag;q.x+=q.vx*dq;q.y+=q.vy*dq;q.ang+=q.om*dq;}
-    c.save();c.translate(q.x,q.y);c.rotate(-q.ang);const L=-q.w/2,R=q.w/2;const gg=c.createLinearGradient(L,0,R,0);gg.addColorStop(0,q.side<0?"#1c1d21":"#4a4d55");gg.addColorStop(1,q.side<0?"#4a4d55":"#2a2c31");
+    c.save();c.translate(q.x,q.y);c.rotate(-q.ang);const L=-q.w/2,R=q.w/2;const gg=c.createLinearGradient(L,0,R,0),d0=q.wh?"#9a9ea6":"#1c1d21",d1=q.wh?"#eef0f3":"#4a4d55",d2=q.wh?"#b9bdc4":"#2a2c31";gg.addColorStop(0,q.side<0?d0:d1);gg.addColorStop(1,q.side<0?d1:d2);   /* white halves: a fairing */
     c.fillStyle=gg;c.fillRect(L,-q.h/2,q.w,q.h);c.fillStyle="#6a6d75";c.fillRect(L,q.h/2-0.03,q.w,0.03);c.restore();}
   flyers=flyers.filter(q=>q.t<25&&Math.hypot(q.x,q.y)>BOD[q.body].R);
   // every craft near this one: the one you fly, dropped stages, boosters

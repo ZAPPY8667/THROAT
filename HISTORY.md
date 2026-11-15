@@ -303,6 +303,19 @@ made on the test stand.
   Unlock buttons, "Needs …"; Esc closes it (the editor's capture key handler swallows keys, so it closes the card itself).
 - The demo/title flights use `tpl()` directly and ignore the tree.
 
+## v1.39: fairings, big legs, booster paint
+- **Payload fairing** (`fair`): a base ring on the upper stage; the payload sits on it; its shell (`p.fh`, 12 m by default,
+  "Taller/Shorter shell" in its settings) is drawn over the payload (`drawFairing`; see-through in the editor). While closed it
+  counts as a nose cone if it's the top (`v.nose`), adds the shell's mass (`fairShell`) and height. `fairCheck()` (each frame,
+  like `lesCheck`) opens it above 0.9 × the top of the air: two white halves tumble away (`flyers` with `wh`), "FAIRING SEP".
+  Retry closes it again. Paintable like a nose. In the tech tree with Space engines.
+- **Big landing leg** (`leg:big`): the normal leg drawn 1.8× about its top hinge; feet 1.8× further out and down
+  (`contactPts`). Tech tree: Landers.
+- **Booster paint**: Standard (the model's own look), White, Black, Steel, Orange, Gold, Black & white (`p.sk` on `srb`).
+- **Comsat** (ready-made): Mule first stage, Lumen Vac upper stage, a fairing over a small gold satellite with folded solar
+  panels. Orbit on the autopilot.
+- tests/flight/new_parts.js: fairing nose/mass/height, big legs, every palette part has a size and mass.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
