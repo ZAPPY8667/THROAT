@@ -316,6 +316,18 @@ made on the test stand.
   panels. Orbit on the autopilot.
 - tests/flight/new_parts.js: fairing nose/mass/height, big legs, every palette part has a size and mass.
 
+## v1.40: detailed engines (from Wyatt's photos: RS-25, Raptor, SLS booster)
+- `drawEngine` helpers: `pipe` (with a lit edge), `flange`/`pipeF` (bolted flanges at every joint), `valve` (red actuators),
+  `struts` (two gimbal actuators: fat cylinder + shiny rod to a lug on the bell), `bands` (stiffener bands round the bell at
+  points along its curve, `bellPt`), `exitBand`, `cables` (wires down the bell).
+- Your engine / saved engines now look like an RS-25 (they burn hydrogen by default): busy powerhead with two pumps, a big
+  bent duct with red flanges, red valves, a near-black bell with six bands, cables and a red exit band. Mule keeps the Merlin
+  look (pump + exhaust pipe) with flanges, struts and bands; Bison/Condor (Raptor/BE-4) get struts, cables, blue valve caps;
+  Lumen Vac a heat tint and rings on the extension; Atom control-drum housings and bands; Wren a helium line + valve; Spike a feed
+  manifold; Gnat a valve. Exit widths unchanged (the flames start there).
+- Solid boosters: a flared aft skirt with bolt pads, stiffener rings, raised field joints with a ring of pins, a forward attach
+  ring, a highlight down the casing, the nozzle's exit lip.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

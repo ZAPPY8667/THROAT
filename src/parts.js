@@ -218,59 +218,98 @@ function bell(c,x,yt,ye,tw,ew,cLow,cTop,split){const H=yt-ye,path=()=>{c.beginPa
   c.fillStyle="rgba(235,225,210,.55)";c.fillRect(x-ew,ye,ew*2,1.6);}
 // engines: each one drawn after a real type. Mount on top, turbopump + plumbing, combustion chamber, throat, bell.
 // The exit widths stay what they were, because the flame in flight starts there.
-function drawEngine(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[150,152,158];
-  const pipe=(pts,wd,col)=>{c.strokeStyle=col;c.lineWidth=wd;c.lineCap="round";c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.stroke();c.lineCap="butt";};
-  const box=(x0,y0,bw,bh,col)=>{c.fillStyle=cyl(c,x0,x0+bw,col);c.fillRect(x0,y0,bw,bh);};
-  const mount=(yb,hw)=>{c.beginPath();c.moveTo(x-w*0.36,T);c.lineTo(x+w*0.36,T);c.lineTo(x+hw,yb);c.lineTo(x-hw,yb);c.closePath();c.fillStyle=cyl(c,x-w*0.36,x+w*0.36,dk);c.fill();};
+// v1.40 (from Wyatt's reference photos: RS-25, Raptor, the SLS booster): flanged pipes, red valve actuators, gimbal struts,
+// stiffener bands round the bell, a coloured band at the exit, cables down the side.
+// a point on the bell's edge, u = 0 at the throat … 1 at the exit (the same curve bell() draws)
+function bellPt(yt,ye,tw,ew,u){const H=yt-ye,a=1-u,P=[[tw,yt],[tw+(ew-tw)*0.32,yt-H*0.22],[ew*0.9,ye+H*0.32],[ew,ye]],b=[a*a*a,3*a*a*u,3*a*u*u,u*u*u];
+  return[b[0]*P[0][0]+b[1]*P[1][0]+b[2]*P[2][0]+b[3]*P[3][0],b[0]*P[0][1]+b[1]*P[1][1]+b[2]*P[2][1]+b[3]*P[3][1]];}
+function drawEngine(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[150,152,158],red="#c23b2e";
+  const pipe=(pts,wd,col)=>{c.strokeStyle=col;c.lineWidth=wd;c.lineCap="round";c.lineJoin="round";c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.stroke();c.lineCap="butt";
+    c.strokeStyle="rgba(255,255,255,.18)";c.lineWidth=wd*0.3;c.beginPath();c.moveTo(pts[0][0]-wd*0.2,pts[0][1]+wd*0.2);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0]-wd*0.2,pts[i][1]+wd*0.2);c.stroke();};   // a lit edge so it reads as a tube
+  const flange=(px,py,s,col)=>{c.fillStyle=col||"#5a5e66";c.fillRect(px-s,py-s,s*2,s*2);c.fillStyle="rgba(255,255,255,.25)";c.fillRect(px-s,py+s-0.4,s*2,0.4);};
+  const pipeF=(pts,wd,col,fc)=>{pipe(pts,wd,col);for(const q of pts)flange(q[0],q[1],wd*0.75,fc);};   // pipe with a bolted flange at every joint
+  const valve=(px,py,s)=>{c.fillStyle=red;c.fillRect(px-s,py-s*0.7,s*2,s*1.4);c.fillStyle="rgba(0,0,0,.35)";c.fillRect(px-s,py-s*0.7,s*2,0.5);c.fillStyle="#7a7e88";c.fillRect(px-s*0.25,py+s*0.7,s*0.5,s*0.8);};   // red-painted valve actuator
+  const box=(x0,y0,bw,bh,col)=>{c.fillStyle=cyl(c,x0,x0+bw,col);c.fillRect(x0,y0,bw,bh);c.fillStyle="rgba(0,0,0,.18)";c.fillRect(x0,y0,bw,0.5);c.fillRect(x0,y0+bh-0.5,bw,0.5);};
+  const mount=(yb,hw)=>{c.beginPath();c.moveTo(x-w*0.36,T);c.lineTo(x+w*0.36,T);c.lineTo(x+hw,yb);c.lineTo(x-hw,yb);c.closePath();c.fillStyle=cyl(c,x-w*0.36,x+w*0.36,dk);c.fill();
+    c.fillStyle="#2a2c31";c.fillRect(x-hw*0.8,yb-1.6,hw*1.6,1.6);};   // thrust frame and the gimbal bearing under it
+  // two gimbal actuators: a fat cylinder from the thrust frame and a shiny rod down to a lug on the bell
+  const struts=(yt,tw)=>{for(const sd of[-1,1]){const ax=x+sd*w*0.3,ay=T-1,bx=x+sd*(tw+w*0.04),by=yt-h*0.08,mx=ax+(bx-ax)*0.55,my=ay+(by-ay)*0.55;
+    pipe([[ax,ay],[mx,my]],Math.max(1.2,w*0.05),"#3a3d44");pipe([[mx,my],[bx,by]],Math.max(0.6,w*0.022),"#c9ccd1");flange(bx,by,Math.max(0.5,w*0.02),"#2a2c31");}};
+  // stiffener bands round the bell (the RS-25's "hatbands"), and an optional coloured band at the exit
+  const bands=(yt,tw,ew,us,col,bh)=>{for(const u of us){const[hx,hy]=bellPt(yt,y,tw,ew,u);c.fillStyle=cyl(c,x-hx,x+hx,col);c.fillRect(x-hx,hy-bh/2,hx*2,bh);c.fillStyle="rgba(255,255,255,.12)";c.fillRect(x-hx,hy+bh/2-0.3,hx*2,0.3);}};
+  const exitBand=(ew,col,bh)=>{c.fillStyle=cyl(c,x-ew,x+ew,col);c.fillRect(x-ew,y,ew*2,bh);c.fillStyle="rgba(0,0,0,.3)";c.fillRect(x-ew,y+bh,ew*2,0.4);};
+  const cables=(yt,tw,ew)=>{c.strokeStyle="rgba(10,10,12,.7)";c.lineWidth=Math.max(0.35,w*0.012);for(const sd of[-1,1]){c.beginPath();for(let u=0.05;u<=0.97;u+=0.08){const[hx,hy]=bellPt(yt,y,tw,ew,u);const px=x+sd*hx*0.82;u<0.1?c.moveTo(px,hy):c.lineTo(px,hy);}c.stroke();}};
   if(k==="gnat"){   // tiny thruster: a gold-foil valve block and a short shiny bell
     const yt=y+h*0.55;mount(y+h*0.86,w*0.14);box(x-w*0.22,y+h*0.6,w*0.44,h*0.26,[196,160,70]);
-    c.fillStyle="rgba(255,240,180,.25)";c.fillRect(x-w*0.22,y+h*0.72,w*0.44,0.6);
-    bell(c,x,yt,y,w*0.09,w*0.36,[150,152,160],[200,204,212],0.6);return;}
+    c.fillStyle="rgba(255,240,180,.25)";c.fillRect(x-w*0.22,y+h*0.72,w*0.44,0.6);valve(x+w*0.28,y+h*0.7,w*0.07);
+    bell(c,x,yt,y,w*0.09,w*0.36,[150,152,160],[200,204,212],0.6);bands(yt,w*0.09,w*0.36,[0.5],[120,122,130],0.6);return;}
   if(k==="spike"){   // aerospike: a ring of small chambers round the top, and a plug tapering down; the air outside is its "bell"
     mount(y+h*0.9,w*0.44);c.fillStyle=cyl(c,x-w*0.48,x+w*0.48,[70,72,80]);c.fillRect(x-w*0.48,y+h*0.7,w*0.96,h*0.2);   // the chamber ring
-    c.fillStyle="#1b1d22";for(let q=-0.4;q<=0.41;q+=0.16)c.fillRect(x+q*w-1,y+h*0.68,2,2);
+    pipe([[x-w*0.46,y+h*0.86],[x+w*0.46,y+h*0.86]],Math.max(1,w*0.03),"#8a8e98");for(let q=-0.36;q<=0.37;q+=0.24)flange(x+q*w,y+h*0.86,w*0.02);   // the feed manifold round the ring
+    c.fillStyle="#1b1d22";for(let q=-0.4;q<=0.41;q+=0.16)c.fillRect(x+q*w-1,y+h*0.68,2,2);valve(x-w*0.3,y+h*0.95,w*0.04);valve(x+w*0.3,y+h*0.95,w*0.04);
     c.beginPath();c.moveTo(x-w*0.44,y+h*0.7);c.bezierCurveTo(x-w*0.4,y+h*0.4,x-w*0.22,y+h*0.12,x-w*0.16,y);c.lineTo(x+w*0.16,y);c.bezierCurveTo(x+w*0.22,y+h*0.12,x+w*0.4,y+h*0.4,x+w*0.44,y+h*0.7);c.closePath();
     c.fillStyle=cyl(c,x-w*0.44,x+w*0.44,[176,108,62]);c.fill();c.save();c.clip();c.strokeStyle="rgba(0,0,0,.2)";c.lineWidth=0.5;
-    for(let t=-0.9;t<=0.9;t+=0.15){c.beginPath();c.moveTo(x+t*w*0.44,y+h*0.7);c.lineTo(x+t*w*0.16,y);c.stroke();}c.restore();
+    for(let t=-0.9;t<=0.9;t+=0.15){c.beginPath();c.moveTo(x+t*w*0.44,y+h*0.7);c.lineTo(x+t*w*0.16,y);c.stroke();}
+    c.fillStyle="rgba(60,30,10,.35)";for(const q of[0.3,0.55])c.fillRect(x-w*0.5,y+h*q,w,0.8);c.restore();
     c.fillStyle="rgba(40,40,46,.9)";c.fillRect(x-w*0.16,y,w*0.32,1.6);return;}
-  if(k==="condor"){   // full-flow methane engine: two big pumps either side, thick hot-gas ducts, a stubby dark bell with a bright rim
-    const yt=y+h*0.6;mount(y+h*0.92,w*0.14);
-    for(const sd of[-1,1]){box(x+sd*w*0.17-(sd<0?w*0.16:0),y+h*0.64,w*0.16,h*0.26,[150,154,162]);
-      pipe([[x+sd*w*0.25,y+h*0.64],[x+sd*w*0.25,y+h*0.6],[x+sd*w*0.1,y+h*0.58]],3.2,"#565a63");pipe([[x+sd*w*0.22,y+h*0.86],[x+sd*w*0.07,y+h*0.82]],2.2,"#9a9ea8");}
-    box(x-w*0.11,yt,w*0.22,h*0.3,[170,172,178]);
-    bell(c,x,yt,y,w*0.08,w*0.46,[44,45,50],[120,96,80],0.82);c.fillStyle="rgba(230,232,236,.7)";c.fillRect(x-w*0.46,y,w*0.92,1.2);return;}
+  if(k==="condor"){   // full-flow methane engine (Raptor-style): two big pumps either side, thick hot-gas ducts, gimbal struts,
+    // blue-capped valve housings, a stubby dark bell with a bright rim
+    const yt=y+h*0.6,tw=w*0.08,ew=w*0.46;mount(y+h*0.92,w*0.14);
+    for(const sd of[-1,1]){box(x+sd*w*0.17-(sd<0?w*0.16:0),y+h*0.64,w*0.16,h*0.26,[150,154,162]);box(x+sd*w*0.19-(sd<0?w*0.12:0),y+h*0.86,w*0.12,h*0.04,[70,110,170]);
+      pipeF([[x+sd*w*0.25,y+h*0.64],[x+sd*w*0.25,y+h*0.6],[x+sd*w*0.1,y+h*0.58]],Math.max(1.6,w*0.05),"#565a63");pipe([[x+sd*w*0.22,y+h*0.86],[x+sd*w*0.07,y+h*0.82]],2.2,"#9a9ea8");}
+    box(x-w*0.11,yt,w*0.22,h*0.3,[170,172,178]);pipeF([[x-w*0.06,y+h*0.9],[x-w*0.06,y+h*0.8],[x+w*0.04,y+h*0.76]],Math.max(0.8,w*0.025),"#7a7e88");
+    bell(c,x,yt,y,tw,ew,[44,45,50],[120,96,80],0.82);struts(yt,tw);cables(yt,tw,ew);c.fillStyle="rgba(230,232,236,.7)";c.fillRect(x-ew,y,ew*2,1.2);return;}
   if(k==="atom"){   // nuclear: a fat reactor drum (with the radiation sign), shielding on top, one pump, then a long bell
-    const yt=y+h*0.5;mount(y+h*0.96,w*0.18);box(x-w*0.3,y+h*0.9,w*0.6,h*0.04,[60,62,68]);
+    const yt=y+h*0.5,tw=w*0.06,ew=w*0.44;mount(y+h*0.96,w*0.18);box(x-w*0.3,y+h*0.9,w*0.6,h*0.04,[60,62,68]);
     box(x-w*0.24,y+h*0.6,w*0.48,h*0.3,[150,154,160]);c.fillStyle="rgba(0,0,0,.18)";for(let q=0.64;q<0.9;q+=0.05)c.fillRect(x-w*0.24,y+h*q,w*0.48,0.5);
+    for(const sd of[-1,1])box(x+sd*w*0.24-(sd<0?w*0.05:0),y+h*0.62,w*0.05,h*0.26,[110,114,122]);   // control-drum housings
     const cx=x,cy=y+h*0.75,R=w*0.12;c.fillStyle="#f2c230";c.beginPath();c.arc(cx,cy,R,0,6.2832);c.fill();c.fillStyle="#1d1d1d";
     for(let a=0;a<3;a++){const a0=a*2.094+Math.PI/2-0.52;c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,R*0.85,a0,a0+1.05);c.closePath();c.fill();}
     c.fillStyle="#f2c230";c.beginPath();c.arc(cx,cy,R*0.24,0,6.2832);c.fill();c.fillStyle="#1d1d1d";c.beginPath();c.arc(cx,cy,R*0.14,0,6.2832);c.fill();
-    box(x-w*0.08,yt,w*0.16,h*0.1,ch);box(x+w*0.12,y+h*0.52,w*0.1,h*0.07,[120,124,132]);
-    bell(c,x,yt,y,w*0.06,w*0.44,[58,60,66],[96,98,106],0.75);return;}
+    box(x-w*0.08,yt,w*0.16,h*0.1,ch);box(x+w*0.12,y+h*0.52,w*0.1,h*0.07,[120,124,132]);pipeF([[x+w*0.17,y+h*0.59],[x+w*0.17,y+h*0.62]],Math.max(0.8,w*0.03),"#7a7e88");
+    bell(c,x,yt,y,tw,ew,[58,60,66],[96,98,106],0.75);bands(yt,tw,ew,[0.35,0.6,0.82],[72,74,80],1);return;}
   if(k==="vac"){   // vacuum engine (MVac-style): small regen chamber on top, then a huge, thin, dark radiatively cooled extension
-    const yt=y+h*0.74;mount(y+h*0.92,w*0.1);box(x+w*0.06,y+h*0.76,w*0.12,h*0.13,[120,124,132]);
-    box(x-w*0.09,yt,w*0.18,h*0.18,ch);
-    bell(c,x,yt,y,w*0.05,w*0.47,[52,54,62],cu,0.85);
-    c.fillStyle="rgba(255,255,255,.07)";for(const q of[0.2,0.4])c.fillRect(x-w*0.5,y+(yt-y)*q,w,0.8);
-    pipe([[x+w*0.14,y+h*0.78],[x+w*0.2,y+h*0.7]],1.6,"#3a3d44");return;}
-  if(k==="bison"){   // big staged-combustion engine (BE-4 / Raptor style): squat, dense plumbing, two pumps
-    const yt=y+h*0.62;mount(y+h*0.9,w*0.12);
+    const yt=y+h*0.74,tw=w*0.05,ew=w*0.47;mount(y+h*0.92,w*0.1);box(x+w*0.06,y+h*0.76,w*0.12,h*0.13,[120,124,132]);
+    box(x-w*0.09,yt,w*0.18,h*0.18,ch);valve(x-w*0.14,y+h*0.84,w*0.03);
+    bell(c,x,yt,y,tw,ew,[52,54,62],cu,0.85);
+    {const g=c.createLinearGradient(0,yt-(yt-y)*0.15,0,yt-(yt-y)*0.45);g.addColorStop(0,"rgba(150,90,170,.18)");g.addColorStop(1,"rgba(150,90,170,0)");   // heat tint where the extension starts
+      c.save();c.beginPath();c.moveTo(x-tw,yt);for(let u=0;u<=1.001;u+=0.1){const[hx,hy]=bellPt(yt,y,tw,ew,u);c.lineTo(x-hx,hy);}for(let u=1;u>=-0.001;u-=0.1){const[hx,hy]=bellPt(yt,y,tw,ew,u);c.lineTo(x+hx,hy);}c.closePath();c.clip();c.fillStyle=g;c.fillRect(x-ew,y,ew*2,yt-y);c.restore();}
+    bands(yt,tw,ew,[0.3,0.55,0.8],[40,42,48],0.9);
+    pipeF([[x+w*0.14,y+h*0.78],[x+w*0.2,y+h*0.7]],1.6,"#3a3d44");return;}
+  if(k==="bison"){   // big staged-combustion engine (BE-4 / Raptor style): squat, dense plumbing, two pumps, gimbal struts
+    const yt=y+h*0.62,tw=w*0.075,ew=w*0.44;mount(y+h*0.9,w*0.12);
     box(x-w*0.3,y+h*0.68,w*0.14,h*0.2,[128,132,140]);box(x+w*0.16,y+h*0.68,w*0.14,h*0.2,[128,132,140]);
     box(x-w*0.1,yt,w*0.2,h*0.26,ch);
-    pipe([[x-w*0.23,y+h*0.68],[x-w*0.23,y+h*0.64],[x-w*0.1,y+h*0.64]],2.4,"#6c707a");pipe([[x+w*0.23,y+h*0.68],[x+w*0.23,y+h*0.64],[x+w*0.1,y+h*0.64]],2.4,"#6c707a");
+    pipeF([[x-w*0.23,y+h*0.68],[x-w*0.23,y+h*0.64],[x-w*0.1,y+h*0.64]],2.4,"#6c707a");pipeF([[x+w*0.23,y+h*0.68],[x+w*0.23,y+h*0.64],[x+w*0.1,y+h*0.64]],2.4,"#6c707a");
     pipe([[x-w*0.2,y+h*0.84],[x-w*0.06,y+h*0.8]],1.8,"#8a8e98");pipe([[x+w*0.2,y+h*0.84],[x+w*0.06,y+h*0.8]],1.8,"#8a8e98");
-    bell(c,x,yt,y,w*0.075,w*0.44,[64,66,72],cu,0.8);return;}
-  if(k==="wren"){   // small pressure-fed engine: no pump, just valves; short bell
-    const yt=y+h*0.62;mount(y+h*0.88,w*0.1);box(x-w*0.08,yt,w*0.16,h*0.26,ch);
-    box(x+w*0.1,y+h*0.72,w*0.1,h*0.1,[100,104,112]);pipe([[x+w*0.15,y+h*0.72],[x+w*0.08,y+h*0.68]],1.4,"#7a7e88");
-    bell(c,x,yt,y,w*0.06,w*0.3,[70,72,78],cu,0.78);return;}
-  // your engine / Mule / saved engines: gas-generator kerosene-style engine (Merlin-like): pump on one side, its exhaust pipe down the bell
-  const yt=y+h*0.7,sd=k==="mule"?-1:1;mount(y+h*0.92,w*0.1);
-  box(x-w*0.1,yt,w*0.2,h*0.22,ch);c.fillStyle="rgba(0,0,0,.2)";c.fillRect(x-w*0.1,y+h*0.86,w*0.2,1);   // chamber + injector-head line
-  box(x+sd*w*0.12-(sd<0?w*0.14:0),y+h*0.72,w*0.14,h*0.16,[120,124,132]);                                    // turbopump
-  bell(c,x,yt,y,w*0.065,w*0.4,[64,66,72],cu,0.8);
-  pipe([[x+sd*w*0.2,y+h*0.72],[x+sd*w*0.24,y+h*0.5],[x+sd*w*0.34,y+h*0.1]],2.4,"#2c2e33");   // gas-generator exhaust
-  pipe([[x+sd*w*0.13,y+h*0.78],[x+sd*w*0.08,y+h*0.75]],1.6,"#8a8e98");}
+    valve(x-w*0.06,y+h*0.86,w*0.03);valve(x+w*0.25,y+h*0.9,w*0.03);
+    bell(c,x,yt,y,tw,ew,[64,66,72],cu,0.8);bands(yt,tw,ew,[0.45,0.75],[54,56,62],1.2);struts(yt,tw);cables(yt,tw,ew);return;}
+  if(k==="wren"){   // small pressure-fed engine: no pump, just valves and a helium line; short bell
+    const yt=y+h*0.62,tw=w*0.06,ew=w*0.3;mount(y+h*0.88,w*0.1);box(x-w*0.08,yt,w*0.16,h*0.26,ch);
+    box(x+w*0.1,y+h*0.72,w*0.1,h*0.1,[100,104,112]);pipeF([[x+w*0.15,y+h*0.72],[x+w*0.08,y+h*0.68]],1.4,"#7a7e88");
+    pipeF([[x-w*0.2,y+h*0.86],[x-w*0.14,y+h*0.76],[x-w*0.08,y+h*0.74]],1.2,"#8a8e98");valve(x-w*0.2,y+h*0.8,w*0.05);
+    bell(c,x,yt,y,tw,ew,[70,72,78],cu,0.78);bands(yt,tw,ew,[0.6],[56,58,64],0.9);return;}
+  if(k==="mule"){   // gas-generator kerosene engine (Merlin-like): turbopump on one side, its exhaust pipe down the bell, gimbal struts
+    const yt=y+h*0.7,sd=-1,tw=w*0.065,ew=w*0.4;mount(y+h*0.92,w*0.1);
+    box(x-w*0.1,yt,w*0.2,h*0.22,ch);c.fillStyle="rgba(0,0,0,.2)";c.fillRect(x-w*0.1,y+h*0.86,w*0.2,1);   // chamber + injector-head line
+    box(x+sd*w*0.12-w*0.14,y+h*0.72,w*0.14,h*0.16,[120,124,132]);                                         // turbopump
+    pipeF([[x+w*0.11,y+h*0.9],[x+w*0.2,y+h*0.84],[x+w*0.2,y+h*0.76],[x+w*0.1,y+h*0.74]],Math.max(1,w*0.04),"#9aa0a8");valve(x+w*0.2,y+h*0.8,w*0.035);
+    bell(c,x,yt,y,tw,ew,[64,66,72],cu,0.8);bands(yt,tw,ew,[0.5,0.78],[52,54,60],1);struts(yt,tw);
+    pipe([[x+sd*w*0.2,y+h*0.72],[x+sd*w*0.24,y+h*0.5],[x+sd*w*0.34,y+h*0.1]],2.4,"#2c2e33");flange(x+sd*w*0.24,y+h*0.5,1.4);   // gas-generator exhaust
+    pipe([[x+sd*w*0.13,y+h*0.78],[x+sd*w*0.08,y+h*0.75]],1.6,"#8a8e98");return;}
+  // your engine / saved engines: staged-combustion hydrogen engine (RS-25 style). A busy powerhead: two turbopumps, a big bent
+  // hot-gas duct with flanges, red valve actuators; a short chamber, then a near-black bell ringed with stiffener bands, cables
+  // running down it, and a red band round the exit
+  const yt=y+h*0.64,tw=w*0.07,ew=w*0.4;mount(y+h*0.94,w*0.12);
+  box(x-w*0.14,y+h*0.68,w*0.28,h*0.24,ch);                                                           // main injector / powerhead
+  box(x-w*0.36,y+h*0.66,w*0.16,h*0.2,[150,152,160]);box(x+w*0.2,y+h*0.66,w*0.15,h*0.18,[140,142,150]);   // high-pressure pumps
+  pipeF([[x-w*0.2,y+h*0.88],[x-w*0.4,y+h*0.86],[x-w*0.44,y+h*0.76],[x-w*0.36,y+h*0.66]],Math.max(1.6,w*0.06),"#a4a8b0",red);   // the big bent duct
+  pipeF([[x+w*0.14,y+h*0.9],[x+w*0.3,y+h*0.88],[x+w*0.3,y+h*0.84]],Math.max(1,w*0.035),"#8a8e98");
+  pipe([[x-w*0.12,y+h*0.7],[x-w*0.2,y+h*0.74]],Math.max(0.6,w*0.02),"#3a3d44");pipe([[x+w*0.12,y+h*0.72],[x+w*0.2,y+h*0.78]],Math.max(0.6,w*0.02),"#3a3d44");
+  valve(x+w*0.08,y+h*0.9,w*0.035);valve(x-w*0.26,y+h*0.72,w*0.03);valve(x+w*0.3,y+h*0.74,w*0.03);valve(x-w*0.05,y+h*0.72,w*0.025);
+  box(x-w*0.09,yt,w*0.18,h*0.05,ch);
+  bell(c,x,yt,y,tw,ew,[34,35,40],[58,60,66],0.92);bands(yt,tw,ew,[0.22,0.38,0.52,0.65,0.77,0.88],[52,54,60],1.4);cables(yt,tw,ew);exitBand(ew,[190,44,36],2.2);
+  struts(yt,tw);}
 // frost on a cryogenic tank: the super-cold propellant freezes the air's moisture onto the skin, so it shows exactly up to
 // the fuel level. k (0..1) fades it as it flakes off on the way up. Patchy streaks from a fixed hash, so it doesn't flicker.
 function frost(c,L,w,y,h,fuel,k){const fh=h*Math.max(0,Math.min(1,fuel==null?1:fuel));if(fh<2)return;c.save();c.beginPath();c.rect(L,y,w,fh);c.clip();
@@ -363,15 +402,20 @@ function drawPart(c,p,o={}){
       c.fillStyle="#c23b2e";c.fillRect(x-mw/2,y+h*0.74,mw,1.2);c.fillStyle="#d8dade";c.beginPath();c.moveTo(x-mw/2,y+h*0.82);c.lineTo(x,T);c.lineTo(x+mw/2,y+h*0.82);c.fill();break;}
     case"srb":{const cy=y+SRB_NZ;   // SLS-style solid booster: white steel segments, an aft skirt, and a gimballed nozzle
       bell(c,x,cy-2,y,w*0.12,w*0.36,[60,62,68],[92,88,84]);
-      const bk=boostKey(p),body=p.sk&&SKIN_COL[p.sk]||(bk==="sprinter"?[40,42,48]:bk==="longhorn"?[178,182,188]:[236,237,240]);   // painted (p.sk), or the model's own look   // Sprinter black with yellow bands, Longhorn bare steel
+      const bk=boostKey(p),body=p.sk&&SKIN_COL[p.sk]||(bk==="sprinter"?[40,42,48]:bk==="longhorn"?[178,182,188]:[236,237,240]);   // painted (p.sk), or the model's own look: Sprinter black with yellow bands, Longhorn bare steel
       c.fillStyle=cyl(c,L,R,body);c.fillRect(L,cy,w,T-cy);
       if(p.sk==="stripes"){const bh=Math.max(10,w*0.6);let i=0;c.fillStyle=cyl(c,L,R,[30,32,36]);for(let yy=cy;yy<T;yy+=bh,i++)c.fillRect(i%2?x:L,yy,w/2,Math.min(bh,T-yy));}
       if(bk==="sprinter"&&!p.sk){c.fillStyle="#e8b923";for(const q of[0.2,0.55,0.9]){const yy=cy+(T-cy)*q;c.fillRect(L,yy-3,w,6);}}
       if(bk==="longhorn"&&!p.sk){for(let i=0;i<w*1.2;i++){const xx=L+(i*37.31)%w;c.fillStyle=i%3?"rgba(255,255,255,.05)":"rgba(0,0,0,.05)";c.fillRect(xx,cy,0.5,T-cy);}}
-      c.fillStyle=cyl(c,L-2,R+2,bk==="sprinter"?[60,62,68]:[214,216,222]);c.fillRect(L,cy,w,10);                                // aft skirt
-      c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,cy+10,w,1);
-      const seg=T-cy-10;c.fillStyle="rgba(60,64,72,.55)";for(const k of[0.25,0.5,0.75]){const yy=cy+10+seg*k;c.fillRect(L,yy-1.5,w,3);}   // field joints between the segments
-      c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,T-3,w,3);
+      // aft skirt: flares out a little at the bottom, with the hold-down posts' bolt pads (v1.40: from the SLS booster photo)
+      c.beginPath();c.moveTo(L-2,cy);c.lineTo(R+2,cy);c.lineTo(R,cy+12);c.lineTo(L,cy+12);c.closePath();c.fillStyle=cyl(c,L-2,R+2,bk==="sprinter"?[60,62,68]:[214,216,222]);c.fill();
+      c.fillStyle="rgba(0,0,0,.28)";for(const q of[-0.3,0.3])c.fillRect(x+q*w-1.5,cy+1,3,3);c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,cy+12,w,1);
+      c.fillStyle="rgba(0,0,0,.12)";for(const q of[16,22,28])c.fillRect(L,cy+q,w,0.8);   // stiffener rings above the skirt
+      const seg=T-cy-12;for(const k of[0.25,0.5,0.75]){const yy=cy+12+seg*k;   // field joints: a raised band with a ring of pins
+        c.fillStyle=cyl(c,L,R,bk==="sprinter"&&!p.sk?[70,72,80]:[188,192,198]);c.fillRect(L,yy-1.8,w,3.6);c.fillStyle="rgba(0,0,0,.35)";for(let xx=L+2;xx<R-1;xx+=4)c.fillRect(xx,yy-0.4,0.8,0.8);}
+      {const ay=T-seg*0.12;c.fillStyle="rgba(0,0,0,.25)";c.fillRect(L,ay,w,1.2);c.fillStyle="#3a3d44";c.fillRect(L-1,ay-2.5,2.5,5);c.fillRect(R-1.5,ay-2.5,2.5,5);}   // forward attach ring
+      c.fillStyle="rgba(255,255,255,.12)";c.fillRect(L+w*0.18,cy+12,0.8,T-cy-15);   // a highlight down the casing
+      c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,T-3,w,3);c.fillStyle="rgba(235,225,210,.55)";c.fillRect(x-w*0.36,y,w*0.72,1.6);   // the nozzle's exit lip
       break;}
     case"dec":{   // separation ring: dark structure, a bright pyro line where it splits, and its bolts
       c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.7,w,1.4);
