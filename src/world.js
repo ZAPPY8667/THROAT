@@ -8,15 +8,18 @@ const CIRC=2*Math.PI*PR;
 const wrapS=s=>{s%=CIRC;if(s<0)s+=CIRC;return s;};
 // --- the shape of the land: height (m) at key points (km east of the pad), smoothed between them ---
 // Negative = sea floor. The spaceport sits flat at sea level (0 m) so the pad is at 0.
+// v1.42: the map was drawn for a 1,000 km Earth; on the bigger one (PR) every place beyond the spaceport moves out with it
+// (same continents, 1.6× wider), so the coast stays 620 m from the pad and the landing zone stays 2 km west.
+const SF=PR/1e6,grow=k=>k>2?k*SF:k;
 const TK=[[0,0],[0.62,0],[0.8,-3],[2,-25],[30,-900],[80,-2600],[1420,-2600],[1490,-40],[1500,1],[1530,20],[1700,250],[2300,900],[2420,2400],
   [2560,5600],[2700,2400],[2780,900],[2850,500],[3650,450],[3760,1800],[4200,2100],[4290,300],[4305,1],[4315,-40],[4400,-3000],[5480,-3000],
-  [5560,-40],[5570,1],[5600,40],[5900,150],[6000,700],[6100,250],[6230,30],[6283.185,0]];
+  [5560,-40],[5570,1],[5600,40],[5900,150],[6000,700],[6100,250],[6230,30],[6283.185,0]].map(([k,h])=>[grow(k),h]);
 // biomes by stretch of the surface (km): name, ground colour, grass/top colour, roughness of the noise added on top (m)
 const BIOMES=[[0,0.62,"Spaceport","#6e7176","#8a8d92",0],[0.62,1500,"Ocean","#3f3a32","#d9c79a",0],[1500,1530,"Beach","#c9b27f","#e6d7a8",2],
   [1530,1750,"Jungle","#3b3a26","#2e6a2b",40],[1750,2380,"Forest","#4a4430","#3f6d36",120],[2380,2780,"Mountains","#6c665e","#7d7468",900],
   [2780,3720,"Desert","#b8945e","#d8b878",35],[3720,4300,"Ice plateau","#9aa6b2","#e9eef3",120],[4300,5565,"Ocean","#3f3a32","#d9c79a",0],
   [5565,5600,"Beach","#c9b27f","#e6d7a8",2],[5600,5940,"Grassland","#5a4c34","#5f8a45",40],[5940,6120,"Hills","#4f4632","#4a7a3c",260],
-  [6120,6280,"Coastal plain","#5a5040","#6a9150",8],[6280,6283.19,"Spaceport","#6e7176","#8a8d92",0]];
+  [6120,6280,"Coastal plain","#5a5040","#6a9150",8],[6280,6283.19,"Spaceport","#6e7176","#8a8d92",0]].map(b=>[grow(b[0]),grow(b[1]),...b.slice(2)]);
 function biomeAt(s){const k=wrapS(s)/1000;for(const b of BIOMES)if(k>=b[0]&&k<b[1])return b;return BIOMES[0];}
 // smooth value noise from a fixed hash: the same hills every game
 const hash1=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
@@ -33,7 +36,7 @@ function terrH(s){s=wrapS(s);const dp=Math.min(s,CIRC-s);if(dp<PADT+PADS)return 
   return h;}
 // roughness fades in and out over 15 km at the edges of each biome, so the noise never makes a cliff
 function roughAt(s){const k=wrapS(s)/1000;let r=0;for(const b of BIOMES){if(!b[5])continue;const d=Math.min(k-b[0],b[1]-k);if(d>-15)r=Math.max(r,b[5]*Math.max(0,Math.min(1,(d+15)/30)));}
-  const nearPad=Math.min(k,6283.185-k);if(nearPad<8)r*=Math.max(0,(nearPad-3)/5);return r;}
+  const nearPad=Math.min(k,CIRC/1000-k);if(nearPad<8)r*=Math.max(0,(nearPad-3)/5);return r;}
 // what a craft touching the ground at world point (x, y) stands on: height of the surface there, and whether it's water
 // what a craft touches at a point: the terrain, the sea (water: true), or a building's roof (bld: that building)
 function groundAt(body,x,y){if(body!==0)return{h:0,water:false};const sp=Math.atan2(x,y)*PR,th=terrH(sp),b=bldAt(sp);

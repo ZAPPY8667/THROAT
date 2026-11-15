@@ -2826,10 +2826,11 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
 // ================= ORBITS: Earth, the Moon, and where you're headed =================
 // Each craft moves around one body at a time (its "sphere of influence"), like Space Flight Simulator and KSP.
 // Coasting at high time warp it rides its orbit exactly ("on rails") instead of being stepped.
-// Earth: 1,000 km radius (v1.17; orbit takes ~3.1 km/s), air to 40 km. The landing zone (PAD2) and the surface are in world.js.
-const PR=1000e3,MU=9.81*PR*PR,P0=101325,RHO0=1.225,HSC=4500,ATM_TOP=40e3;
-// the Moon, scaled to match: 300 km radius, 8,000 km away (a lap takes ~12.6 h of game time)
-const RM=300e3,MUM=1.62*RM*RM,DM=8e6,NM=Math.sqrt(MU/DM**3),SOI=DM*Math.pow(MUM/MU,0.4),TH0=Math.PI/2+0.35;
+// Earth: 1,600 km radius since v1.42 (was 1,000 km from v1.17): Wyatt found orbit too easy. Low orbit is now ~3.9 km/s fast
+// (was ~3.0). Air to 40 km. The landing zone (PAD2) and the surface are in world.js (the surface map grew with it).
+const PR=1600e3,MU=9.81*PR*PR,P0=101325,RHO0=1.225,HSC=4500,ATM_TOP=40e3;
+// the Moon: 300 km radius, 12,800 km away (v1.42: moved out with the bigger Earth, was 8,000 km; a lap takes ~16 h of game time)
+const RM=300e3,MUM=1.62*RM*RM,DM=12.8e6,NM=Math.sqrt(MU/DM**3),SOI=DM*Math.pow(MUM/MU,0.4),TH0=Math.PI/2+0.35;
 const BOD=[{name:"Earth",R:PR,mu:MU,atm:true,floor:ATM_TOP,soi:Infinity},{name:"Moon",R:RM,mu:MUM,atm:false,floor:4000,soi:SOI}];
 const atmP=h=>h>ATM_TOP?0:P0*Math.exp(-h/HSC),atmRho=h=>h>ATM_TOP?0:RHO0*Math.exp(-h/HSC);
 const wrapA=a=>Math.atan2(Math.sin(a),Math.cos(a));
@@ -2908,15 +2909,18 @@ const CIRC=2*Math.PI*PR;
 const wrapS=s=>{s%=CIRC;if(s<0)s+=CIRC;return s;};
 // --- the shape of the land: height (m) at key points (km east of the pad), smoothed between them ---
 // Negative = sea floor. The spaceport sits flat at sea level (0 m) so the pad is at 0.
+// v1.42: the map was drawn for a 1,000 km Earth; on the bigger one (PR) every place beyond the spaceport moves out with it
+// (same continents, 1.6× wider), so the coast stays 620 m from the pad and the landing zone stays 2 km west.
+const SF=PR/1e6,grow=k=>k>2?k*SF:k;
 const TK=[[0,0],[0.62,0],[0.8,-3],[2,-25],[30,-900],[80,-2600],[1420,-2600],[1490,-40],[1500,1],[1530,20],[1700,250],[2300,900],[2420,2400],
   [2560,5600],[2700,2400],[2780,900],[2850,500],[3650,450],[3760,1800],[4200,2100],[4290,300],[4305,1],[4315,-40],[4400,-3000],[5480,-3000],
-  [5560,-40],[5570,1],[5600,40],[5900,150],[6000,700],[6100,250],[6230,30],[6283.185,0]];
+  [5560,-40],[5570,1],[5600,40],[5900,150],[6000,700],[6100,250],[6230,30],[6283.185,0]].map(([k,h])=>[grow(k),h]);
 // biomes by stretch of the surface (km): name, ground colour, grass/top colour, roughness of the noise added on top (m)
 const BIOMES=[[0,0.62,"Spaceport","#6e7176","#8a8d92",0],[0.62,1500,"Ocean","#3f3a32","#d9c79a",0],[1500,1530,"Beach","#c9b27f","#e6d7a8",2],
   [1530,1750,"Jungle","#3b3a26","#2e6a2b",40],[1750,2380,"Forest","#4a4430","#3f6d36",120],[2380,2780,"Mountains","#6c665e","#7d7468",900],
   [2780,3720,"Desert","#b8945e","#d8b878",35],[3720,4300,"Ice plateau","#9aa6b2","#e9eef3",120],[4300,5565,"Ocean","#3f3a32","#d9c79a",0],
   [5565,5600,"Beach","#c9b27f","#e6d7a8",2],[5600,5940,"Grassland","#5a4c34","#5f8a45",40],[5940,6120,"Hills","#4f4632","#4a7a3c",260],
-  [6120,6280,"Coastal plain","#5a5040","#6a9150",8],[6280,6283.19,"Spaceport","#6e7176","#8a8d92",0]];
+  [6120,6280,"Coastal plain","#5a5040","#6a9150",8],[6280,6283.19,"Spaceport","#6e7176","#8a8d92",0]].map(b=>[grow(b[0]),grow(b[1]),...b.slice(2)]);
 function biomeAt(s){const k=wrapS(s)/1000;for(const b of BIOMES)if(k>=b[0]&&k<b[1])return b;return BIOMES[0];}
 // smooth value noise from a fixed hash: the same hills every game
 const hash1=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
@@ -2933,7 +2937,7 @@ function terrH(s){s=wrapS(s);const dp=Math.min(s,CIRC-s);if(dp<PADT+PADS)return 
   return h;}
 // roughness fades in and out over 15 km at the edges of each biome, so the noise never makes a cliff
 function roughAt(s){const k=wrapS(s)/1000;let r=0;for(const b of BIOMES){if(!b[5])continue;const d=Math.min(k-b[0],b[1]-k);if(d>-15)r=Math.max(r,b[5]*Math.max(0,Math.min(1,(d+15)/30)));}
-  const nearPad=Math.min(k,6283.185-k);if(nearPad<8)r*=Math.max(0,(nearPad-3)/5);return r;}
+  const nearPad=Math.min(k,CIRC/1000-k);if(nearPad<8)r*=Math.max(0,(nearPad-3)/5);return r;}
 // what a craft touching the ground at world point (x, y) stands on: height of the surface there, and whether it's water
 // what a craft touches at a point: the terrain, the sea (water: true), or a building's roof (bld: that building)
 function groundAt(body,x,y){if(body!==0)return{h:0,water:false};const sp=Math.atan2(x,y)*PR,th=terrH(sp),b=bldAt(sp);
@@ -3423,7 +3427,7 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
   let h=`<div class="read" style="grid-template-columns:auto 1fr auto 1fr"><span>Mass</span><b data-r="m" data-v="${a.mass}" data-u="mass"></b><span>Height</span><b>${a.H.toFixed(1)} m</b></div>`;
   if(st.length){h+=`<div class="vst">`;st.forEach((s,k)=>{h+=`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b data-r="s${k}" data-v="${s.dv}"></b> m/s</span><span>TWR <b class="${s.twr>(k?0.5:1.1)?"ok":"bad"}">${s.twr.toFixed(2)}</b></span><i>${s.eng} engine${s.eng===1?"":"s"} · burns ${Math.round(s.burn)} s</i></div>`;
     if(s.dropKind)h+=`<div class="vsep">Space → drop ${s.dropKind==="boosters"?"the side boosters":"stage "+(k+1)}</div>`;});
-    h+=`</div><div class="read" style="grid-template-columns:auto 1fr"><span>Total Δv</span><b data-r="t" data-v="${a.total}" data-u=" m/s"></b></div><div class="tip">Orbit takes about 2,300 m/s. TWR above 1 to lift off.</div>`;}
+    h+=`</div><div class="read" style="grid-template-columns:auto 1fr"><span>Total Δv</span><b data-r="t" data-v="${a.total}" data-u=" m/s"></b></div><div class="tip">Orbit takes about 4,500 m/s (the autopilot uses ~4,900). TWR above 1 to lift off.</div>`;}
   for(const w of a.warn)h+=`<div class="warn">⚠ ${w}</div>`;
   if(st.length&&st[0].twr<=1)h+=`<div class="warn">⚠ Too heavy to lift off: add engines or use less fuel.</div>`;
   {const cn=centres(vps);if(cn&&cn.col&&a.root>=0&&cn.col[1]>cn.com[1]+5)h+=`<div class="warn">⚠ The centre of lift (blue) is above the centre of mass (yellow): in the air it will want to flip. Add fins low down, or put heavy parts higher. C shows the markers.</div>`;}
@@ -4346,8 +4350,13 @@ function apAscent(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),h=rr-B.R,o=or
     if(tt&&tt.ap<=tb/2+1&&h<=B.floor){AP.ph="circ";}}
   // circularise: push sideways (flat along the ground, the way it's going), not along the path: if the path still climbs steeply,
   // pushing along it only raises the apoapsis (on the Moon that sent it off into space, v1.35)
-  else if(AP.ph==="circ"){const ra=rr,vc=Math.sqrt(B.mu/ra),vh=Math.abs(o.hz)/ra,sd=o.hz<0?1:-1;point(v,up+sd*Math.PI/2-sd*(o.ap<O.alt*0.98&&tt&&tt.ap>tt.per/2?0.15:0));
-    const need=vc-vh,a=Math.max(0.3,apThrust(v).all/mOf(v));v.thr=clamp(need/(a*1.5),0.05,1);AP.msg=`Circularising: ${fmt(Math.max(0,need))} m/s to go`;
+  else if(AP.ph==="circ"){const ra=rr,vc=Math.sqrt(B.mu/ra),vh=Math.abs(o.hz)/ra,sd=o.hz<0?1:-1,a=Math.max(0.3,apThrust(v).all/mOf(v));
+    // v1.42: still well short of orbital speed, gravity wins and the craft sinks back into the air while it speeds up sideways
+    // (it happened on the bigger Earth to a light, punchy upper stage). Tilt the push up just enough to stop the fall:
+    // the missing "lift" is g·(1 − vh²/vc²), plus a bit more for any speed already downward
+    const vr=(v.x*v.vx+v.y*v.vy)/rr,g=B.mu/(rr*rr),lift=Math.max(0,g*(1-(vh*vh)/(vc*vc))-Math.min(0,vr)*0.05),hold=h<O.alt*1.05?Math.asin(clamp(lift/a,0,0.8)):0;
+    point(v,up+sd*(Math.PI/2-hold)-sd*(o.ap<O.alt*0.98&&tt&&tt.ap>tt.per/2?0.15:0));
+    const need=vc-vh;v.thr=clamp(need/(a*1.5),0.05,1);AP.msg=`Circularising: ${fmt(Math.max(0,need))} m/s to go`;
     if(!o.esc&&o.pe>Math.max(B.floor+5000,O.alt*0.9)||o.esc){v.thr=0;apOff("done");}}}
 // ---------------- NODE: plan and fly a burn ----------------
 // a node: at game time t, change speed by dv along the path (prograde > 0, retrograde < 0)
@@ -4473,7 +4482,7 @@ function demoStep(dt){if(!DEMO.on&&DEMO.ph==="end"&&DEMO.el&&DEMO.el.style.displ
     if(DEMO.tz!=null&&DEMO.t-DEMO.tz>8){DEMO.tz=null;DEMO.close=false;warp=4;}
     if(said.space)dOnce("sp",()=>dSay("Space! Above 40 km there's no air left. The escape tower isn't needed any more, so it flew off."));
     if(said.orbit||AP.lastFor==="ascent"&&!AP.mode){DEMO.ph="orbit";DEMO.t=0;warp=1;DEMO.zoom=1;
-      dSay("Orbit: going 3 km/s sideways, it falls around the Earth and keeps missing the ground. Next stop: the Moon.");}}
+      dSay("Orbit: going almost 4 km/s sideways, it falls around the Earth and keeps missing the ground. Next stop: the Moon.");}}
   else if(P==="orbit"){
     if(DEMO.t>6&&!DEMO.said.plan){DEMO.said.plan=1;if(AP.mode)apOff("done");const n=planNode("moon");
       if(!n){dSay("No Moon transfer this lap, so the demo stops here. Try the NODE tab yourself!");DEMO.on=false;return;}
@@ -4513,7 +4522,7 @@ function demoStep(dt){if(!DEMO.on&&DEMO.ph==="end"&&DEMO.el&&DEMO.el.style.displ
   else if(P==="homecoast"){if(v.body===0&&(warpTo==null||hAG<250e3)){warpTo=null;warp=1;mapView=false;
       while(v.ps.some(p=>p.t==="dec"))doStage();   // only the capsule comes home: drop everything under its heat shield
       const c=AV;c.sas="retro";DEMO.ph="reentry";DEMO.t=0;DEMO.close=true;
-      dSay("Only the capsule comes home. It turns its heat shield to the front: hitting the air at 3 km/s will make it glow.");}}
+      dSay("Only the capsule comes home. It turns its heat shield to the front: hitting the air at 4 km/s will make it glow.");}}
   else if(P==="reentry"){warp=hAG>45000||(v.hf||0)<1.5e7?10:4;   // slow only while it glows
     if((v.hf||0)>1e7)dOnce("hot",()=>dSay("Re-entry! The air in front of the shield is squeezed so hard it glows. The shield takes the heat."));
     const sp=Math.hypot(v.vx,v.vy);if(sp<240&&hAG<9000){chutes();DEMO.ph="chutes";DEMO.t=0;dSay("Slow enough: parachutes out.");}}

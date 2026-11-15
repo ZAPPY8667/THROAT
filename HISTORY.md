@@ -341,6 +341,19 @@ made on the test stand.
   and the SAS tab list show the same icons (`sasIcon`; surface modes green, horizon arrows white, stability a gyro), names in
   the tooltip and the list.
 
+## v1.42: a bigger Earth (1.6×)
+- Wyatt: launches too easy, too much Δv left at the top. Earth `PR` 1,000 → 1,600 km (g still 9.81, so low orbit is ~3.9 km/s,
+  was ~3.0). Measured with the ascent autopilot (Δv actually spent): Orbiter 4,140 → 4,970 m/s, Sparrow 3,900 → 4,750, Comsat
+  4,080 → 4,920. (The editor's "orbit takes about 2,300 m/s" was wrong even before; now "about 4,500 (the autopilot uses ~4,900)".)
+- The surface map (`TK`, `BIOMES`, drawn for 1,000 km) is stretched with it beyond 2 km from the pad (`SF`, `grow`): same
+  continents 1.6× wider, the coast still 620 m east and the landing zone 2 km west. The Moon moved out with it: `DM` 8,000 →
+  12,800 km (SOI ~1,640 km, a lap ~16 h).
+- Every ready-made rocket still reaches orbit (less fuel left over). A rebuilt pre-v1.16 Sparrow fell back into the air while
+  circularising (it reached the target height too slowly sideways): `circ` now tilts the push up just enough to stop the fall
+  (g·(1 − vh²/vc²)).
+- tests/flight/mission.js: the demo's whole mission headless (SLS to orbit, Moon transfer, land, Moon orbit, home, capsule only,
+  re-entry heat shield first, chutes): passes with 38 t to spare at the Moon.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

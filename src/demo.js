@@ -46,7 +46,7 @@ function demoStep(dt){if(!DEMO.on&&DEMO.ph==="end"&&DEMO.el&&DEMO.el.style.displ
     if(DEMO.tz!=null&&DEMO.t-DEMO.tz>8){DEMO.tz=null;DEMO.close=false;warp=4;}
     if(said.space)dOnce("sp",()=>dSay("Space! Above 40 km there's no air left. The escape tower isn't needed any more, so it flew off."));
     if(said.orbit||AP.lastFor==="ascent"&&!AP.mode){DEMO.ph="orbit";DEMO.t=0;warp=1;DEMO.zoom=1;
-      dSay("Orbit: going 3 km/s sideways, it falls around the Earth and keeps missing the ground. Next stop: the Moon.");}}
+      dSay("Orbit: going almost 4 km/s sideways, it falls around the Earth and keeps missing the ground. Next stop: the Moon.");}}
   else if(P==="orbit"){
     if(DEMO.t>6&&!DEMO.said.plan){DEMO.said.plan=1;if(AP.mode)apOff("done");const n=planNode("moon");
       if(!n){dSay("No Moon transfer this lap, so the demo stops here. Try the NODE tab yourself!");DEMO.on=false;return;}
@@ -86,7 +86,7 @@ function demoStep(dt){if(!DEMO.on&&DEMO.ph==="end"&&DEMO.el&&DEMO.el.style.displ
   else if(P==="homecoast"){if(v.body===0&&(warpTo==null||hAG<250e3)){warpTo=null;warp=1;mapView=false;
       while(v.ps.some(p=>p.t==="dec"))doStage();   // only the capsule comes home: drop everything under its heat shield
       const c=AV;c.sas="retro";DEMO.ph="reentry";DEMO.t=0;DEMO.close=true;
-      dSay("Only the capsule comes home. It turns its heat shield to the front: hitting the air at 3 km/s will make it glow.");}}
+      dSay("Only the capsule comes home. It turns its heat shield to the front: hitting the air at 4 km/s will make it glow.");}}
   else if(P==="reentry"){warp=hAG>45000||(v.hf||0)<1.5e7?10:4;   // slow only while it glows
     if((v.hf||0)>1e7)dOnce("hot",()=>dSay("Re-entry! The air in front of the shield is squeezed so hard it glows. The shield takes the heat."));
     const sp=Math.hypot(v.vx,v.vy);if(sp<240&&hAG<9000){chutes();DEMO.ph="chutes";DEMO.t=0;dSay("Slow enough: parachutes out.");}}
