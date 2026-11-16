@@ -1,7 +1,7 @@
-# Next session: where things stand (2026-11-16, v1.43 on branch `claude/cpu-speedup`, not on main)
+# Next session: where things stand (2026-11-16, after v1.43)
 
-v1.42 is on `main` and live. v1.43 (engine physics on the graphics card) is on the branch `claude/cpu-speedup`, NOT merged:
-Wyatt hasn't tried it on a real GPU yet. Read CLAUDE.md, then HISTORY.md v1.43.
+v1.43 (engine physics on the graphics card) is on `main` and live. Wyatt hasn't reported real-GPU speed yet.
+Read CLAUDE.md, then HISTORY.md v1.43.
 
 ## What this stretch did (GPU plan, steps 0–4)
 - Step 0 (CPU): only +10% was available (mixing fused, bit-identical). The CPU solver is compute-bound.
@@ -13,7 +13,7 @@ Wyatt hasn't tried it on a real GPU yet. Read CLAUDE.md, then HISTORY.md v1.43.
 ## Next
 - **Measure on Wyatt's computer** (the whole point): open the branch build in Chrome, Build an engine, light it, hover the Sim
   readout for steps/s; compare with `?cpu`. This container only has SwiftShader (emulated GPU, slower than the CPU path).
-- If it's fast: merge to main (Wyatt says when), then Step 5 ideas: bigger/finer worlds, maybe draw straight from the GPU.
+- If it's fast: Step 5 ideas: bigger/finer worlds, maybe draw straight from the GPU.
 - If it's slow on a real GPU: profile bursts (encode time vs GPU time); likely fixes: skip the full read-back when no
   snapshot is wanted, fewer dispatches (merge mixIt passes), encode the next burst while the GPU runs.
 - Older ideas still open: trim ready-made rockets' spare Δv, tech-tree pacing from a fresh start, docking port, playtest email v2 for Zack.
