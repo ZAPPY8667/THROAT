@@ -211,8 +211,11 @@ function mix(dt){
     const bo=BOOST[k]>BOOST[j]?BOOST[k]:BOOST[j];let sp=ms[k]>ms[j]?ms[k]:ms[j];if(bo>sp)sp=bo;if(sp<=0)return;
     FA[nf]=k;FB[nf]=j;FC[nf]=Math.min(0.24,(a<b?a:b)*sp*(1+2*bo));nf++;};
   for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){const k=y*NX+x;if(mg[k]===0)continue;if(x<NX-1)addF(k,k+1);if(y<NY-1)addF(k,k+NX);}
-  const Q=[rho,mx,my,En,...rs.slice(0,NSA)];
-  for(let it=0;it<n;it++)for(let q=0;q<Q.length;q++){const A=Q[q];for(let f=0;f<nf;f++){const k=FA[f],j=FB[f],d=FC[f]*(A[j]-A[k]);A[k]+=d;A[j]-=d;}}
+  // every face swaps a share of every quantity; one pass over the faces handles them all (each quantity still sees the faces in the same order)
+  const ns=NSA;
+  for(let it=0;it<n;it++)for(let f=0;f<nf;f++){const k=FA[f],j=FB[f],c=FC[f];let d;
+    d=c*(rho[j]-rho[k]);rho[k]+=d;rho[j]-=d;d=c*(mx[j]-mx[k]);mx[k]+=d;mx[j]-=d;d=c*(my[j]-my[k]);my[k]+=d;my[j]-=d;d=c*(En[j]-En[k]);En[k]+=d;En[j]-=d;
+    for(let q=0;q<ns;q++){const A=rs[q];d=c*(A[j]-A[k]);A[k]+=d;A[j]-=d;}}
 }
 // ---------------- world: tanks, valves, igniters ----------------
 let tanks=[];    // {id,x0,y0,x1,y1,Y,P,T,inf,name}   (x0..y1 = the gas inside; its walls are one cell outside)
