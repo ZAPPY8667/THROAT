@@ -351,11 +351,11 @@ function stopWorker(){if(worker){worker.terminate();worker=null;pending=[];snap=
 function startWorker(){
   if(typeof Worker==="undefined"||new URLSearchParams(location.search).has("noworker"))return;
   try{
-    const src="var THROAT_SIZE="+JSON.stringify([NX,NY])+";\n"+document.getElementById("coreScript").textContent+"\n"+document.getElementById("workerGlue").textContent;
+    const src="var THROAT_SIZE="+JSON.stringify([NX,NY])+";\n"+document.getElementById("coreScript").textContent+"\n"+document.getElementById("gpuScript").textContent+"\n"+document.getElementById("workerGlue").textContent;
     const w=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})));let alive=false;
     w.onmessage=e=>{alive=true;snap=e.data;};
     w.onerror=()=>{if(!alive)stopWorker();};
-    worker=w;w.postMessage({t:"init",state:exportState(),paused:S.paused,spd:S.spd});
+    worker=w;w.postMessage({t:"init",state:exportState(),paused:S.paused,spd:S.spd,gpu:!new URLSearchParams(location.search).has("cpu")});   // ?cpu: physics on the CPU even if there is a GPU
     setTimeout(()=>{if(!alive)stopWorker();},3000);   // no answer → run physics on this thread instead
   }catch(err){worker=null;}
 }
@@ -364,7 +364,7 @@ function takeSnapshot(){
   for(let k=0;k<NC;k++){const a=wall[k],b=o.wall[k];if(a!==b&&!((a===4||a===0)&&(b===4||b===0))){wch=true;break;}}
   importState(o);pending=pending.filter(p=>p.seq>o.seq);for(const p of pending)act(p.name,...p.args);
   if(wch)wallsDirty=true;
-  PERF.sps=o.sps;tracers(o.dts);keysUI();atmoUI();wantOut=false;
+  PERF.sps=o.sps;PERF.gpu=o.gpu;PERF.gpuErr=o.gpuErr;tracers(o.dts);keysUI();atmoUI();wantOut=false;
 }
 // snapshots cost the physics thread a full copy of the world, so bigger worlds ask for fewer of them
 let wantOut=true,lastWant=0;const SNAP_MS=NC>40000?40:NC>20000?30:0;
@@ -854,10 +854,10 @@ function readouts(){
     {const r=$("rowB");if(burn){r.style.display="";const mp=srbMass-burn.m0,t=(burn.done?burn.t1:simTime)-burn.t0;
       set("rBurn",`${burn.done?"burnt out":"burning"} · ${(t*1e3).toFixed(1)} ms · peak ${(burn.peak/1000).toFixed(2)} kN · ${burn.imp.toFixed(1)} N·s${steadyIsp(burn)>0?` · Isp ${Math.round(steadyIsp(burn))} s`:""}`);}else r.style.display="none";}
     const ac=atomCheck();set("rA",ac.ok?"conserved ✓":"drift");$("rA").className=ac.ok?"ok":"bad";
-    set("rS",(simTime*1000).toFixed(2)+" ms · "+fps+" fps");$("rS").title=PERF.sps+" physics steps per second";
+    set("rS",(simTime*1000).toFixed(2)+" ms · "+fps+" fps"+(PERF.gpu?" · GPU":""));$("rS").title=PERF.sps+" physics steps per second"+(PERF.gpu?" (on the graphics card)":" (on the CPU"+(PERF.gpuErr?": "+PERF.gpuErr:"")+")");
     if(sel)inspUI(false);}
 }
-const PERF={step:0,render:0,sps:0},BUDGET=26;window.__perf=PERF;let stepsWin=0;
+const PERF={step:0,render:0,sps:0,gpu:0,gpuErr:""},BUDGET=26;window.__perf=PERF;let stepsWin=0;
 function frame(now){
   if(FLT.on||FLT.vab){requestAnimationFrame(frame);return;}     // flying: the test stand waits
   const sparkHeld=S.tool==="spark"&&mouse.down&&mouse.btn===0&&!S.paused;

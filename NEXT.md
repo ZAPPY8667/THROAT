@@ -1,31 +1,33 @@
-# Next session: where things stand (2026-11-16, after v1.42)
+# Next session: where things stand (2026-11-16, v1.43 on branch `claude/cpu-speedup`, not on main)
 
-v1.42 is on `main` and live (https://zappy8667.github.io/THROAT/, checked byte-for-byte after the push). Read CLAUDE.md, then
-HISTORY.md from v1.36 on (this stretch: v1.36–v1.42).
+v1.42 is on `main` and live. v1.43 (engine physics on the graphics card) is on the branch `claude/cpu-speedup`, NOT merged:
+Wyatt hasn't tried it on a real GPU yet. Read CLAUDE.md, then HISTORY.md v1.43.
 
-## What this stretch did
-- v1.36 pad on a 12 m mound + flame trench (wedge, ground-level tunnels), clean view (V), everything in flight folds behind tabs.
-- v1.37 lots of parts (Gnat/Spike/Condor/Atom engines, Sprinter/Longhorn boosters, variants, solar/light/shield, paints, Pathfinder).
-- v1.38 tech tree (science from goals, starter kit, "Unlock everything" switch).
-- v1.39 payload fairing, big legs, booster paint, Comsat. v1.40 detailed engine drawings (from Wyatt's RS-25/Raptor/SLS photos).
-- v1.41 planet cut-away interior when zoomed out + sharper globe; navball with KSP-style SAS icons.
-- v1.42 Earth 1.6× bigger (1,600 km; orbit ~4.9 km/s on the autopilot), map/Moon scaled, headless demo-mission test.
+## What this stretch did (GPU plan, steps 0–4)
+- Step 0 (CPU): only +10% was available (mixing fused, bit-identical). The CPU solver is compute-bound.
+- Steps 1–3: `src/gpu.js` runs the whole per-step physics in WebGPU (gas, tanks, igniters, sparks, injectors, solid propellant,
+  stirring, burning, heat loss). Matches the CPU: H₂ engine 2.29 kN / 369 s vs 2.30 / 373; quick test within 0.1–1.4%.
+- Step 4: worker GPU loop with CPU fallback (`?cpu`, no WebGPU, GPU lost), atoms balance, tests/gpu/quick.js in run.sh,
+  "· GPU" in the Sim readout, desktop + phone checked.
 
-## Open items / ideas (ask Wyatt before starting)
-- Ready-made rockets still carry lots of spare Δv (Orbiter ~8.3 km/s total). If orbit still feels easy, trim their fuel.
-- Tech tree pacing: play from a fresh start and check unlocks come at a good rate for a newcomer.
-- Docking port (not built: docking two craft is its own big job).
-- Playtest email v2 for Zack (lots new since the last one): needs his address from Wyatt. Gmail draft only.
-- THROAT stays a sandbox: no challenges or missions.
+## Next
+- **Measure on Wyatt's computer** (the whole point): open the branch build in Chrome, Build an engine, light it, hover the Sim
+  readout for steps/s; compare with `?cpu`. This container only has SwiftShader (emulated GPU, slower than the CPU path).
+- If it's fast: merge to main (Wyatt says when), then Step 5 ideas: bigger/finer worlds, maybe draw straight from the GPU.
+- If it's slow on a real GPU: profile bursts (encode time vs GPU time); likely fixes: skip the full read-back when no
+  snapshot is wanted, fewer dispatches (merge mixIt passes), encode the next burst while the GPU runs.
+- Older ideas still open: trim ready-made rockets' spare Δv, tech-tree pacing from a fresh start, docking port, playtest email v2 for Zack.
 
 ## Testing tips
+- WebGPU in headless Chrome here: `chromium.launch({args:['--enable-unsafe-webgpu']})` and a `file://` page (about:blank isn't a
+  secure context). Adapter = SwiftShader. `GPU.wgsl()` prints the shader with the world size baked in.
+- Torches use Math.random: seed it for bit-exact CPU comparisons. Sparks are fired by the glue (`runSparks` every 4 steps), not `step()`.
 - Title screen covers everything on load: `__title.go('fly'|'engine'|'watch')`. Fresh profiles have the tech tree locked:
   set `localStorage['throat.tech.v1']={"got":[],"all":true}` before driving the editor/launch in a script.
-- `__vab.drawPart/mkPart` for part gallery screenshots; `__flt.release()`, `__flt.setZoom(z)`, `__flt.setFT(t)` to stage shots.
-- The editor's capture key handler swallows every key while it's open (dialogs over it must be handled inside it).
 - Write screenshots to the scratchpad, not the repo root.
 
 ## Rules that bit us
-- Long one-line JS edits: never add `// comment` before more code on the same line (hid `v.hasLes` again in v1.37). Use `/* */`.
-- New part ids with extra fields must be parsed everywhere ids are read.
-- Push to `main` only when Wyatt says so; otherwise the session branch. Run `bash tests/run.sh` before every push (~6 min now).
+- WGSL: no comma-separated `let a=..,b=..`; one `let` per value.
+- The page drops a worker that hasn't answered in 3 s: the worker must post before slow setup (GPU init).
+- Long one-line JS edits: never add `// comment` before more code on the same line. Use `/* */`.
+- Push to `main` only when Wyatt says so; otherwise the session branch. Run `bash tests/run.sh` before every push (~8 min now).

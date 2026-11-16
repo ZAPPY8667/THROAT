@@ -354,6 +354,31 @@ made on the test stand.
 - tests/flight/mission.js: the demo's whole mission headless (SLS to orbit, Moon transfer, land, Moon orbit, home, capsule only,
   re-entry heat shield first, chutes): passes with 38 t to spare at the Moon.
 
+## v1.43: engine physics on the graphics card (WebGPU)
+- Wyatt wanted the test-stand simulation many times faster. Step 0 first (CPU): profiling showed it's compute-bound (~0.55 µs
+  per cell per step, x and y passes cost the same, no cache problem); skipping still air doesn't help (once the engine fires,
+  the jet and its shocks fill the whole box within a millisecond); more CPU cores need SharedArrayBuffer, which GitHub Pages
+  can't enable. Only a bit-identical mixing fusion landed (+10%). So: the GPU.
+- `src/gpu.js`: the whole per-step physics in WGSL, run from the worker: tanks refill + time step (`begin`, `dtk`, reductions),
+  the gas passes (`sweepX/Y`: each cell rebuilds its two faces itself, so one dispatch per pass and both sides of a face get
+  bit-identical fluxes), igniter gas + hot spots, sparks, injector steering + stirring boost (atomicMax), solid propellant
+  (burn → exhaust gathered by the gas cells → burnt-out cells opened like makeGasFromNeighbours), stirring, burning, heat loss,
+  and the bookkeeping (per-cell accumulators summed per workgroup at the end of a burst, then in 64-bit on the CPU).
+- The CPU stays in charge of anything rare or structural, with its code unchanged: after every burst the world is read back
+  into the CPU arrays (the screen needs it anyway), edits/valve timers/check valves run there, and `GPU.upload()` sends it back
+  if anything changed. Igniter flicker: the CPU random-walks per burst (exact OU step), the GPU pours the gas in every step.
+- Differences from the CPU: 32-bit floats; stirring is Jacobi (every cell at once) instead of face after face. Measured:
+  H₂ engine 2.29 kN / 369 s / 2,253 K / 279 psi on the GPU vs 2.30 / 373 / 2,220 / 280 on the CPU; atoms balance to ~1e-7.
+  Methane 3.49 kN / 293 s / 2,960 K (CPU 3.51 / 297 / 2,956); kerosene 2.89 / 291 / 3,028 (CPU 2.90 / 292 / 3,055);
+  booster 5.06 kN peak, 7.5 ms burn, all 13.47 g of propellant (CPU 5.08 kN, 7.4 ms, 13.47 g).
+  Shock tube and spark box: overall numbers within 0.1–1.4% (tests/gpu/quick.js, in run.sh).
+- Glue: GPU mode first, CPU if there's no WebGPU, with `?cpu`, or if the GPU is lost mid-run. The worker answers at once
+  (compiling the GPU programs takes seconds; the page used to give up on a silent worker after 3 s and run physics itself).
+  Bursts adapt to ~12 ms; capped at 4 steps while a spark lives, 16 with check valves or a valve timer pending, 64 while an
+  igniter burns. The Sim readout says "· GPU".
+- Not measured yet: real-GPU speed. This container only has SwiftShader (a GPU emulated on the CPU), which is slower than
+  the CPU path. Needs Wyatt's computer.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

@@ -22,7 +22,7 @@ import base64
 fonts = ''.join("@font-face{font-family:'Rajdhani';font-weight:%s;font-display:swap;src:url(data:font/woff2;base64,%s) format('woff2')}\n"
                 % (w, base64.b64encode(open(os.path.join(SRC, 'fonts', 'rajdhani-latin-%s-normal.woff2' % w), 'rb').read()).decode())
                 for w in ('400', '600'))
-html = (rd('shell.html').replace('/*FONTS*/', fonts).replace('/*CORE*/', rd('core.js')).replace('/*GLUE*/', rd('glue.js'))
+html = (rd('shell.html').replace('/*FONTS*/', fonts).replace('/*CORE*/', rd('core.js')).replace('/*GLUE*/', rd('glue.js')).replace('/*GPU*/', rd('gpu.js'))
         .replace('/*GASES_VIEWS*/', rd('gv.js')).replace('/*UI*/', ui))
 with open(os.path.join(ROOT, 'index.html'), 'w', encoding='utf-8') as f:
     f.write(html)

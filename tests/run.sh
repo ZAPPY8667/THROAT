@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Headless checks (Node 18+). Takes about a minute.
+# Headless checks (Node 18+). Takes about 8 minutes.
 set -e -o pipefail
 cd "$(dirname "$0")"
 echo "== core: atom bookkeeping on the liquid engine";   node core/atoms_balance.js
@@ -23,4 +23,5 @@ echo "== flight: NODE (Moon transfer) + LAND (landing zone, Moon) autopilots"; n
 echo "== flight: the demo mission (Moon and back, Super Heavy)"; node flight/mission.js | tail -1
 echo "== flight: rockets saved before v1.16 get rebuilt"; node flight/old_rockets.js | tail -6
 echo "== flight: new parts (fairing, big legs, every palette part)"; node flight/new_parts.js | tail -1
+echo "== gpu: the same physics on the graphics card (WebGPU; SwiftShader here)"; node gpu/quick.js
 echo "== core: speed (large world)";                     node core/speed.js
