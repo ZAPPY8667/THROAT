@@ -379,6 +379,15 @@ made on the test stand.
 - Not measured yet: real-GPU speed. This container only has SwiftShader (a GPU emulated on the CPU), which is slower than
   the CPU path. Needs Wyatt's computer.
 
+## v1.44: camera exposure for the plume
+- Wyatt: at full speed (GPU) the exhaust "grows and shrinks in a really unnatural way". Not a GPU bug: the CPU does the same.
+  Chamber pressure is steady (±1%), but the 2D jet flaps (its edges roll up) and this nozzle is nearly perfectly expanded, so
+  its shock diamonds are weak and get shoved around. Real plumes wobble at kHz too; a camera frame blends many wobbles. At the
+  GPU's speed the screen showed each wobble.
+- Fix in the drawing only (`render`, ui.js): Real/Glow/Gases blend each frame's cell colours into a running average with a
+  0.15 s real-time "exposure" (EXPOSURE). Slow motion barely blends (the picture hardly moves in 0.15 s); measuring views
+  (Pressure/Temp/Mach/Shocks), readouts and physics are untouched. Blending is per cell, so panning/zooming doesn't smear.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

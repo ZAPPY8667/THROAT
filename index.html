@@ -2002,10 +2002,19 @@ function ghostValve(){const cx=mouse.x/CP|0,cy=mouse.y/CP|0,f=fitValve(cx,cy);
 function ghostInj(){const cx=mouse.x/CP|0,cy=mouse.y/CP|0,len=S.ilen,dir=S.idir,h=Math.floor((len-1)/2);
   const x=Math.max(0,Math.min(NX-(dir?len:1),dir?cx-h:cx)),y=Math.max(0,Math.min(NY-(dir?1:len),dir?cy:cy-h));
   return{x,y,len,dir,type:S.itype,gap:3,flip:0,x0:x,y0:y,x1:dir?x+len-1:x,y1:dir?y:y+len-1};}
+// Camera exposure. A rocket plume wobbles and flaps thousands of times a second (here: the 2D jet's edges roll up, and the weak
+// shock diamonds of a well-matched nozzle get pushed around). Eyes and cameras never see that: each video frame soaks up many
+// wobbles and shows a steady flame. Running fast (on the graphics card) the screen showed every wobble, so the plume twitched and
+// pumped. So the looking views (Real, Glow, Gases) blend each frame into the last ~0.15 s of real time, like a camera's shutter.
+// In slow motion the picture hardly changes in 0.15 s, so nothing smears and the real wobble still shows. The measuring views
+// (Pressure, Temp, Mach, Shocks) and all the numbers stay instantaneous.
+const ER=new Float32Array(NC),EG=new Float32Array(NC),EB=new Float32Array(NC),EXPOSURE=0.15;let expT=0;
 function render(){
   if(wallsDirty)buildWalls();
   cellColors();
-  for(let k=0;k<NC;k++)cbuf[k]=rgb(CR[k]|0,CG[k]|0,CB[k]|0);
+  const now=performance.now(),look=S.view===6||S.view<=1,a=look&&expT?1-Math.exp(-Math.min(0.5,(now-expT)/1000)/EXPOSURE):1;expT=now;
+  if(a<1)for(let k=0;k<NC;k++){ER[k]+=a*(CR[k]-ER[k]);EG[k]+=a*(CG[k]-EG[k]);EB[k]+=a*(CB[k]-EB[k]);cbuf[k]=rgb(ER[k]|0,EG[k]|0,EB[k]|0);}
+  else{ER.set(CR);EG.set(CG);EB.set(CB);for(let k=0;k<NC;k++)cbuf[k]=rgb(CR[k]|0,CG[k]|0,CB[k]|0);}
   cctx.putImageData(cdat,0,0);
   ctx.setTransform(1,0,0,1,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="low";
   ctx.drawImage(cimg,cam.x/CP,cam.y/CP,NX/cam.z,NY/cam.z,0,0,CW,CH);
