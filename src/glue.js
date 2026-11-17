@@ -1,12 +1,13 @@
 // ===== physics thread: steps the world back-to-back and sends snapshots when the screen asks =====
 // It runs the physics on the graphics card when it can (gpu.js) and on the CPU otherwise (or with ?cpu in the address).
 let W_on=false,W_paused=false,W_spd=10,W_bank=0,W_bankT=performance.now(),W_want=true,W_seq=0,W_dts=0,W_steps=0,W_win=0,W_winT=performance.now(),W_sps=0;
-let W_gpu=false,W_q=[],W_n=8;   // GPU mode: edits wait in a queue until the end of the current burst of steps
+let W_gpu=false,W_q=[],W_n=8,W_bench=false;   // GPU mode: edits wait in a queue until the end of the current burst of steps
 onmessage=e=>{const m=e.data;
   if(m.t==="init"){importState(m.state);floodOutside();W_paused=m.paused;W_spd=m.spd;if(!W_on){W_on=true;W_start(m.gpu!==false);}}
   else if(m.t==="act"){if(W_gpu)W_q.push(m);else{try{act(m.name,...m.args);}catch(err){}W_seq=m.seq;}}
   else if(m.t==="cfg"){W_paused=m.paused;W_spd=m.spd;}
-  else if(m.t==="want")W_want=true;};
+  else if(m.t==="want")W_want=true;
+  else if(m.t==="bench")W_bench=true;};
 const W_ch=new MessageChannel();W_ch.port1.onmessage=()=>W_loop();
 async function W_start(tryGpu){
   W_post();   // answer at once: setting up the GPU (compiling its programs) can take a few seconds
@@ -17,7 +18,19 @@ async function W_start(tryGpu){
 function W_post(){const s=exportState();s.seq=W_seq;s.dts=W_dts;s.sps=W_sps;s.gpu=W_gpu?1:0;s.gpuErr=typeof GPU!=="undefined"?GPU.err:"";W_dts=0;W_want=false;
   postMessage(s,[s.big.buffer,s.prop.buffer,s.lit.buffer,s.rr.buffer,s.wall.buffer,s.resv.buffer]);}
 function W_rate(t0,n){W_win+=n;if(t0-W_winT>=500){W_sps=Math.round(W_win*1000/(t0-W_winT));W_win=0;W_winT=t0;}}
+// Speed test (click the Sim readout): the world on the stand runs flat out on the CPU for 1.5 s, then on the graphics card for
+// 2 s, and is put back exactly as it was. Same thread, same world, so the two numbers compare fairly.
+async function W_benchRun(){
+  const saved=structuredClone(exportState()),back=()=>{importState(structuredClone(saved));if(W_gpu&&GPU.on)GPU.upload();};
+  let t0=performance.now(),n=0;while(performance.now()-t0<1500){step();n++;}
+  const cpu=n*1000/(performance.now()-t0);let gpu=0;
+  if(W_gpu&&GPU.on){back();try{await GPU.run(8);let b=16;n=0;t0=performance.now();
+    while(performance.now()-t0<2000){const tb=performance.now();await GPU.run(b);n+=b;if(performance.now()-tb<40)b=Math.min(4000,b*2);}
+    gpu=n*1000/(performance.now()-t0);}catch(err){gpu=0;}}
+  back();postMessage({t:"bench",cpu,gpu,err:typeof GPU!=="undefined"?GPU.err:""});
+}
 function W_loop(){
+  if(W_bench){W_bench=false;W_benchRun().then(()=>setTimeout(W_loop,0));return;}
   const t0=performance.now();let allow=1e9,n=0;
   if(!W_paused){
     if(W_spd<10){W_bank=Math.min(W_bank+(t0-W_bankT)*W_spd*0.03,12);allow=Math.floor(W_bank);}  // Speed n = n×30 steps/s
@@ -32,6 +45,7 @@ function W_loop(){
 // a valve waiting on its timer).
 async function G_loop(){
   while(GPU.on){
+    if(W_bench){W_bench=false;await W_benchRun();}
     const t0=performance.now();let n=0;
     if(W_q.length){for(const m of W_q){try{act(m.name,...m.args);}catch(err){}W_seq=m.seq;}W_q=[];GPU.upload();}
     if(!W_paused){

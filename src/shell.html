@@ -310,6 +310,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .dial .dv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:4px}
 .dial .dv b{font:300 30px/1 var(--sans);letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px rgba(0,0,0,.5)}
 .dial .dv small{font:600 9.5px var(--sans);letter-spacing:.28em;color:var(--dim);margin-top:5px}
+.dial .dv .dvst{margin-top:3px;letter-spacing:.14em;font-size:8.5px}
 .dial>span{position:absolute;left:0;right:0;bottom:6px;font:600 9.5px var(--sans);letter-spacing:.3em;color:#fff}
 .tline{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:min(560px,44vw);pointer-events:none}
 .tclk{display:flex;justify-content:center;align-items:baseline;gap:12px;margin-bottom:12px}
@@ -426,7 +427,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <span>Thrust</span><b id="rF" style="color:var(--acc2)" title="Net push of the gas on everything solid, per 1 cm slice of this 2D engine">–</b><span>Isp</span><b id="rI" title="Specific impulse: seconds of thrust per weight of propellant. Higher = more efficient">–</b>
       <span>H₂O</span><b id="rW">–</b><span>Atoms</span><b id="rA" class="ok">–</b>
       <span id="rowB" style="display:none;grid-column:1/5;color:var(--acc2)"><span style="color:var(--dim)">Booster </span><b id="rBurn">–</b></span>
-      <span>Sim</span><b id="rS" class="w">–</b>
+      <span>Sim</span><b id="rS" class="w" style="cursor:pointer">–</b>
     </div>
   </div>
 
@@ -453,7 +454,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <button class="b" id="bDesigns" title="Save / load your designs" data-ic="folder">Designs</button>
       <button class="b" id="bLib" title="Engine library: save the engines and boosters you tested, then use them on rockets" data-ic="book">Engines</button>
       <button class="b go" id="bLaunch" title="Build a rocket around your engine and fly it in real time" data-ic="rocket">Rocket</button><button class="b" id="bDemo" title="Sit back and watch the autopilot fly the Super Heavy to orbit and the Moon" data-ic="play">Watch a launch</button>
-      <select id="wsize" title="World size (bigger = more room, slower flow). Reloads the page."><option value="160x90">World: S</option><option value="240x135">World: L</option><option value="320x180">World: XL</option></select>
+      <select id="wsize" title="World size (bigger = more room, slower flow). Reloads the page."><option value="160x90">World: S</option><option value="240x135">World: L</option><option value="320x180">World: XL</option><option value="480x270">World: XXL (GPU)</option></select>
     </div>
     <div class="sep"></div>
     <label class="sl" for="heat" title="How much heat the fuel releases (1× = normal)">Fuel<input id="heat" type="range" min="5" max="30" value="10"><output id="oHeat"></output></label>
@@ -524,7 +525,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <canvas id="fcv" aria-label="Flight view"></canvas>
   <button class="b ico cleanb" id="fClean" title="Clean view: hide every display so only the rocket shows (V)" data-ic="eye"></button>
   <div class="live" id="fLive"><i></i>LIVE<span id="fVes"></span><em id="fWarp"></em></div>
-  <div class="dials" id="fDials"><div class="dial" id="dSpd"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fSpd">–</b><small id="fSpdU">M/S</small></div><span>SPEED</span></div><div class="dial" id="dAlt"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fAlt">–</b><small id="fAltU">M</small></div><span>ALTITUDE</span></div></div>
+  <div class="dials" id="fDials"><div class="dial" id="dSpd"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fSpd">–</b><small id="fSpdU">M/S</small></div><span>SPEED</span></div><div class="dial" id="dAlt"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fAlt">–</b><small id="fAltU">M</small></div><span>ALTITUDE</span></div><div class="dial" id="dDvL" title="Δv left: how much more speed the rocket can still gain from all its fuel (small number: this stage). Orbit takes about 4,500 m/s."><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fDvL">–</b><small id="fDvLU">M/S</small><small class="dvst" id="fDvS"></small></div><span>Δv LEFT</span></div></div>
   <div class="tline" id="fTline"><div class="tclk"><b id="fClock">T+00:00:00</b><span id="fStageN"></span></div><div class="tl" id="fTl"><div class="tlbar"><i id="fTlFill"></i></div></div></div>
   <div class="call" id="fCall"><b></b><small></small></div>
   <button class="b go cdbtn" id="fCount" data-ic="play" style="display:none" title="Start the 10-second countdown (Space)">Start countdown</button>

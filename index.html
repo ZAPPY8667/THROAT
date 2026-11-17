@@ -312,6 +312,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .dial .dv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:4px}
 .dial .dv b{font:300 30px/1 var(--sans);letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px rgba(0,0,0,.5)}
 .dial .dv small{font:600 9.5px var(--sans);letter-spacing:.28em;color:var(--dim);margin-top:5px}
+.dial .dv .dvst{margin-top:3px;letter-spacing:.14em;font-size:8.5px}
 .dial>span{position:absolute;left:0;right:0;bottom:6px;font:600 9.5px var(--sans);letter-spacing:.3em;color:#fff}
 .tline{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:min(560px,44vw);pointer-events:none}
 .tclk{display:flex;justify-content:center;align-items:baseline;gap:12px;margin-bottom:12px}
@@ -428,7 +429,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <span>Thrust</span><b id="rF" style="color:var(--acc2)" title="Net push of the gas on everything solid, per 1 cm slice of this 2D engine">–</b><span>Isp</span><b id="rI" title="Specific impulse: seconds of thrust per weight of propellant. Higher = more efficient">–</b>
       <span>H₂O</span><b id="rW">–</b><span>Atoms</span><b id="rA" class="ok">–</b>
       <span id="rowB" style="display:none;grid-column:1/5;color:var(--acc2)"><span style="color:var(--dim)">Booster </span><b id="rBurn">–</b></span>
-      <span>Sim</span><b id="rS" class="w">–</b>
+      <span>Sim</span><b id="rS" class="w" style="cursor:pointer">–</b>
     </div>
   </div>
 
@@ -455,7 +456,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
       <button class="b" id="bDesigns" title="Save / load your designs" data-ic="folder">Designs</button>
       <button class="b" id="bLib" title="Engine library: save the engines and boosters you tested, then use them on rockets" data-ic="book">Engines</button>
       <button class="b go" id="bLaunch" title="Build a rocket around your engine and fly it in real time" data-ic="rocket">Rocket</button><button class="b" id="bDemo" title="Sit back and watch the autopilot fly the Super Heavy to orbit and the Moon" data-ic="play">Watch a launch</button>
-      <select id="wsize" title="World size (bigger = more room, slower flow). Reloads the page."><option value="160x90">World: S</option><option value="240x135">World: L</option><option value="320x180">World: XL</option></select>
+      <select id="wsize" title="World size (bigger = more room, slower flow). Reloads the page."><option value="160x90">World: S</option><option value="240x135">World: L</option><option value="320x180">World: XL</option><option value="480x270">World: XXL (GPU)</option></select>
     </div>
     <div class="sep"></div>
     <label class="sl" for="heat" title="How much heat the fuel releases (1× = normal)">Fuel<input id="heat" type="range" min="5" max="30" value="10"><output id="oHeat"></output></label>
@@ -526,7 +527,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <canvas id="fcv" aria-label="Flight view"></canvas>
   <button class="b ico cleanb" id="fClean" title="Clean view: hide every display so only the rocket shows (V)" data-ic="eye"></button>
   <div class="live" id="fLive"><i></i>LIVE<span id="fVes"></span><em id="fWarp"></em></div>
-  <div class="dials" id="fDials"><div class="dial" id="dSpd"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fSpd">–</b><small id="fSpdU">M/S</small></div><span>SPEED</span></div><div class="dial" id="dAlt"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fAlt">–</b><small id="fAltU">M</small></div><span>ALTITUDE</span></div></div>
+  <div class="dials" id="fDials"><div class="dial" id="dSpd"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fSpd">–</b><small id="fSpdU">M/S</small></div><span>SPEED</span></div><div class="dial" id="dAlt"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fAlt">–</b><small id="fAltU">M</small></div><span>ALTITUDE</span></div><div class="dial" id="dDvL" title="Δv left: how much more speed the rocket can still gain from all its fuel (small number: this stage). Orbit takes about 4,500 m/s."><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fDvL">–</b><small id="fDvLU">M/S</small><small class="dvst" id="fDvS"></small></div><span>Δv LEFT</span></div></div>
   <div class="tline" id="fTline"><div class="tclk"><b id="fClock">T+00:00:00</b><span id="fStageN"></span></div><div class="tl" id="fTl"><div class="tlbar"><i id="fTlFill"></i></div></div></div>
   <div class="call" id="fCall"><b></b><small></small></div>
   <button class="b go cdbtn" id="fCount" data-ic="play" style="display:none" title="Start the 10-second countdown (Space)">Start countdown</button>
@@ -1661,12 +1662,13 @@ GPU.release=function(){try{if(dev)dev.destroy();}catch(e){}GPU.on=false;};
 // ===== physics thread: steps the world back-to-back and sends snapshots when the screen asks =====
 // It runs the physics on the graphics card when it can (gpu.js) and on the CPU otherwise (or with ?cpu in the address).
 let W_on=false,W_paused=false,W_spd=10,W_bank=0,W_bankT=performance.now(),W_want=true,W_seq=0,W_dts=0,W_steps=0,W_win=0,W_winT=performance.now(),W_sps=0;
-let W_gpu=false,W_q=[],W_n=8;   // GPU mode: edits wait in a queue until the end of the current burst of steps
+let W_gpu=false,W_q=[],W_n=8,W_bench=false;   // GPU mode: edits wait in a queue until the end of the current burst of steps
 onmessage=e=>{const m=e.data;
   if(m.t==="init"){importState(m.state);floodOutside();W_paused=m.paused;W_spd=m.spd;if(!W_on){W_on=true;W_start(m.gpu!==false);}}
   else if(m.t==="act"){if(W_gpu)W_q.push(m);else{try{act(m.name,...m.args);}catch(err){}W_seq=m.seq;}}
   else if(m.t==="cfg"){W_paused=m.paused;W_spd=m.spd;}
-  else if(m.t==="want")W_want=true;};
+  else if(m.t==="want")W_want=true;
+  else if(m.t==="bench")W_bench=true;};
 const W_ch=new MessageChannel();W_ch.port1.onmessage=()=>W_loop();
 async function W_start(tryGpu){
   W_post();   // answer at once: setting up the GPU (compiling its programs) can take a few seconds
@@ -1677,7 +1679,19 @@ async function W_start(tryGpu){
 function W_post(){const s=exportState();s.seq=W_seq;s.dts=W_dts;s.sps=W_sps;s.gpu=W_gpu?1:0;s.gpuErr=typeof GPU!=="undefined"?GPU.err:"";W_dts=0;W_want=false;
   postMessage(s,[s.big.buffer,s.prop.buffer,s.lit.buffer,s.rr.buffer,s.wall.buffer,s.resv.buffer]);}
 function W_rate(t0,n){W_win+=n;if(t0-W_winT>=500){W_sps=Math.round(W_win*1000/(t0-W_winT));W_win=0;W_winT=t0;}}
+// Speed test (click the Sim readout): the world on the stand runs flat out on the CPU for 1.5 s, then on the graphics card for
+// 2 s, and is put back exactly as it was. Same thread, same world, so the two numbers compare fairly.
+async function W_benchRun(){
+  const saved=structuredClone(exportState()),back=()=>{importState(structuredClone(saved));if(W_gpu&&GPU.on)GPU.upload();};
+  let t0=performance.now(),n=0;while(performance.now()-t0<1500){step();n++;}
+  const cpu=n*1000/(performance.now()-t0);let gpu=0;
+  if(W_gpu&&GPU.on){back();try{await GPU.run(8);let b=16;n=0;t0=performance.now();
+    while(performance.now()-t0<2000){const tb=performance.now();await GPU.run(b);n+=b;if(performance.now()-tb<40)b=Math.min(4000,b*2);}
+    gpu=n*1000/(performance.now()-t0);}catch(err){gpu=0;}}
+  back();postMessage({t:"bench",cpu,gpu,err:typeof GPU!=="undefined"?GPU.err:""});
+}
 function W_loop(){
+  if(W_bench){W_bench=false;W_benchRun().then(()=>setTimeout(W_loop,0));return;}
   const t0=performance.now();let allow=1e9,n=0;
   if(!W_paused){
     if(W_spd<10){W_bank=Math.min(W_bank+(t0-W_bankT)*W_spd*0.03,12);allow=Math.floor(W_bank);}  // Speed n = n×30 steps/s
@@ -1692,6 +1706,7 @@ function W_loop(){
 // a valve waiting on its timer).
 async function G_loop(){
   while(GPU.on){
+    if(W_bench){W_bench=false;await W_benchRun();}
     const t0=performance.now();let n=0;
     if(W_q.length){for(const m of W_q){try{act(m.name,...m.args);}catch(err){}W_seq=m.seq;}W_q=[];GPU.upload();}
     if(!W_paused){
@@ -1814,13 +1829,7 @@ function cellColors(){
         if(Te>1000){const g=soot*Math.min(1,(Te-1000)/900)*1.25;c0+=255*g;c1+=150*g;c2+=45*g;}
         else{const so=Math.min(0.7,soot*0.9)*Math.min(1,(1000-Te)/300);c0=c0*(1-so)+48*so;c1=c1*(1-so)+44*so;c2=c2*(1-so)+42*so;}}
     }
-    if((view===6||view===0)&&sm>2e-5){   // solid-motor exhaust: hot aluminium-oxide particles glow orange → yellow → white, then hang as grey-white smoke
-      const ys=sm/r,ws=Math.min(1,ys*3.4),T0=T+q2*r*(GAM-1)/(2*GAM*RU*ns),Tp=0.25*T+0.75*T0,den=1-Math.exp(-sm*14);
-      {const t=Math.min(0.85,ys*12),L=Math.max(c0,c1,c2);c0=c0*(1-t)+L*t;c1=c1*(1-t)+L*0.6*t;c2=c2*(1-t)+L*0.25*t;}   // flame burning in booster exhaust is orange, not hydrogen-pink
-      const h=Math.min(1,Math.max(0,(Tp-1150)/1450)),gl=h>0?Math.min(1,0.35+den*3)*Math.min(1,h*1.8):0,so=Math.min(0.72,den*1.1)*(1-gl);
-      const pg=110+140*h,pb=25+200*h*h,sv=135+45*(1-h),keep=(1-ws*0.85)*(1-so);
-      c0=c0*keep+sv*so+255*gl*ws;c1=c1*keep+sv*0.98*so+pg*gl*ws;c2=c2*keep+sv*0.96*so+pb*gl*ws;}
-    if(view===6||view===0){}
+    if(view===6){}   // Real: done above (Glow used to be caught here too, so it drew nothing)
     else if(view<=1){
       const den=Math.min(1,Math.max(0,0.12+0.32*(Math.log10(p*300/T)-5.0058)));
       const tr=SPC[0][0]*x0+SPC[1][0]*x1+SPC[2][0]*x2+SPC[3][0]*x3+SPC[4][0]*x4+SPC[5][0]*x5+SPC[6][0]*x6+SPC[7][0]*x7,tg=SPC[0][1]*x0+SPC[1][1]*x1+SPC[2][1]*x2+SPC[3][1]*x3+SPC[4][1]*x4+SPC[5][1]*x5+SPC[6][1]*x6+SPC[7][1]*x7,tb=SPC[0][2]*x0+SPC[1][2]*x1+SPC[2][2]*x2+SPC[3][2]*x3+SPC[4][2]*x4+SPC[5][2]*x5+SPC[6][2]*x6+SPC[7][2]*x7;
@@ -1837,6 +1846,12 @@ function cellColors(){
       else{const x=k%NX,y=(k/NX)|0,xl=x>0&&!wall[k-1]?rho[k-1]:r,xr=x<NX-1&&!wall[k+1]?rho[k+1]:r,yu=y>0&&!wall[k-NX]?rho[k-NX]:r,yd=y<NY-1&&!wall[k+NX]?rho[k+NX]:r;
         const sch=resv[k]?0:Math.min(1,Math.hypot(xr-xl,yd-yu)/(r+0.05)*3.2),b=10+225*Math.pow(sch,0.7);c=[b*0.95,b,b*1.08];}
       c0=c[0];c1=c[1];c2=c[2];}
+    if((view===6||view===0)&&sm>2e-5){   // solid-motor exhaust: hot aluminium-oxide particles glow orange → yellow → white, then hang as grey-white smoke
+      const ys=sm/r,ws=Math.min(1,ys*3.4),T0=T+q2*r*(GAM-1)/(2*GAM*RU*ns),Tp=0.25*T+0.75*T0,den=1-Math.exp(-sm*14);
+      {const t=Math.min(0.85,ys*12),L=Math.max(c0,c1,c2);c0=c0*(1-t)+L*t;c1=c1*(1-t)+L*0.6*t;c2=c2*(1-t)+L*0.25*t;}   // flame burning in booster exhaust is orange, not hydrogen-pink
+      const h=Math.min(1,Math.max(0,(Tp-1150)/1450)),gl=h>0?Math.min(1,0.35+den*3)*Math.min(1,h*1.8):0,so=Math.min(0.72,den*1.1)*(1-gl);
+      const pg=110+140*h,pb=25+200*h*h,sv=135+45*(1-h),keep=(1-ws*0.85)*(1-so);
+      c0=c0*keep+sv*so+255*gl*ws;c1=c1*keep+sv*0.98*so+pg*gl*ws;c2=c2*keep+sv*0.96*so+pb*gl*ws;}
     CR[k]=c0;CG[k]=c1;CB[k]=c2;
   }
   // solid cells borrow a neighbour's colour so the smooth stretch doesn't bleed dark into the gas
@@ -2084,12 +2099,22 @@ function startWorker(){
   try{
     const src="var THROAT_SIZE="+JSON.stringify([NX,NY])+";\n"+document.getElementById("coreScript").textContent+"\n"+document.getElementById("gpuScript").textContent+"\n"+document.getElementById("workerGlue").textContent;
     const w=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})));let alive=false;
-    w.onmessage=e=>{alive=true;snap=e.data;};
+    w.onmessage=e=>{alive=true;if(e.data.t==="bench"){benchDone(e.data);return;}snap=e.data;};
     w.onerror=()=>{if(!alive)stopWorker();};
     worker=w;w.postMessage({t:"init",state:exportState(),paused:S.paused,spd:S.spd,gpu:!new URLSearchParams(location.search).has("cpu")});   // ?cpu: physics on the CPU even if there is a GPU
     setTimeout(()=>{if(!alive)stopWorker();},3000);   // no answer → run physics on this thread instead
   }catch(err){worker=null;}
 }
+// speed test: click the Sim readout (the physics thread times the CPU and the graphics card on the world that's on the stand)
+let benching=false;
+function speedTest(){if(!worker||benching)return;benching=true;worker.postMessage({t:"bench"});
+  if(JUICE)JUICE.toast("<small>Speed test · about 4 s</small>Timing the physics on the CPU, then the graphics card…");}
+function benchDone(b){benching=false;window.__bench=b;const f=n=>Math.round(n).toLocaleString();
+  const h=b.gpu>0?`<small>Speed test · this world</small>Graphics card <b>${f(b.gpu)}</b> steps/s · CPU <b>${f(b.cpu)}</b> → <b>${(b.gpu/b.cpu).toFixed(b.gpu/b.cpu<10?1:0)}× faster</b>`
+    :`<small>Speed test · CPU only${b.err?" ("+b.err+")":""}</small>CPU <b>${f(b.cpu)}</b> steps/s`;
+  if(JUICE)JUICE.toast(h);}
+window.__speedTest=speedTest;
+document.addEventListener("pointerdown",e=>{if(e.target&&e.target.closest&&e.target.closest("#rS"))speedTest();},true);   // on press: the readout's text changes every frame, so a "click" lands on the panel instead
 function takeSnapshot(){
   const o=snap;snap=null;let wch=false;
   for(let k=0;k<NC;k++){const a=wall[k],b=o.wall[k];if(a!==b&&!((a===4||a===0)&&(b===4||b===0))){wch=true;break;}}
@@ -2585,7 +2610,7 @@ function readouts(){
     {const r=$("rowB");if(burn){r.style.display="";const mp=srbMass-burn.m0,t=(burn.done?burn.t1:simTime)-burn.t0;
       set("rBurn",`${burn.done?"burnt out":"burning"} · ${(t*1e3).toFixed(1)} ms · peak ${(burn.peak/1000).toFixed(2)} kN · ${burn.imp.toFixed(1)} N·s${steadyIsp(burn)>0?` · Isp ${Math.round(steadyIsp(burn))} s`:""}`);}else r.style.display="none";}
     const ac=atomCheck();set("rA",ac.ok?"conserved ✓":"drift");$("rA").className=ac.ok?"ok":"bad";
-    set("rS",(simTime*1000).toFixed(2)+" ms · "+fps+" fps"+(PERF.gpu?" · GPU":""));$("rS").title=PERF.sps+" physics steps per second"+(PERF.gpu?" (on the graphics card)":" (on the CPU"+(PERF.gpuErr?": "+PERF.gpuErr:"")+")");
+    set("rS",(simTime*1000).toFixed(2)+" ms · "+fps+" fps"+(PERF.gpu?" · GPU":""));$("rS").title=PERF.sps+" physics steps per second"+(PERF.gpu?" (on the graphics card)":" (on the CPU"+(PERF.gpuErr?": "+PERF.gpuErr:"")+")")+". Click for a speed test: CPU vs graphics card.";
     if(sel)inspUI(false);}
 }
 const PERF={step:0,render:0,sps:0,gpu:0,gpuErr:""},BUDGET=26;window.__perf=PERF;let stepsWin=0;
@@ -2690,7 +2715,8 @@ const JUICE=(()=>{
     ["splash","Splash down","Come down in the sea slower than 12 m/s (the ocean starts just east of the pad).",10],
     ["ap_ascent","Autopilot to orbit","Flight: open the ASCENT tab on the left and press Engage. It even starts the countdown.",10],
     ["ap_node","Fly a planned burn","In orbit: NODE tab → pick a burn (e.g. To the Moon) → Execute.",15],
-    ["ap_land","Autopilot landing","LAND tab → Engage while falling toward the ground (needs legs and some fuel).",15]];
+    ["ap_land","Autopilot landing","LAND tab → Engage while falling toward the ground (needs legs and some fuel).",15],
+    ["dock","Dock two craft","Docking ports on both, nose to nose, slower than 0.5 m/s. RCS (T, then I J K L) helps line up.",25]];
   let toasts=[],toastEl=null;
   function toast(html){toasts.push(html);if(!toastEl)nextToast();}
   function nextToast(){const h=toasts.shift();if(!h){toastEl=null;return;}
@@ -2768,6 +2794,7 @@ const PT={
   adapter:{name:"Adapter",        ws:[84], wr:[14,160], h:w=>40, m:w=>3*MK*A2(w,120), desc:"Joins a wide stack (below) to a narrower one (above). Set both widths in its settings."},
   engine: {name:"Engine",         ws:[30], wr:[8,120],  h:w=>w, m:()=>9*MK, desc:"An engine."},
   srb:    {name:"Solid booster",  ws:[37], wr:[10,120], h:()=>300,m:(w,h)=>2*MK*A2(w,60)*h/150+0.12*srbCap(w,h), desc:"Fuel and engine in one. Lights when you throttle up and can't be stopped or throttled until it burns out. Stretch it for a longer burn."},
+  dock:   {name:"Docking port",   ws:[20], wr:[10,80],  h:w=>Math.max(4,Math.round(w*0.3)), m:w=>0.6*MK*A2(w,20), desc:"Goes on top of a stack. Two craft whose ports touch nose to nose, slower than 0.5 m/s, lock together (N lets go). Use RCS (T, then I J K L) to line up."},
   dec:    {name:"Decoupler",      ws:[40], wr:[10,160], h:()=>6,  m:w=>2*MK*A2(w,60), desc:"Space drops everything below it. Engines sitting on one stay off until it fires."},
   sdec:   {name:"Side decoupler", ws:[3],               h:()=>40, m:()=>1.5*MK, radial:1, desc:"Hang boosters on the side, almost touching the core. Space drops them (it goes with the booster)."},
   fin:    {name:"Fin",            ws:[30],              h:()=>50, m:()=>1.2*MK, radial:1, desc:"Keeps the rocket pointing where it's going while in the air."},
@@ -2827,7 +2854,7 @@ const ENG_ORDER=["stand","gnat","wren","mule","spike","bison","condor","vac","at
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
 function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],MK*A2(clusterGeo(p).ew,ENG[k].w)*(p.k||1));}
 const PT_ORDER=["probe","probe:cabin","nose","nose:cockpit","tank","tank:ball","adapter","fair","shield","engine:stand","engine:gnat","engine:wren","engine:mule","engine:spike","engine:bison","engine:condor","engine:vac","engine:atom","engine:stand:4",
-  "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","fin","fin:grid","fin:wing","rcs","leg","leg:big","solar","light","capsule","capsule:dragon","les"];
+  "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","dock","fin","fin:grid","fin:wing","rcs","leg","leg:big","solar","light","capsule","capsule:dragon","les"];
 let partId=1;
 // t can carry a model: "engine:mule", "srb:thumper"; n = a saved library entry's numbers to copy onto the part
 function mkPart(t,w,h,e,n){let b,k=1;if(t.startsWith("engine:")){e=t.slice(7);t="engine";if(e.includes(":")){k=+e.split(":")[1];e=e.split(":")[0];}}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}let va;if(t.includes(":")){va=t.split(":")[1];t=t.split(":")[0];}const d=PT[t],V=va&&VARS[t+":"+va];if(V){w=w||V.w;h=h||V.h(w);}
@@ -3142,6 +3169,11 @@ function drawPart(c,p,o={}){
       c.fillStyle="rgba(255,255,255,.12)";c.fillRect(L+w*0.18,cy+12,0.8,T-cy-15);   // a highlight down the casing
       c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,T-3,w,3);c.fillStyle="rgba(235,225,210,.55)";c.fillRect(x-w*0.36,y,w*0.72,1.6);   // the nozzle's exit lip
       break;}
+    case"dock":{   // docking port: a short collar, a soft-capture ring on top with guide petals, and a white target cross
+      c.fillStyle=cyl(c,L,R,[150,154,162]);c.fillRect(L+w*0.1,y,w*0.8,h*0.65);             // collar (bottom)
+      c.fillStyle=cyl(c,L,R,[205,208,214]);c.fillRect(L,y+h*0.58,w,h*0.3);                // capture ring
+      c.fillStyle="rgba(240,200,60,.9)";for(const f of[0.12,0.5,0.88])c.fillRect(x+(f-0.5)*w-1,T-h*0.14,2,h*0.14);   // guide petals on top
+      c.fillStyle="rgba(255,255,255,.85)";c.fillRect(x-0.6,y+h*0.1,1.2,h*0.45);c.fillRect(x-w*0.18,y+h*0.3,w*0.36,1);break;}
     case"dec":{   // separation ring: dark structure, a bright pyro line where it splits, and its bolts
       c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.7,w,1.4);
       c.fillStyle="rgba(0,0,0,.35)";for(let xx=L+5;xx<R-2;xx+=9)c.fillRect(xx,y+2,2,2);break;}
@@ -3285,13 +3317,13 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
   const stack=(y,list)=>{for(const[t,w,h]of list){const p=add(t,0,y,w,h);y+=p.h;}return y;};
   const W=40;   // 4 m core, Falcon-like
   if(name==="hopper"){stack(0,[["engine",30],["tank",W,120],["probe",W],["nose",W]]);pair("leg",W/2+15,46);}
-  else if(name==="orbiter"){stack(0,[["engine",30],["tank",W,215],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);pair("fin",W/2+15,46);}
+  else if(name==="orbiter"){stack(0,[["engine",30],["tank",W,150],["dec",W],["engine:stand",30],["tank",W,45],["probe",W],["nose",W]]);pair("fin",W/2+15,46);}
   // v1.35: kerosene tanks (Mule, Bison, Wren) hold nearly 3× the mass of hydrogen ones, so they are about half as long as before
-  else if(name==="heavy"){const top=stack(0,[["engine",30],["tank",W,360],["dec",W],["engine:vac",30],["tank",W,140],["probe",W],["nose",W]]);
-    const bw=34,bx=W/2+3+bw/2,mh=mkPart("engine:mule",30).h;pair("sdec",W/2+1.5,90);pair("engine:mule",bx,0,30);pair("tank",bx,mh,bw,140);pair("nose",bx,mh+140,bw);pair("fin",bx+bw/2+15,mh);}
+  else if(name==="heavy"){const top=stack(0,[["engine",30],["tank",W,170],["dec",W],["engine:vac",30],["tank",W,45],["probe",W],["nose",W]]);
+    const bw=34,bx=W/2+3+bw/2,mh=mkPart("engine:mule",30).h;pair("sdec",W/2+1.5,90);pair("engine:mule",bx,0,30);pair("tank",bx,mh,bw,85);pair("nose",bx,mh+85,bw);pair("fin",bx+bw/2+15,mh);}
   else if(name==="sparrow"){   // the Orbiter with two solid boosters strapped on, flush to the core: they light with the throttle; Space drops them
-    stack(0,[["engine",30],["tank",W,250],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);
-    const bw=18,bx=W/2+3+bw/2;pair("sdec",W/2+1.5,60);pair("srb:thumper",bx,0,bw,260);pair("nose",bx,260,bw);pair("fin",bx+bw/2+15,0);}
+    stack(0,[["engine",30],["tank",W,140],["dec",W],["engine:stand",30],["tank",W,45],["probe",W],["nose",W]]);
+    const bw=14,bx=W/2+3+bw/2;pair("sdec",W/2+1.5,60);pair("srb:thumper",bx,0,bw,230);pair("nose",bx,230,bw);pair("fin",bx+bw/2+15,0);}
   else if(name==="lander"){const y=stack(0,[["engine:bison",56],["tank",84,70],["adapter",84],["dec",W],["engine:wren",22],["tank",W,40],["probe",W],["nose",W]]);
     pair("leg",W/2+15,A.find(p=>p.t==="engine"&&p.e==="wren").y+32);pair("fin",84/2+15,70);}
   else if(name==="sls"){   // SLS proportions: an 8.4 m orange core with a 4-engine cluster, two slim 3.7 m solid boosters flush to its
@@ -3312,7 +3344,7 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
     y=stack(y,[["dec",W],["shield",W],["capsule:dragon",W]]);}
   else if(name==="comsat"){   // a satellite launcher: kerosene first stage, vacuum upper stage, and a payload fairing with a small
     // satellite inside (gold-foil tank, probe core, folded solar panels). Above the air the fairing splits open and the panels unfold.
-    let y=stack(0,[["engine:mule",32],["tank",W,140],["dec",W],["engine:vac",30],["tank",W,80]]);pair("fin",W/2+15,0);
+    let y=stack(0,[["engine:mule",32],["tank",W,85],["dec",W],["engine:vac",30],["tank",W,30]]);pair("fin",W/2+15,0);
     const fr=add("fair",0,y,48);fr.fh=110;y+=fr.h;const st=add("tank",0,y,24,40);st.sk="gold";y+=40;add("probe",0,y,24);pair("solar",12+5,y-34);}
   return A;}
 
@@ -3865,7 +3897,7 @@ function kitIcon(k){const c=document.createElement("canvas");c.width=c.height=88
   const L=kitParts(B,0,0,1),x0=Math.min(...L.map(p=>p.x-p.w/2)),x1=Math.max(...L.map(p=>p.x+p.w/2)),sc=Math.min(70/(x1-x0),76/B.h);
   g.setTransform(sc,0,0,-sc,44-sc*(x0+x1)/2,44+sc*B.h/2);for(const p of L)drawPart(g,p,{legs:false});return c;}
 function partIcon(t){if(t.startsWith("kit:"))return kitIcon(t.slice(4));const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
-  if(t==="tank")p.h=90;if(t==="fair")p.fh=70;const hh=p.h+(p.fh||0),sc=Math.min(70/p.w,70/hh,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*hh/2);p.x=0;p.y=0;drawPart(g,p,{legs:false,shell:true});return c;}
+  if(t==="tank")p.h=90;if(t==="fair")p.fh=70;if(t==="dock"){p.w=48;p.h=15;}   /* a 2 m port would be a speck in the palette */const hh=p.h+(p.fh||0),sc=Math.min(70/p.w,70/hh,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*hh/2);p.x=0;p.y=0;drawPart(g,p,{legs:false,shell:true});return c;}
 function vPalUI(){const box=$("vParts");box.innerHTML="";
   const item=(t,name,desc,cls)=>{const b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+cls+(ok?"":" vlock");
     b.title=ok?desc:`Locked: unlock “${tn?tn.name:"?"}” in the Tech tree (${tn?tn.cost:"?"} science). ${desc}`;   // locked parts show, dimmed: click opens the tree
@@ -4112,7 +4144,7 @@ function startFlight(ps,name,keepWx){
   const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;delete p.open;}EN=engineNums();   // full tanks again on a retry
   const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)*UM);v.x=0;v.y=PR+terrH(0)-lo+0.005;v.landed=true;launchW=v.Wall;launchH=v.H;
   v.frost=1;if(JX){CD={s:"wait",t:10};v.clamped=true;}else CD={s:"go",t:0};tRel=0;steam=[];
-  VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
+  VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";dvPad=0;buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
   msg=JX?(matchMedia("(pointer:coarse)").matches?"On the pad. Tap Start countdown to count down from 10.":"On the pad. Press Space (or Start countdown) to count down from 10."):"";msgT=JX?8:0;
   // weather for this launch: a new one each time you launch from the editor, the same one when you retry (R)
   if(!keepWx){launchSeed=(launchSeed*16807+12345)%2147483647||7;}pickWeather(launchSeed%9973);
@@ -4211,8 +4243,45 @@ function crash(v,sp,water){v.splash=!!water;
     v.debris.push({x:(Math.random()-0.5)*v.Wall,y:Math.random()*v.H,vx:Math.cos(an)*s,vy:Math.sin(an)*s,rot:Math.random()*6,vr:(Math.random()-0.5)*12,l:0.15+Math.random()*v.W*0.7,c:Math.random()<0.3?"#c4402f":(Math.random()<0.5?"#d6dbe6":"#3a3f4c")});}
   if(v===AV){msg=`💥 Crashed at ${Math.round(sp)} m/s. Highest point ${v.maxAlt>=1000?(v.maxAlt/1000).toFixed(1)+" km":Math.round(v.maxAlt)+" m"}. R to try again`+(VS.some(o=>o!==v&&o.ctrl&&!o.crashed)?", [ ] to fly another craft":"")+".";msgT=1e9;}}
 function padDist(v){if(v.body!==0)return{d:Infinity,name:"",at:0};const ang=Math.atan2(v.x,v.y)*PR;const a=ang,b=ang-PAD2;return Math.abs(a)<Math.abs(b)?{d:a,name:"launch pad",at:0}:{d:b,name:"landing zone",at:PAD2};}
+// ---------- docking (v1.45) ----------
+// A docking port faces "up" out of the top of its stack. When two craft bring free ports nose to nose (within about a metre,
+// facing each other, closing slower than 0.5 m/s) they lock: the second craft becomes a rigid passenger of the first. It's
+// carried along exactly (its place is kept in the host's own part coordinates, so dropping a stage doesn't shift it), its mass
+// counts when the host's engines push, and its own engines stay quiet. N lets go with a gentle push apart.
+function portWorld(v,p){const c=Math.cos(v.phi),s=Math.sin(v.phi),dx=(p.x-v.px)*UM,dy=(p.y+p.h-v.py)*UM;return{x:v.x+dx*c+dy*s,y:v.y-dx*s+dy*c,fx:s,fy:c};}
+let dockCool=[];   // ports just let go: they can't catch each other again until they are 2 m apart
+function freePorts(v){return v.ps.filter(p=>p.t==="dock"&&!p.docked&&!p.cool&&!v.ps.some(q=>q!==p&&Math.abs(q.y-(p.y+p.h))<0.5&&Math.abs(q.x-p.x)<(q.w+p.w)/2-0.5));}
+const guestMass=v=>(v.guests||[]).reduce((m,g)=>m+g.dry+g.ps.reduce((f,p)=>f+(p.fuel||0),0),0);
+function dockCheck(){
+  dockCool=dockCool.filter(c=>{const A=portWorld(c.a,c.pa),B=portWorld(c.b,c.pb);if(c.a.crashed||c.b.crashed||Math.hypot(A.x-B.x,A.y-B.y)>2){c.pa.cool=c.pb.cool=false;return false;}return true;});
+  for(let i=0;i<VS.length;i++)for(let j=i+1;j<VS.length;j++){const a=VS[i],b=VS[j];
+    if(a.crashed||b.crashed||a.landed||b.landed||a.body!==b.body||a.dockHost||b.dockHost||Math.hypot(a.x-b.x,a.y-b.y)>300)continue;
+    if(Math.hypot(a.vx-b.vx,a.vy-b.vy)>=0.5)continue;
+    for(const pa of freePorts(a))for(const pb of freePorts(b)){const A=portWorld(a,pa),B=portWorld(b,pb);
+      if(Math.hypot(A.x-B.x,A.y-B.y)<Math.max(1,(pa.w+pb.w)*UM*0.25)&&A.fx*B.fx+A.fy*B.fy<-0.94){dock(a,b,pa,pb);return;}}}}
+function dock(a,b,pa,pb){
+  const H=b===AV?b:a,G=H===a?b:a,pH=H===a?pa:pb,pG=H===a?pb:pa,mH=H.dry+H.ps.reduce((f,p)=>f+(p.fuel||0),0)+guestMass(H),mG=G.dry+G.ps.reduce((f,p)=>f+(p.fuel||0),0);
+  // one craft now: share the momentum, then snap the passenger so the ports meet exactly, nose to nose
+  H.vx=(mH*H.vx+mG*G.vx)/(mH+mG);H.vy=(mH*H.vy+mG*G.vy)/(mH+mG);
+  G.phi=H.phi+Math.PI;const P=portWorld(H,pH),c=Math.cos(G.phi),s=Math.sin(G.phi),dx=(pG.x-G.px)*UM,dy=(pG.y+pG.h-G.py)*UM;
+  G.x=P.x-(dx*c+dy*s);G.y=P.y-(-dx*s+dy*c);
+  const ch=Math.cos(H.phi),sh=Math.sin(H.phi),wx=G.x-H.x,wy=G.y-H.y;
+  G.dockAt=[H.px+(wx*ch-wy*sh)/UM,H.py+(wx*sh+wy*ch)/UM];   // where it sits, in the host's part coordinates
+  G.dockHost=H;G.dockPorts=[pH,pG];pH.docked=pG.docked=true;G.thr=0;H.guests=(H.guests||[]).concat(G);dockFollow();
+  callout("DOCKED","N to undock");if(JX){JX.snd.clunk();JX.goal("dock");}}
+function dockFollow(){
+  for(const G of VS){const H=G.dockHost;if(!H)continue;
+    if(H.crashed||!VS.includes(H)||!H.ps.includes(G.dockPorts[0])){undock(G,0);continue;}
+    const ch=Math.cos(H.phi),sh=Math.sin(H.phi),ox=(G.dockAt[0]-H.px)*UM,oy=(G.dockAt[1]-H.py)*UM,rx=ox*ch+oy*sh,ry=-ox*sh+oy*ch;
+    G.x=H.x+rx;G.y=H.y+ry;G.phi=H.phi+Math.PI;G.om=H.om;G.vx=H.vx+H.om*ry;G.vy=H.vy-H.om*rx;G.body=H.body;G.F=0;G.landed=false;}}
+function undock(G,push){const H=G.dockHost;if(!H)return;G.dockHost=null;for(const p of G.dockPorts){p.docked=false;p.cool=true;}dockCool.push({a:H,b:G,pa:G.dockPorts[0],pb:G.dockPorts[1]});G.dockPorts=null;H.guests=(H.guests||[]).filter(g=>g!==G);
+  if(push){const s=Math.sin(G.phi),c=Math.cos(G.phi),mG=G.dry+G.ps.reduce((f,p)=>f+(p.fuel||0),0),mH=H.dry+H.ps.reduce((f,p)=>f+(p.fuel||0),0)+guestMass(H);
+    G.vx-=push*s*mH/(mH+mG);G.vy-=push*c*mH/(mH+mG);H.vx+=push*s*mG/(mH+mG);H.vy+=push*c*mG/(mH+mG);}}   // springs push the two apart (momentum kept)
+function undockKey(){const v=AV;if(!v)return;
+  if(v.dockHost){undock(v,0.4);}else if(v.guests&&v.guests.length){for(const g of v.guests.slice())undock(g,0.4);}else{msg="Not docked to anything.";msgT=1.5;return;}
+  callout("UNDOCKED","springs push the craft apart");if(JX)JX.snd.clunk();}
 function stepV(v,dt,u){
-  if(v.crashed)return;
+  if(v.crashed||v.dockHost)return;   // a docked passenger is carried by its host (dockFollow)
   const B=BOD[v.body],rr=Math.hypot(v.x,v.y),ux=v.x/rr,uy=v.y/rr,h=rr-B.R,a=B.atm?atmP(Math.max(0,h))/P0:0,rho=B.atm?atmRho(Math.max(0,h)):0,c=Math.cos(v.phi),s=Math.sin(v.phi);
   // engines: each drinks from the tanks it's joined to
   let F=0,fuel=0,nS=0;const thr=v.thr;
@@ -4224,7 +4293,7 @@ function stepV(v,dt,u){
     v.lit[n]=thr>0&&av>1e-6;
     if(!v.lit[n])continue;const E=v.est[n];F+=(E.vac.F-(E.vac.F-E.sl.F)*a)*thr;const use=Math.min(av,E.vac.F/(E.vac.isp*G0)*thr*dt);for(const j of tk)v.ps[j].fuel-=use*v.ps[j].fuel/av;}
   for(const p of v.ps)if(p.fuel)fuel+=p.fuel;
-  const m=v.dry+fuel;v.F=F;v.a=a;v.m=m;v.nS=nS;
+  const m=v.dry+fuel+(v.guests&&v.guests.length?guestMass(v):0);v.F=F;v.a=a;v.m=m;v.nS=nS;
   let ax=F/m*s,ay=F/m*c;const gk=-B.mu/(rr*rr);ax+=gk*ux;ay+=gk*uy;
   // air: drag depends on the shape and on how sideways you fly; fins turn you into the wind
   let tq=0;const sp=Math.hypot(v.vx,v.vy);
@@ -4326,6 +4395,7 @@ addEventListener("keydown",e=>{if(!FLT.on||typeof titleUp!=="undefined"&&titleUp
   else if((k==="z"||k==="w"||k==="shift")&&CD.s==="wait"){msg="The rocket is held down on the pad. Press Space to start the countdown.";msgT=3;}
   else if(k==="z")AV.thr=1;else if(k==="x")AV.thr=0;
   else if(k===" "){if(!e.repeat){if(CD.s==="wait")startCount();else if(CD.s==="count")release(true);else doStage();}}
+  else if(k==="n")undockKey();
   else if(k==="g"){if(AV.hasLegs){AV.legs=!AV.legs;msg=AV.legs?"Legs down":"Legs up";msgT=1.5;}else{msg="No landing legs on this craft.";msgT=2;}}
   else if(k==="["||k==="]")switchV(k==="]"?1:-1);
   else if(k>="1"&&k<="9"&&!e.repeat)setSas(SAS_MODES[+k-1]);
@@ -4387,15 +4457,16 @@ function flightFrame(now){
     if(burning&&wv>4){wv=4;warpWhy="engine on";}
     if(!AV.landed&&hA<B.floor&&wv>10){wv=10;warpWhy=B.atm?"in the air":"near the ground";}
     if(wv>=50){   // on rails
-      for(const v of VS)if(v!==AV&&!v.landed&&!v.crashed&&Math.hypot(v.x,v.y)-BOD[v.body].R<BOD[v.body].floor){v.gone=true;msg=`${v.name} was lost (left behind in ${BOD[v.body].atm?"the air":"a low orbit"} while you warped)`;msgT=4;}
+      for(const v of VS)if(v!==AV&&!v.dockHost&&!v.landed&&!v.crashed&&Math.hypot(v.x,v.y)-BOD[v.body].R<BOD[v.body].floor){v.gone=true;msg=`${v.name} was lost (left behind in ${BOD[v.body].atm?"the air":"a low orbit"} while you warped)`;msgT=4;}
       VS=VS.filter(v=>!v.gone||v===AV);
       const T=dtR*wv;let stop=false;
-      for(const v of VS){if(v.landed||v.crashed){v.t+=T;continue;}if(!railStep(v,T)&&v===AV)stop=true;}
+      for(const v of VS){if(v.landed||v.crashed||v.dockHost){v.t+=T;continue;}if(!railStep(v,T)&&v===AV)stop=true;}dockFollow();
       FT+=T;if(stop){warp=10;msg="Warp slowed: "+(B.atm?"entering the air":"close to the ground");msgT=3;}
     }else{
       const fine=VS.some(v=>!v.crashed&&!v.landed&&(BOD[v.body].atm&&Math.hypot(v.x,v.y)-BOD[v.body].R<ATM_TOP||v.F>0||v.thr>0||Math.hypot(v.x,v.y)-BOD[v.body].R<3000));
       const total=dtR*wv,hs=fine?0.004:0.04,n=Math.min(3000,Math.ceil(total/hs)),h=total/n;
-      for(let i=0;i<n;i++){if(typeof apStep==='function')apStep(h);for(const v of VS)stepV(v,h,v===AV&&!AV.crashed?u:0);FT+=h;}}
+      for(let i=0;i<n;i++){if(typeof apStep==='function')apStep(h);for(const v of VS)stepV(v,h,v===AV&&!AV.crashed?u:0);if(VS.length>1)dockFollow();FT+=h;}
+      if(VS.length>1)dockCheck();}
     AV.wv=wv;
     {const lit=AV.F>0;if(lit&&!wasLit&&!AV.crashed){kickF=1;flashF=AV.landed||Math.hypot(AV.x,AV.y)-B.R<500?1:0.5;}wasLit=lit;}   // ignition: jolt + flash
     // sound: your own engines, plus anything else burning close by (boosters you just dropped)
@@ -4699,6 +4770,7 @@ function buildRows(){
 function orbTimes(r,o,B){if(o.esc||!(o.a>0))return null;const rr=Math.hypot(r.x,r.y),sg=o.hz>=0?1:-1,e=o.e,n=Math.sqrt(B.mu/(o.a*o.a*o.a));
   const nu=Math.atan2(sg*(o.ex*r.y-o.ey*r.x),o.ex*r.x+o.ey*r.y),E=2*Math.atan(Math.sqrt((1-e)/(1+e))*Math.tan(nu/2)),M=E-e*Math.sin(E),P=2*Math.PI;
   return{per:P/n,pe:(((P-M)%P)+P)%P/n,ap:(((Math.PI-M)%P)+P)%P/n};}
+let dvPad=0;   // Δv the flown craft had on the pad (full arc of the Δv dial)
 function hudFlight(dt){
   if(!rowsBuilt)buildRows();
   const r=AV,B=BOD[r.body],rr=Math.hypot(r.x,r.y),h=rr-B.R,ux=r.x/rr,uy=r.y/rr,vv=r.vx*ux+r.vy*uy,vh=r.vx*uy-r.vy*ux,o=orbitOf(r),sp=Math.hypot(r.vx,r.vy),psi=Math.atan2(r.x,r.y);
@@ -4710,6 +4782,12 @@ function hudFlight(dt){
   set("fClock",CD.s==="count"?"T−"+clk(Math.ceil(CD.t)):CD.s==="wait"?"T−00:00:10":T0==null?"T−00:00:00":"T+"+clk(FT-T0));
   $("fCount").style.display=CD.s==="wait"&&!r.crashed&&!(typeof DEMO!=="undefined"&&DEMO.on)?"":"none";
   if(!anAV||++hudN%15===0)anAV=analyze(r.ps,EN,r.ps.map(p=>p.fuel||0));
+  // Δv left: the speed the rocket can still gain from its fuel, all stages (big) and this stage (small). The arc drains from
+  // what it had on the pad, so you can see at a glance whether there's enough left for the next burn.
+  {let tot=0;for(const q of anAV.stages)tot+=q.dv;if(!(dvPad>0)||CD.s!=="go")dvPad=Math.max(dvPad||0,tot);
+    const bigDv=tot>=10000;rv("fDvL",bigDv?tot/1000:tot,bigDv?(x=>x.toFixed(1)):fmt);set("fDvLU",bigDv?"KM/S":"M/S");
+    set("fDvS",anAV.stages.length>1?"STAGE "+fmt(anAV.stages[0].dv):"");
+    $("dDvL").querySelector(".arc").style.strokeDasharray=`${245*Math.min(1,dvPad>0?tot/dvPad:0)} 999`;}
   if(CD.s!=="go")set("fStageN",CD.s==="wait"?"HOLD · ON THE PAD":"COUNTDOWN");else set("fStageN",r.ctrl?`STAGE ${Math.min(nSt0,Math.max(1,nSt0-anAV.stages.length+1))} / ${nSt0}`:"");
   set("fVes",r.name+(r.body?" · MOON":" · "+clockStr(hourAt(psi,FT))+" · DAY "+(1+Math.floor((FT+CLK0/24*DAY)/DAY))));set("fWarp",r.wv>1||warp>1?`WARP ${r.wv<warp?r.wv+"× ("+warpWhy+")":warp+"×"}`:"");
   // events: what just happened gets a callout and a tick on the timeline
@@ -5206,7 +5284,7 @@ function techNodes(){return[
   {id:"plane", col:3,name:"Spaceplanes",      cost:20,parts:["fin:wing","nose:cockpit"],      need:"land",desc:"Wings and a cockpit."},
   {id:"crew",  col:4,name:"Crew",             cost:20,parts:["capsule","les","shield"],                 desc:"A crew capsule with parachutes, its escape tower, and heat-shield plates."},
   {id:"crew2", col:4,name:"Big capsule",      cost:35,parts:["capsule:dragon"],               need:"crew",desc:"A wider, rounder capsule."},
-  {id:"ctrl",  col:5,name:"Control",          cost:10,parts:["rcs","light"],                            desc:"RCS thrusters to turn and nudge in space, and floodlights for the dark."},
+  {id:"ctrl",  col:5,name:"Control",          cost:10,parts:["rcs","light","dock"],                     desc:"RCS thrusters to turn and nudge in space, docking ports, and floodlights for the dark."},
   {id:"power", col:5,name:"Power",            cost:15,parts:["solar"],                        need:"ctrl",desc:"Solar panels that open in space."}];}
 const techScience=()=>JX?JX.science():0;
 const techSpent=()=>techNodes().reduce((a,n)=>a+(techSt().got.includes(n.id)?n.cost:0),0);

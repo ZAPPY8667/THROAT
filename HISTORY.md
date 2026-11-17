@@ -388,6 +388,28 @@ made on the test stand.
   0.15 s real-time "exposure" (EXPOSURE). Slow motion barely blends (the picture hardly moves in 0.15 s); measuring views
   (Pressure/Temp/Mach/Shocks), readouts and physics are untouched. Blending is per cell, so panning/zooming doesn't smear.
 
+## v1.45: Δv dial, docking, speed test, Glow fixed, leaner ready-made rockets, XXL world
+- **Δv LEFT dial** (flight, next to Speed/Altitude, always visible): total Δv of all stages left, the current stage's Δv under it,
+  and an arc that drains from what the craft had on the pad (`dvPad`). The DATA tab (closed by default) had it before.
+- **Glow view fixed**: an empty `if(view===6||view===0){}` in `cellColors` had swallowed Glow for many versions (it drew only
+  the background). Glow now runs its own branch; the solid-motor smoke tint moved after the view branches so Glow keeps it.
+- **Speed test**: click the Sim readout. The worker saves the world, runs it flat out on the CPU (1.5 s) and the GPU (2 s),
+  restores it, and a toast says "Graphics card N steps/s · CPU M → X× faster" (`W_benchRun`, `speedTest`, `window.__bench`).
+  It triggers on pointerdown: the readout's text changes every frame, so a "click" ends up targeting the panel.
+- **Ready-made rockets trimmed** (were 8–13 km/s for a ~4.9 km/s orbit): Orbiter 8.3 → 6.75 km/s, Sparrow 9.5 → 7.5
+  (slimmer Thumpers, 14 wide: less thrust, so the lift-off TWR stays sane), Comsat 10.1 → 8.1, Heavy 13.2 → 10.6.
+  Super Heavy (demo, Moon and back), Pathfinder, Lander, Hopper unchanged. All reach orbit on the autopilot.
+- **Tech-tree pacing** checked from zero (no change): the starter kit flies the Orbiter; test-stand goals (20 science) unlock
+  2–3 first-row nodes before the first launch; 165 science is reachable with no unlocks, so nothing deadlocks; everything
+  costs 295 of 305 science, so Nuclear comes after the Moon.
+- **Docking port** (`dock`, tech "Control", goal "Dock two craft" +25): goes on top of a stack and faces up. Two free ports
+  within ~1 m, facing each other, closing slower than 0.5 m/s lock: the second craft becomes a rigid passenger of the first
+  (`dockHost`/`guests`; its place kept in the host's part coordinates so staging doesn't move it; its mass counts in
+  `stepV`; it skips its own physics and rails). N undocks with a 0.4 m/s spring push (momentum kept); released ports can't
+  catch again until 2 m apart (`dockCool`). tests/flight/dock.js.
+- **World XXL (480×270)** in the world-size list, marked GPU (11 steps/s on a CPU).
+- Bit us again: a `// comment` inside a long one-line function (vab.js `partIcon`) killed the whole page. Use `/* */`.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

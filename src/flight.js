@@ -85,7 +85,7 @@ function startFlight(ps,name,keepWx){
   const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;delete p.open;}EN=engineNums();   // full tanks again on a retry
   const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)*UM);v.x=0;v.y=PR+terrH(0)-lo+0.005;v.landed=true;launchW=v.Wall;launchH=v.H;
   v.frost=1;if(JX){CD={s:"wait",t:10};v.clamped=true;}else CD={s:"go",t:0};tRel=0;steam=[];
-  VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
+  VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";dvPad=0;buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
   msg=JX?(matchMedia("(pointer:coarse)").matches?"On the pad. Tap Start countdown to count down from 10.":"On the pad. Press Space (or Start countdown) to count down from 10."):"";msgT=JX?8:0;
   // weather for this launch: a new one each time you launch from the editor, the same one when you retry (R)
   if(!keepWx){launchSeed=(launchSeed*16807+12345)%2147483647||7;}pickWeather(launchSeed%9973);
@@ -184,8 +184,45 @@ function crash(v,sp,water){v.splash=!!water;
     v.debris.push({x:(Math.random()-0.5)*v.Wall,y:Math.random()*v.H,vx:Math.cos(an)*s,vy:Math.sin(an)*s,rot:Math.random()*6,vr:(Math.random()-0.5)*12,l:0.15+Math.random()*v.W*0.7,c:Math.random()<0.3?"#c4402f":(Math.random()<0.5?"#d6dbe6":"#3a3f4c")});}
   if(v===AV){msg=`💥 Crashed at ${Math.round(sp)} m/s. Highest point ${v.maxAlt>=1000?(v.maxAlt/1000).toFixed(1)+" km":Math.round(v.maxAlt)+" m"}. R to try again`+(VS.some(o=>o!==v&&o.ctrl&&!o.crashed)?", [ ] to fly another craft":"")+".";msgT=1e9;}}
 function padDist(v){if(v.body!==0)return{d:Infinity,name:"",at:0};const ang=Math.atan2(v.x,v.y)*PR;const a=ang,b=ang-PAD2;return Math.abs(a)<Math.abs(b)?{d:a,name:"launch pad",at:0}:{d:b,name:"landing zone",at:PAD2};}
+// ---------- docking (v1.45) ----------
+// A docking port faces "up" out of the top of its stack. When two craft bring free ports nose to nose (within about a metre,
+// facing each other, closing slower than 0.5 m/s) they lock: the second craft becomes a rigid passenger of the first. It's
+// carried along exactly (its place is kept in the host's own part coordinates, so dropping a stage doesn't shift it), its mass
+// counts when the host's engines push, and its own engines stay quiet. N lets go with a gentle push apart.
+function portWorld(v,p){const c=Math.cos(v.phi),s=Math.sin(v.phi),dx=(p.x-v.px)*UM,dy=(p.y+p.h-v.py)*UM;return{x:v.x+dx*c+dy*s,y:v.y-dx*s+dy*c,fx:s,fy:c};}
+let dockCool=[];   // ports just let go: they can't catch each other again until they are 2 m apart
+function freePorts(v){return v.ps.filter(p=>p.t==="dock"&&!p.docked&&!p.cool&&!v.ps.some(q=>q!==p&&Math.abs(q.y-(p.y+p.h))<0.5&&Math.abs(q.x-p.x)<(q.w+p.w)/2-0.5));}
+const guestMass=v=>(v.guests||[]).reduce((m,g)=>m+g.dry+g.ps.reduce((f,p)=>f+(p.fuel||0),0),0);
+function dockCheck(){
+  dockCool=dockCool.filter(c=>{const A=portWorld(c.a,c.pa),B=portWorld(c.b,c.pb);if(c.a.crashed||c.b.crashed||Math.hypot(A.x-B.x,A.y-B.y)>2){c.pa.cool=c.pb.cool=false;return false;}return true;});
+  for(let i=0;i<VS.length;i++)for(let j=i+1;j<VS.length;j++){const a=VS[i],b=VS[j];
+    if(a.crashed||b.crashed||a.landed||b.landed||a.body!==b.body||a.dockHost||b.dockHost||Math.hypot(a.x-b.x,a.y-b.y)>300)continue;
+    if(Math.hypot(a.vx-b.vx,a.vy-b.vy)>=0.5)continue;
+    for(const pa of freePorts(a))for(const pb of freePorts(b)){const A=portWorld(a,pa),B=portWorld(b,pb);
+      if(Math.hypot(A.x-B.x,A.y-B.y)<Math.max(1,(pa.w+pb.w)*UM*0.25)&&A.fx*B.fx+A.fy*B.fy<-0.94){dock(a,b,pa,pb);return;}}}}
+function dock(a,b,pa,pb){
+  const H=b===AV?b:a,G=H===a?b:a,pH=H===a?pa:pb,pG=H===a?pb:pa,mH=H.dry+H.ps.reduce((f,p)=>f+(p.fuel||0),0)+guestMass(H),mG=G.dry+G.ps.reduce((f,p)=>f+(p.fuel||0),0);
+  // one craft now: share the momentum, then snap the passenger so the ports meet exactly, nose to nose
+  H.vx=(mH*H.vx+mG*G.vx)/(mH+mG);H.vy=(mH*H.vy+mG*G.vy)/(mH+mG);
+  G.phi=H.phi+Math.PI;const P=portWorld(H,pH),c=Math.cos(G.phi),s=Math.sin(G.phi),dx=(pG.x-G.px)*UM,dy=(pG.y+pG.h-G.py)*UM;
+  G.x=P.x-(dx*c+dy*s);G.y=P.y-(-dx*s+dy*c);
+  const ch=Math.cos(H.phi),sh=Math.sin(H.phi),wx=G.x-H.x,wy=G.y-H.y;
+  G.dockAt=[H.px+(wx*ch-wy*sh)/UM,H.py+(wx*sh+wy*ch)/UM];   // where it sits, in the host's part coordinates
+  G.dockHost=H;G.dockPorts=[pH,pG];pH.docked=pG.docked=true;G.thr=0;H.guests=(H.guests||[]).concat(G);dockFollow();
+  callout("DOCKED","N to undock");if(JX){JX.snd.clunk();JX.goal("dock");}}
+function dockFollow(){
+  for(const G of VS){const H=G.dockHost;if(!H)continue;
+    if(H.crashed||!VS.includes(H)||!H.ps.includes(G.dockPorts[0])){undock(G,0);continue;}
+    const ch=Math.cos(H.phi),sh=Math.sin(H.phi),ox=(G.dockAt[0]-H.px)*UM,oy=(G.dockAt[1]-H.py)*UM,rx=ox*ch+oy*sh,ry=-ox*sh+oy*ch;
+    G.x=H.x+rx;G.y=H.y+ry;G.phi=H.phi+Math.PI;G.om=H.om;G.vx=H.vx+H.om*ry;G.vy=H.vy-H.om*rx;G.body=H.body;G.F=0;G.landed=false;}}
+function undock(G,push){const H=G.dockHost;if(!H)return;G.dockHost=null;for(const p of G.dockPorts){p.docked=false;p.cool=true;}dockCool.push({a:H,b:G,pa:G.dockPorts[0],pb:G.dockPorts[1]});G.dockPorts=null;H.guests=(H.guests||[]).filter(g=>g!==G);
+  if(push){const s=Math.sin(G.phi),c=Math.cos(G.phi),mG=G.dry+G.ps.reduce((f,p)=>f+(p.fuel||0),0),mH=H.dry+H.ps.reduce((f,p)=>f+(p.fuel||0),0)+guestMass(H);
+    G.vx-=push*s*mH/(mH+mG);G.vy-=push*c*mH/(mH+mG);H.vx+=push*s*mG/(mH+mG);H.vy+=push*c*mG/(mH+mG);}}   // springs push the two apart (momentum kept)
+function undockKey(){const v=AV;if(!v)return;
+  if(v.dockHost){undock(v,0.4);}else if(v.guests&&v.guests.length){for(const g of v.guests.slice())undock(g,0.4);}else{msg="Not docked to anything.";msgT=1.5;return;}
+  callout("UNDOCKED","springs push the craft apart");if(JX)JX.snd.clunk();}
 function stepV(v,dt,u){
-  if(v.crashed)return;
+  if(v.crashed||v.dockHost)return;   // a docked passenger is carried by its host (dockFollow)
   const B=BOD[v.body],rr=Math.hypot(v.x,v.y),ux=v.x/rr,uy=v.y/rr,h=rr-B.R,a=B.atm?atmP(Math.max(0,h))/P0:0,rho=B.atm?atmRho(Math.max(0,h)):0,c=Math.cos(v.phi),s=Math.sin(v.phi);
   // engines: each drinks from the tanks it's joined to
   let F=0,fuel=0,nS=0;const thr=v.thr;
@@ -197,7 +234,7 @@ function stepV(v,dt,u){
     v.lit[n]=thr>0&&av>1e-6;
     if(!v.lit[n])continue;const E=v.est[n];F+=(E.vac.F-(E.vac.F-E.sl.F)*a)*thr;const use=Math.min(av,E.vac.F/(E.vac.isp*G0)*thr*dt);for(const j of tk)v.ps[j].fuel-=use*v.ps[j].fuel/av;}
   for(const p of v.ps)if(p.fuel)fuel+=p.fuel;
-  const m=v.dry+fuel;v.F=F;v.a=a;v.m=m;v.nS=nS;
+  const m=v.dry+fuel+(v.guests&&v.guests.length?guestMass(v):0);v.F=F;v.a=a;v.m=m;v.nS=nS;
   let ax=F/m*s,ay=F/m*c;const gk=-B.mu/(rr*rr);ax+=gk*ux;ay+=gk*uy;
   // air: drag depends on the shape and on how sideways you fly; fins turn you into the wind
   let tq=0;const sp=Math.hypot(v.vx,v.vy);
@@ -299,6 +336,7 @@ addEventListener("keydown",e=>{if(!FLT.on||typeof titleUp!=="undefined"&&titleUp
   else if((k==="z"||k==="w"||k==="shift")&&CD.s==="wait"){msg="The rocket is held down on the pad. Press Space to start the countdown.";msgT=3;}
   else if(k==="z")AV.thr=1;else if(k==="x")AV.thr=0;
   else if(k===" "){if(!e.repeat){if(CD.s==="wait")startCount();else if(CD.s==="count")release(true);else doStage();}}
+  else if(k==="n")undockKey();
   else if(k==="g"){if(AV.hasLegs){AV.legs=!AV.legs;msg=AV.legs?"Legs down":"Legs up";msgT=1.5;}else{msg="No landing legs on this craft.";msgT=2;}}
   else if(k==="["||k==="]")switchV(k==="]"?1:-1);
   else if(k>="1"&&k<="9"&&!e.repeat)setSas(SAS_MODES[+k-1]);
@@ -360,15 +398,16 @@ function flightFrame(now){
     if(burning&&wv>4){wv=4;warpWhy="engine on";}
     if(!AV.landed&&hA<B.floor&&wv>10){wv=10;warpWhy=B.atm?"in the air":"near the ground";}
     if(wv>=50){   // on rails
-      for(const v of VS)if(v!==AV&&!v.landed&&!v.crashed&&Math.hypot(v.x,v.y)-BOD[v.body].R<BOD[v.body].floor){v.gone=true;msg=`${v.name} was lost (left behind in ${BOD[v.body].atm?"the air":"a low orbit"} while you warped)`;msgT=4;}
+      for(const v of VS)if(v!==AV&&!v.dockHost&&!v.landed&&!v.crashed&&Math.hypot(v.x,v.y)-BOD[v.body].R<BOD[v.body].floor){v.gone=true;msg=`${v.name} was lost (left behind in ${BOD[v.body].atm?"the air":"a low orbit"} while you warped)`;msgT=4;}
       VS=VS.filter(v=>!v.gone||v===AV);
       const T=dtR*wv;let stop=false;
-      for(const v of VS){if(v.landed||v.crashed){v.t+=T;continue;}if(!railStep(v,T)&&v===AV)stop=true;}
+      for(const v of VS){if(v.landed||v.crashed||v.dockHost){v.t+=T;continue;}if(!railStep(v,T)&&v===AV)stop=true;}dockFollow();
       FT+=T;if(stop){warp=10;msg="Warp slowed: "+(B.atm?"entering the air":"close to the ground");msgT=3;}
     }else{
       const fine=VS.some(v=>!v.crashed&&!v.landed&&(BOD[v.body].atm&&Math.hypot(v.x,v.y)-BOD[v.body].R<ATM_TOP||v.F>0||v.thr>0||Math.hypot(v.x,v.y)-BOD[v.body].R<3000));
       const total=dtR*wv,hs=fine?0.004:0.04,n=Math.min(3000,Math.ceil(total/hs)),h=total/n;
-      for(let i=0;i<n;i++){if(typeof apStep==='function')apStep(h);for(const v of VS)stepV(v,h,v===AV&&!AV.crashed?u:0);FT+=h;}}
+      for(let i=0;i<n;i++){if(typeof apStep==='function')apStep(h);for(const v of VS)stepV(v,h,v===AV&&!AV.crashed?u:0);if(VS.length>1)dockFollow();FT+=h;}
+      if(VS.length>1)dockCheck();}
     AV.wv=wv;
     {const lit=AV.F>0;if(lit&&!wasLit&&!AV.crashed){kickF=1;flashF=AV.landed||Math.hypot(AV.x,AV.y)-B.R<500?1:0.5;}wasLit=lit;}   // ignition: jolt + flash
     // sound: your own engines, plus anything else burning close by (boosters you just dropped)
@@ -672,6 +711,7 @@ function buildRows(){
 function orbTimes(r,o,B){if(o.esc||!(o.a>0))return null;const rr=Math.hypot(r.x,r.y),sg=o.hz>=0?1:-1,e=o.e,n=Math.sqrt(B.mu/(o.a*o.a*o.a));
   const nu=Math.atan2(sg*(o.ex*r.y-o.ey*r.x),o.ex*r.x+o.ey*r.y),E=2*Math.atan(Math.sqrt((1-e)/(1+e))*Math.tan(nu/2)),M=E-e*Math.sin(E),P=2*Math.PI;
   return{per:P/n,pe:(((P-M)%P)+P)%P/n,ap:(((Math.PI-M)%P)+P)%P/n};}
+let dvPad=0;   // Δv the flown craft had on the pad (full arc of the Δv dial)
 function hudFlight(dt){
   if(!rowsBuilt)buildRows();
   const r=AV,B=BOD[r.body],rr=Math.hypot(r.x,r.y),h=rr-B.R,ux=r.x/rr,uy=r.y/rr,vv=r.vx*ux+r.vy*uy,vh=r.vx*uy-r.vy*ux,o=orbitOf(r),sp=Math.hypot(r.vx,r.vy),psi=Math.atan2(r.x,r.y);
@@ -683,6 +723,12 @@ function hudFlight(dt){
   set("fClock",CD.s==="count"?"T−"+clk(Math.ceil(CD.t)):CD.s==="wait"?"T−00:00:10":T0==null?"T−00:00:00":"T+"+clk(FT-T0));
   $("fCount").style.display=CD.s==="wait"&&!r.crashed&&!(typeof DEMO!=="undefined"&&DEMO.on)?"":"none";
   if(!anAV||++hudN%15===0)anAV=analyze(r.ps,EN,r.ps.map(p=>p.fuel||0));
+  // Δv left: the speed the rocket can still gain from its fuel, all stages (big) and this stage (small). The arc drains from
+  // what it had on the pad, so you can see at a glance whether there's enough left for the next burn.
+  {let tot=0;for(const q of anAV.stages)tot+=q.dv;if(!(dvPad>0)||CD.s!=="go")dvPad=Math.max(dvPad||0,tot);
+    const bigDv=tot>=10000;rv("fDvL",bigDv?tot/1000:tot,bigDv?(x=>x.toFixed(1)):fmt);set("fDvLU",bigDv?"KM/S":"M/S");
+    set("fDvS",anAV.stages.length>1?"STAGE "+fmt(anAV.stages[0].dv):"");
+    $("dDvL").querySelector(".arc").style.strokeDasharray=`${245*Math.min(1,dvPad>0?tot/dvPad:0)} 999`;}
   if(CD.s!=="go")set("fStageN",CD.s==="wait"?"HOLD · ON THE PAD":"COUNTDOWN");else set("fStageN",r.ctrl?`STAGE ${Math.min(nSt0,Math.max(1,nSt0-anAV.stages.length+1))} / ${nSt0}`:"");
   set("fVes",r.name+(r.body?" · MOON":" · "+clockStr(hourAt(psi,FT))+" · DAY "+(1+Math.floor((FT+CLK0/24*DAY)/DAY))));set("fWarp",r.wv>1||warp>1?`WARP ${r.wv<warp?r.wv+"× ("+warpWhy+")":warp+"×"}`:"");
   // events: what just happened gets a callout and a tick on the timeline

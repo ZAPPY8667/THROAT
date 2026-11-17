@@ -22,6 +22,7 @@ echo "== flight: ASCENT autopilot, every ready-made rocket"; node flight/ap_asce
 echo "== flight: NODE (Moon transfer) + LAND (landing zone, Moon) autopilots"; node flight/ap_node_land.js | tail -5
 echo "== flight: the demo mission (Moon and back, Super Heavy)"; node flight/mission.js | tail -1
 echo "== flight: rockets saved before v1.16 get rebuilt"; node flight/old_rockets.js | tail -6
+echo "== flight: docking (lock, carry, undock)"; node flight/dock.js | tail -1
 echo "== flight: new parts (fairing, big legs, every palette part)"; node flight/new_parts.js | tail -1
 echo "== gpu: the same physics on the graphics card (WebGPU; SwiftShader here)"; node gpu/quick.js
 echo "== core: speed (large world)";                     node core/speed.js

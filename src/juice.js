@@ -83,7 +83,8 @@ const JUICE=(()=>{
     ["splash","Splash down","Come down in the sea slower than 12 m/s (the ocean starts just east of the pad).",10],
     ["ap_ascent","Autopilot to orbit","Flight: open the ASCENT tab on the left and press Engage. It even starts the countdown.",10],
     ["ap_node","Fly a planned burn","In orbit: NODE tab → pick a burn (e.g. To the Moon) → Execute.",15],
-    ["ap_land","Autopilot landing","LAND tab → Engage while falling toward the ground (needs legs and some fuel).",15]];
+    ["ap_land","Autopilot landing","LAND tab → Engage while falling toward the ground (needs legs and some fuel).",15],
+    ["dock","Dock two craft","Docking ports on both, nose to nose, slower than 0.5 m/s. RCS (T, then I J K L) helps line up.",25]];
   let toasts=[],toastEl=null;
   function toast(html){toasts.push(html);if(!toastEl)nextToast();}
   function nextToast(){const h=toasts.shift();if(!h){toastEl=null;return;}

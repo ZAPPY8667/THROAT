@@ -24,7 +24,7 @@ function techNodes(){return[
   {id:"plane", col:3,name:"Spaceplanes",      cost:20,parts:["fin:wing","nose:cockpit"],      need:"land",desc:"Wings and a cockpit."},
   {id:"crew",  col:4,name:"Crew",             cost:20,parts:["capsule","les","shield"],                 desc:"A crew capsule with parachutes, its escape tower, and heat-shield plates."},
   {id:"crew2", col:4,name:"Big capsule",      cost:35,parts:["capsule:dragon"],               need:"crew",desc:"A wider, rounder capsule."},
-  {id:"ctrl",  col:5,name:"Control",          cost:10,parts:["rcs","light"],                            desc:"RCS thrusters to turn and nudge in space, and floodlights for the dark."},
+  {id:"ctrl",  col:5,name:"Control",          cost:10,parts:["rcs","light","dock"],                     desc:"RCS thrusters to turn and nudge in space, docking ports, and floodlights for the dark."},
   {id:"power", col:5,name:"Power",            cost:15,parts:["solar"],                        need:"ctrl",desc:"Solar panels that open in space."}];}
 const techScience=()=>JX?JX.science():0;
 const techSpent=()=>techNodes().reduce((a,n)=>a+(techSt().got.includes(n.id)?n.cost:0),0);

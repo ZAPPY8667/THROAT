@@ -92,13 +92,7 @@ function cellColors(){
         if(Te>1000){const g=soot*Math.min(1,(Te-1000)/900)*1.25;c0+=255*g;c1+=150*g;c2+=45*g;}
         else{const so=Math.min(0.7,soot*0.9)*Math.min(1,(1000-Te)/300);c0=c0*(1-so)+48*so;c1=c1*(1-so)+44*so;c2=c2*(1-so)+42*so;}}
     }
-    if((view===6||view===0)&&sm>2e-5){   // solid-motor exhaust: hot aluminium-oxide particles glow orange → yellow → white, then hang as grey-white smoke
-      const ys=sm/r,ws=Math.min(1,ys*3.4),T0=T+q2*r*(GAM-1)/(2*GAM*RU*ns),Tp=0.25*T+0.75*T0,den=1-Math.exp(-sm*14);
-      {const t=Math.min(0.85,ys*12),L=Math.max(c0,c1,c2);c0=c0*(1-t)+L*t;c1=c1*(1-t)+L*0.6*t;c2=c2*(1-t)+L*0.25*t;}   // flame burning in booster exhaust is orange, not hydrogen-pink
-      const h=Math.min(1,Math.max(0,(Tp-1150)/1450)),gl=h>0?Math.min(1,0.35+den*3)*Math.min(1,h*1.8):0,so=Math.min(0.72,den*1.1)*(1-gl);
-      const pg=110+140*h,pb=25+200*h*h,sv=135+45*(1-h),keep=(1-ws*0.85)*(1-so);
-      c0=c0*keep+sv*so+255*gl*ws;c1=c1*keep+sv*0.98*so+pg*gl*ws;c2=c2*keep+sv*0.96*so+pb*gl*ws;}
-    if(view===6||view===0){}
+    if(view===6){}   // Real: done above (Glow used to be caught here too, so it drew nothing)
     else if(view<=1){
       const den=Math.min(1,Math.max(0,0.12+0.32*(Math.log10(p*300/T)-5.0058)));
       const tr=SPC[0][0]*x0+SPC[1][0]*x1+SPC[2][0]*x2+SPC[3][0]*x3+SPC[4][0]*x4+SPC[5][0]*x5+SPC[6][0]*x6+SPC[7][0]*x7,tg=SPC[0][1]*x0+SPC[1][1]*x1+SPC[2][1]*x2+SPC[3][1]*x3+SPC[4][1]*x4+SPC[5][1]*x5+SPC[6][1]*x6+SPC[7][1]*x7,tb=SPC[0][2]*x0+SPC[1][2]*x1+SPC[2][2]*x2+SPC[3][2]*x3+SPC[4][2]*x4+SPC[5][2]*x5+SPC[6][2]*x6+SPC[7][2]*x7;
@@ -115,6 +109,12 @@ function cellColors(){
       else{const x=k%NX,y=(k/NX)|0,xl=x>0&&!wall[k-1]?rho[k-1]:r,xr=x<NX-1&&!wall[k+1]?rho[k+1]:r,yu=y>0&&!wall[k-NX]?rho[k-NX]:r,yd=y<NY-1&&!wall[k+NX]?rho[k+NX]:r;
         const sch=resv[k]?0:Math.min(1,Math.hypot(xr-xl,yd-yu)/(r+0.05)*3.2),b=10+225*Math.pow(sch,0.7);c=[b*0.95,b,b*1.08];}
       c0=c[0];c1=c[1];c2=c[2];}
+    if((view===6||view===0)&&sm>2e-5){   // solid-motor exhaust: hot aluminium-oxide particles glow orange → yellow → white, then hang as grey-white smoke
+      const ys=sm/r,ws=Math.min(1,ys*3.4),T0=T+q2*r*(GAM-1)/(2*GAM*RU*ns),Tp=0.25*T+0.75*T0,den=1-Math.exp(-sm*14);
+      {const t=Math.min(0.85,ys*12),L=Math.max(c0,c1,c2);c0=c0*(1-t)+L*t;c1=c1*(1-t)+L*0.6*t;c2=c2*(1-t)+L*0.25*t;}   // flame burning in booster exhaust is orange, not hydrogen-pink
+      const h=Math.min(1,Math.max(0,(Tp-1150)/1450)),gl=h>0?Math.min(1,0.35+den*3)*Math.min(1,h*1.8):0,so=Math.min(0.72,den*1.1)*(1-gl);
+      const pg=110+140*h,pb=25+200*h*h,sv=135+45*(1-h),keep=(1-ws*0.85)*(1-so);
+      c0=c0*keep+sv*so+255*gl*ws;c1=c1*keep+sv*0.98*so+pg*gl*ws;c2=c2*keep+sv*0.96*so+pb*gl*ws;}
     CR[k]=c0;CG[k]=c1;CB[k]=c2;
   }
   // solid cells borrow a neighbour's colour so the smooth stretch doesn't bleed dark into the gas
@@ -362,12 +362,22 @@ function startWorker(){
   try{
     const src="var THROAT_SIZE="+JSON.stringify([NX,NY])+";\n"+document.getElementById("coreScript").textContent+"\n"+document.getElementById("gpuScript").textContent+"\n"+document.getElementById("workerGlue").textContent;
     const w=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})));let alive=false;
-    w.onmessage=e=>{alive=true;snap=e.data;};
+    w.onmessage=e=>{alive=true;if(e.data.t==="bench"){benchDone(e.data);return;}snap=e.data;};
     w.onerror=()=>{if(!alive)stopWorker();};
     worker=w;w.postMessage({t:"init",state:exportState(),paused:S.paused,spd:S.spd,gpu:!new URLSearchParams(location.search).has("cpu")});   // ?cpu: physics on the CPU even if there is a GPU
     setTimeout(()=>{if(!alive)stopWorker();},3000);   // no answer → run physics on this thread instead
   }catch(err){worker=null;}
 }
+// speed test: click the Sim readout (the physics thread times the CPU and the graphics card on the world that's on the stand)
+let benching=false;
+function speedTest(){if(!worker||benching)return;benching=true;worker.postMessage({t:"bench"});
+  if(JUICE)JUICE.toast("<small>Speed test · about 4 s</small>Timing the physics on the CPU, then the graphics card…");}
+function benchDone(b){benching=false;window.__bench=b;const f=n=>Math.round(n).toLocaleString();
+  const h=b.gpu>0?`<small>Speed test · this world</small>Graphics card <b>${f(b.gpu)}</b> steps/s · CPU <b>${f(b.cpu)}</b> → <b>${(b.gpu/b.cpu).toFixed(b.gpu/b.cpu<10?1:0)}× faster</b>`
+    :`<small>Speed test · CPU only${b.err?" ("+b.err+")":""}</small>CPU <b>${f(b.cpu)}</b> steps/s`;
+  if(JUICE)JUICE.toast(h);}
+window.__speedTest=speedTest;
+document.addEventListener("pointerdown",e=>{if(e.target&&e.target.closest&&e.target.closest("#rS"))speedTest();},true);   // on press: the readout's text changes every frame, so a "click" lands on the panel instead
 function takeSnapshot(){
   const o=snap;snap=null;let wch=false;
   for(let k=0;k<NC;k++){const a=wall[k],b=o.wall[k];if(a!==b&&!((a===4||a===0)&&(b===4||b===0))){wch=true;break;}}
@@ -863,7 +873,7 @@ function readouts(){
     {const r=$("rowB");if(burn){r.style.display="";const mp=srbMass-burn.m0,t=(burn.done?burn.t1:simTime)-burn.t0;
       set("rBurn",`${burn.done?"burnt out":"burning"} · ${(t*1e3).toFixed(1)} ms · peak ${(burn.peak/1000).toFixed(2)} kN · ${burn.imp.toFixed(1)} N·s${steadyIsp(burn)>0?` · Isp ${Math.round(steadyIsp(burn))} s`:""}`);}else r.style.display="none";}
     const ac=atomCheck();set("rA",ac.ok?"conserved ✓":"drift");$("rA").className=ac.ok?"ok":"bad";
-    set("rS",(simTime*1000).toFixed(2)+" ms · "+fps+" fps"+(PERF.gpu?" · GPU":""));$("rS").title=PERF.sps+" physics steps per second"+(PERF.gpu?" (on the graphics card)":" (on the CPU"+(PERF.gpuErr?": "+PERF.gpuErr:"")+")");
+    set("rS",(simTime*1000).toFixed(2)+" ms · "+fps+" fps"+(PERF.gpu?" · GPU":""));$("rS").title=PERF.sps+" physics steps per second"+(PERF.gpu?" (on the graphics card)":" (on the CPU"+(PERF.gpuErr?": "+PERF.gpuErr:"")+")")+". Click for a speed test: CPU vs graphics card.";
     if(sel)inspUI(false);}
 }
 const PERF={step:0,render:0,sps:0,gpu:0,gpuErr:""},BUDGET=26;window.__perf=PERF;let stepsWin=0;

@@ -43,6 +43,7 @@ const PT={
   adapter:{name:"Adapter",        ws:[84], wr:[14,160], h:w=>40, m:w=>3*MK*A2(w,120), desc:"Joins a wide stack (below) to a narrower one (above). Set both widths in its settings."},
   engine: {name:"Engine",         ws:[30], wr:[8,120],  h:w=>w, m:()=>9*MK, desc:"An engine."},
   srb:    {name:"Solid booster",  ws:[37], wr:[10,120], h:()=>300,m:(w,h)=>2*MK*A2(w,60)*h/150+0.12*srbCap(w,h), desc:"Fuel and engine in one. Lights when you throttle up and can't be stopped or throttled until it burns out. Stretch it for a longer burn."},
+  dock:   {name:"Docking port",   ws:[20], wr:[10,80],  h:w=>Math.max(4,Math.round(w*0.3)), m:w=>0.6*MK*A2(w,20), desc:"Goes on top of a stack. Two craft whose ports touch nose to nose, slower than 0.5 m/s, lock together (N lets go). Use RCS (T, then I J K L) to line up."},
   dec:    {name:"Decoupler",      ws:[40], wr:[10,160], h:()=>6,  m:w=>2*MK*A2(w,60), desc:"Space drops everything below it. Engines sitting on one stay off until it fires."},
   sdec:   {name:"Side decoupler", ws:[3],               h:()=>40, m:()=>1.5*MK, radial:1, desc:"Hang boosters on the side, almost touching the core. Space drops them (it goes with the booster)."},
   fin:    {name:"Fin",            ws:[30],              h:()=>50, m:()=>1.2*MK, radial:1, desc:"Keeps the rocket pointing where it's going while in the air."},
@@ -102,7 +103,7 @@ const ENG_ORDER=["stand","gnat","wren","mule","spike","bison","condor","vac","at
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
 function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],MK*A2(clusterGeo(p).ew,ENG[k].w)*(p.k||1));}
 const PT_ORDER=["probe","probe:cabin","nose","nose:cockpit","tank","tank:ball","adapter","fair","shield","engine:stand","engine:gnat","engine:wren","engine:mule","engine:spike","engine:bison","engine:condor","engine:vac","engine:atom","engine:stand:4",
-  "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","fin","fin:grid","fin:wing","rcs","leg","leg:big","solar","light","capsule","capsule:dragon","les"];
+  "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","dock","fin","fin:grid","fin:wing","rcs","leg","leg:big","solar","light","capsule","capsule:dragon","les"];
 let partId=1;
 // t can carry a model: "engine:mule", "srb:thumper"; n = a saved library entry's numbers to copy onto the part
 function mkPart(t,w,h,e,n){let b,k=1;if(t.startsWith("engine:")){e=t.slice(7);t="engine";if(e.includes(":")){k=+e.split(":")[1];e=e.split(":")[0];}}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}let va;if(t.includes(":")){va=t.split(":")[1];t=t.split(":")[0];}const d=PT[t],V=va&&VARS[t+":"+va];if(V){w=w||V.w;h=h||V.h(w);}
@@ -417,6 +418,11 @@ function drawPart(c,p,o={}){
       c.fillStyle="rgba(255,255,255,.12)";c.fillRect(L+w*0.18,cy+12,0.8,T-cy-15);   // a highlight down the casing
       c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,T-3,w,3);c.fillStyle="rgba(235,225,210,.55)";c.fillRect(x-w*0.36,y,w*0.72,1.6);   // the nozzle's exit lip
       break;}
+    case"dock":{   // docking port: a short collar, a soft-capture ring on top with guide petals, and a white target cross
+      c.fillStyle=cyl(c,L,R,[150,154,162]);c.fillRect(L+w*0.1,y,w*0.8,h*0.65);             // collar (bottom)
+      c.fillStyle=cyl(c,L,R,[205,208,214]);c.fillRect(L,y+h*0.58,w,h*0.3);                // capture ring
+      c.fillStyle="rgba(240,200,60,.9)";for(const f of[0.12,0.5,0.88])c.fillRect(x+(f-0.5)*w-1,T-h*0.14,2,h*0.14);   // guide petals on top
+      c.fillStyle="rgba(255,255,255,.85)";c.fillRect(x-0.6,y+h*0.1,1.2,h*0.45);c.fillRect(x-w*0.18,y+h*0.3,w*0.36,1);break;}
     case"dec":{   // separation ring: dark structure, a bright pyro line where it splits, and its bolts
       c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.7,w,1.4);
       c.fillStyle="rgba(0,0,0,.35)";for(let xx=L+5;xx<R-2;xx+=9)c.fillRect(xx,y+2,2,2);break;}
@@ -560,13 +566,13 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
   const stack=(y,list)=>{for(const[t,w,h]of list){const p=add(t,0,y,w,h);y+=p.h;}return y;};
   const W=40;   // 4 m core, Falcon-like
   if(name==="hopper"){stack(0,[["engine",30],["tank",W,120],["probe",W],["nose",W]]);pair("leg",W/2+15,46);}
-  else if(name==="orbiter"){stack(0,[["engine",30],["tank",W,215],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);pair("fin",W/2+15,46);}
+  else if(name==="orbiter"){stack(0,[["engine",30],["tank",W,150],["dec",W],["engine:stand",30],["tank",W,45],["probe",W],["nose",W]]);pair("fin",W/2+15,46);}
   // v1.35: kerosene tanks (Mule, Bison, Wren) hold nearly 3× the mass of hydrogen ones, so they are about half as long as before
-  else if(name==="heavy"){const top=stack(0,[["engine",30],["tank",W,360],["dec",W],["engine:vac",30],["tank",W,140],["probe",W],["nose",W]]);
-    const bw=34,bx=W/2+3+bw/2,mh=mkPart("engine:mule",30).h;pair("sdec",W/2+1.5,90);pair("engine:mule",bx,0,30);pair("tank",bx,mh,bw,140);pair("nose",bx,mh+140,bw);pair("fin",bx+bw/2+15,mh);}
+  else if(name==="heavy"){const top=stack(0,[["engine",30],["tank",W,170],["dec",W],["engine:vac",30],["tank",W,45],["probe",W],["nose",W]]);
+    const bw=34,bx=W/2+3+bw/2,mh=mkPart("engine:mule",30).h;pair("sdec",W/2+1.5,90);pair("engine:mule",bx,0,30);pair("tank",bx,mh,bw,85);pair("nose",bx,mh+85,bw);pair("fin",bx+bw/2+15,mh);}
   else if(name==="sparrow"){   // the Orbiter with two solid boosters strapped on, flush to the core: they light with the throttle; Space drops them
-    stack(0,[["engine",30],["tank",W,250],["dec",W],["engine:stand",30],["tank",W,110],["probe",W],["nose",W]]);
-    const bw=18,bx=W/2+3+bw/2;pair("sdec",W/2+1.5,60);pair("srb:thumper",bx,0,bw,260);pair("nose",bx,260,bw);pair("fin",bx+bw/2+15,0);}
+    stack(0,[["engine",30],["tank",W,140],["dec",W],["engine:stand",30],["tank",W,45],["probe",W],["nose",W]]);
+    const bw=14,bx=W/2+3+bw/2;pair("sdec",W/2+1.5,60);pair("srb:thumper",bx,0,bw,230);pair("nose",bx,230,bw);pair("fin",bx+bw/2+15,0);}
   else if(name==="lander"){const y=stack(0,[["engine:bison",56],["tank",84,70],["adapter",84],["dec",W],["engine:wren",22],["tank",W,40],["probe",W],["nose",W]]);
     pair("leg",W/2+15,A.find(p=>p.t==="engine"&&p.e==="wren").y+32);pair("fin",84/2+15,70);}
   else if(name==="sls"){   // SLS proportions: an 8.4 m orange core with a 4-engine cluster, two slim 3.7 m solid boosters flush to its
@@ -587,6 +593,6 @@ function tpl(name){const A=[];const add=(t,x,y,w,h,f)=>{const p=mkPart(t,w,h);p.
     y=stack(y,[["dec",W],["shield",W],["capsule:dragon",W]]);}
   else if(name==="comsat"){   // a satellite launcher: kerosene first stage, vacuum upper stage, and a payload fairing with a small
     // satellite inside (gold-foil tank, probe core, folded solar panels). Above the air the fairing splits open and the panels unfold.
-    let y=stack(0,[["engine:mule",32],["tank",W,140],["dec",W],["engine:vac",30],["tank",W,80]]);pair("fin",W/2+15,0);
+    let y=stack(0,[["engine:mule",32],["tank",W,85],["dec",W],["engine:vac",30],["tank",W,30]]);pair("fin",W/2+15,0);
     const fr=add("fair",0,y,48);fr.fh=110;y+=fr.h;const st=add("tank",0,y,24,40);st.sk="gold";y+=40;add("probe",0,y,24);pair("solar",12+5,y-34);}
   return A;}
