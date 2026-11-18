@@ -11,7 +11,7 @@ function techSave(){store.set(TECH_KEY,techSt());}
 function techStart(){return["probe","nose","tank","engine:stand","engine:wren","dec","fin","srb:stand"];}
 // the tree: six lines of nodes, each needing the one above it. col: which line; need: the node before it
 function techNodes(){return[
-  {id:"work",  col:0,name:"Workhorse engines",cost:5, parts:["engine:mule","adapter"],          desc:"A stronger sea-level engine, and adapters to change the width of a stack."},
+  {id:"work",  col:0,name:"Workhorse engines",cost:5, parts:["engine:mule","adapter","truss"],  desc:"A stronger sea-level engine, adapters to change the width of a stack, and light trusses."},
   {id:"heavy", col:0,name:"Heavy lift",       cost:15,parts:["engine:bison","engine:stand:4"],need:"work",desc:"A big first-stage engine, and clusters: several engines under one plate."},
   {id:"ch4",   col:0,name:"Methane",          cost:25,parts:["engine:condor","engine:gnat"],  need:"heavy",desc:"The strongest engine there is, and a tiny one for landers."},
   {id:"vac",   col:1,name:"Space engines",    cost:15,parts:["engine:vac","fair"],            need:"work",desc:"A huge bell made for vacuum (the best Isp of the chemical engines), and fairings to carry payloads up."},
@@ -19,13 +19,13 @@ function techNodes(){return[
   {id:"atom",  col:1,name:"Nuclear",          cost:50,parts:["engine:atom"],                  need:"spike",desc:"Twice the Isp of anything else. For long trips in space."},
   {id:"srb",   col:2,name:"Strap-on boosters",cost:10,parts:["srb:thumper","sdec"],                     desc:"A ready-made booster and side decouplers to hang boosters on a core."},
   {id:"srb2",  col:2,name:"Booster family",   cost:25,parts:["srb:sprinter","srb:longhorn"],  need:"srb",desc:"A short fierce booster and a long steady one."},
-  {id:"land",  col:3,name:"Landing",          cost:10,parts:["leg","fin:grid"],                         desc:"Landing legs, and grid fins to steer a falling stage."},
+  {id:"land",  col:3,name:"Landing",          cost:10,parts:["leg","fin:grid","chute","brake"],         desc:"Landing legs, grid fins to steer a falling stage, parachutes and airbrakes to slow it."},
   {id:"lander",col:3,name:"Landers",          cost:15,parts:["tank:ball","probe:cabin","leg:big"],need:"land",desc:"Fuel spheres, a crew cabin and big legs: build a Moon lander."},
   {id:"plane", col:3,name:"Spaceplanes",      cost:20,parts:["fin:wing","nose:cockpit"],      need:"land",desc:"Wings and a cockpit."},
   {id:"crew",  col:4,name:"Crew",             cost:20,parts:["capsule","les","shield"],                 desc:"A crew capsule with parachutes, its escape tower, and heat-shield plates."},
   {id:"crew2", col:4,name:"Big capsule",      cost:35,parts:["capsule:dragon"],               need:"crew",desc:"A wider, rounder capsule."},
   {id:"ctrl",  col:5,name:"Control",          cost:10,parts:["rcs","light","dock"],                     desc:"RCS thrusters to turn and nudge in space, docking ports, and floodlights for the dark."},
-  {id:"power", col:5,name:"Power",            cost:15,parts:["solar"],                        need:"ctrl",desc:"Solar panels that open in space."}];}
+  {id:"power", col:5,name:"Power",            cost:15,parts:["solar","antenna"],              need:"ctrl",desc:"Solar panels and antenna dishes that open in space."}];}
 const techScience=()=>JX?JX.science():0;
 const techSpent=()=>techNodes().reduce((a,n)=>a+(techSt().got.includes(n.id)?n.cost:0),0);
 const techLeft=()=>Math.max(0,techScience()-techSpent());

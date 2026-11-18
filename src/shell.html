@@ -153,6 +153,12 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .vpanel{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:9px 11px;backdrop-filter:blur(6px)}
 .vpal{left:10px;top:10px;bottom:66px;width:192px;overflow:auto}
 #vParts{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+#vFind{width:100%;box-sizing:border-box;height:28px;margin:0 0 6px;padding:0 8px;background:var(--well);border:1px solid var(--line);border-radius:4px;color:var(--txt);font:12px var(--sans)}
+#vFind:focus{outline:none;border-color:var(--acc)}
+#vCats{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}
+#vCats button{height:22px;padding:0 7px;border:1px solid var(--line);border-radius:11px;background:transparent;color:var(--dim);font:600 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#vCats button.on{border-color:var(--acc);color:#fff;background:rgba(255,59,48,.14)}
+.vnone{grid-column:1/-1;color:var(--dim);font-size:11px;padding:6px 2px}
 .vpart{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--well);border:1px solid var(--line);border-radius:4px;color:var(--txt);font:600 10.5px var(--sans);padding:5px 2px 6px;cursor:grab;touch-action:none;user-select:none}
 .vpart:hover{border-color:var(--accline);background:var(--accbg)}.vpart.veng{background:rgba(255,255,255,.03)}.vpart canvas{width:44px;height:44px;pointer-events:none}.vpart span{pointer-events:none;text-align:center;line-height:1.15}
 .vpart.vkit{border-color:rgba(255,255,255,.28);background:linear-gradient(180deg,rgba(255,255,255,.06),transparent)}
@@ -161,6 +167,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .vinsp{right:10px;bottom:66px;width:296px}.vinsp .ih{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid var(--line)}
 .vinsp .ih b{font:700 12px var(--sans);letter-spacing:.06em;color:var(--acc2)}
 .vinsp button.b{height:28px;padding:0 9px;font-size:11.5px}
+.vroot{margin-left:6px;padding:1px 5px;border-radius:3px;background:var(--acc);color:#fff;font:700 9px var(--sans);letter-spacing:.14em;vertical-align:middle}
+.vinsp .fshape{margin-top:7px;padding-top:6px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+.vinsp .fshape .tip{grid-column:1/-1}
+.vinsp .frow{display:grid;grid-template-columns:38px 24px 1fr 24px;align-items:center;gap:2px}
+.vinsp .frow b{white-space:nowrap;font-size:11px}
+.vinsp .frow span{font:600 9.5px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.vinsp .frow b{font:12px var(--mono);text-align:center;color:#fff}
+.vinsp .frow button.b{height:24px;padding:0;justify-content:center}
 .vbar{left:50%;transform:translateX(-50%);width:max-content;bottom:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 20px)}
 .vbar select{max-width:170px}
 .vname{width:100%;box-sizing:border-box;background:var(--well);border:1px solid var(--line2);border-radius:4px;color:var(--txt);font:700 14px var(--sans);letter-spacing:.04em;padding:6px 8px;margin-bottom:8px}
@@ -171,8 +185,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .warn{color:#ffb4ab;font-size:12px;margin-top:6px;line-height:1.4;padding:5px 8px;background:var(--warnbg);border-left:2px solid var(--warn);border-radius:2px}
 .vhint{position:absolute;left:50%;top:10px;transform:translateX(-50%);color:var(--dim);font-size:11.5px;background:rgba(8,11,17,.8);border:1px solid var(--line);padding:5px 12px;border-radius:var(--r);pointer-events:none;text-align:center;max-width:46vw}
 #vMsg{top:70px}
-@media (max-width:760px){.vpal{top:6px;left:6px;right:6px;bottom:auto;width:auto;height:76px;overflow-x:auto;overflow-y:hidden;padding:4px}#vParts{display:flex;gap:4px}.vpart{min-width:62px;padding:2px 2px 4px}.vpart canvas{width:34px;height:34px}.vpart span{font-size:9.5px}.vpal h3,.vhint{display:none}
-  .vstat{top:90px;right:6px;width:182px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}
+@media (max-width:760px){.vpal{top:6px;left:6px;right:6px;bottom:auto;width:auto;height:106px;overflow-x:auto;overflow-y:hidden;padding:4px}#vParts{display:flex;gap:4px}#vFind{display:none}#vCats{flex-wrap:nowrap;margin-bottom:4px;position:sticky;left:0}#vCats button{flex:none}.vpart{min-width:62px;padding:2px 2px 4px}.vpart canvas{width:34px;height:34px}.vpart span{font-size:9.5px}.vpal h3,.vhint{display:none}
+  .vstat{top:118px;right:6px;width:182px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}
   .vbar{bottom:6px;gap:4px;padding:5px 6px}.vbar button.b{padding:0 8px;height:32px;font-size:11.5px}.vbar select{max-width:96px}#vMsg{top:45%}}
 .fmapbar{left:50%;top:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:6px 8px}.fmapbar button.b{height:28px;padding:0 11px}
 .fmapbar .tip{font:650 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:0 4px}
@@ -508,8 +522,8 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 <script>var THROAT_SIZE=(function(){try{var s=JSON.parse(localStorage.getItem("throat.size.v1"));if(s&&s.length===2)return s;}catch(e){}return [240,135];})();</script>
 <div class="vab" id="vab">
   <canvas id="vcv" aria-label="Rocket editor"></canvas>
-  <div class="vhint">Drag parts in from the left: they snap together. Drag a part to move it and everything under it (Alt: just that one). Shift+wheel stretches a tank or booster; Ctrl+wheel or [ ] makes a part wider or narrower. Del removes. M mirror.</div>
-  <div class="vpanel vpal" id="vPal"><h3>Parts</h3><div id="vParts"></div></div>
+  <div class="vhint">The first part (◆ root) sits on the centre line; snap the rest onto it. Drag a part to move it and everything hanging off it (Alt: just that one); drag the root to move the whole rocket. Shift+wheel stretches, Ctrl+wheel or [ ] widens. Del removes. M mirror.</div>
+  <div class="vpanel vpal" id="vPal"><h3>Parts</h3><input id="vFind" type="search" placeholder="Search parts" autocomplete="off" spellcheck="false"><div id="vCats"></div><div id="vParts"></div></div>
   <div class="vpanel vstat"><h3>Rocket</h3><input id="vName" class="vname" maxlength="40" aria-label="Rocket name"><div id="vStats"></div></div>
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>
   <div class="vpanel vbar">

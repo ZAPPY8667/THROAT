@@ -4,6 +4,7 @@ const vab=$("vab"),vcv=$("vcv"),vx=vcv.getContext("2d");
 let VW=1280,VH=720,VDS=1,vps=store.get(VKEY,null),vsel=null,vMirror=store.get("throat.vmirror",true),vU=[],vR=[],vv={s:1,ox:0,oy:0};
 let vLegsOut=false,vdrag=null,vcarry=null,vptr={X:0,Y:0},vpan=null,vAn=null,vMsgT=0,vName=store.get("throat.vname","Orbiter"),vTouch=new Map(),vPinch=null;
 if(!Array.isArray(vps)||!vps.length)vps=tpl("orbiter");
+vRootFix();   // older saves: pick the root (the brain) and slide the rocket onto the centre line
 // a rocket left in the editor before v1.16 is in the old small parts: rebuild it with today's (see upscaleOld in parts.js)
 let vOldNote=oldScale(vps);if(vOldNote)upscaleOld(vps);
 partId=Math.max(partId,...vps.map(p=>p.id+1));
@@ -14,12 +15,20 @@ function vFitView(){vFitC();const b=vBox(vps),w=Math.max(200,b.x1-b.x0),h=Math.m
   vv.s=Math.min(VH*(narrow?0.5:0.62)/h,VW*(narrow?0.45:0.36)/w,4*VDS);vv.ox=VW*(narrow?0.3:0.47)-vv.s*(b.x0+b.x1)/2;vv.oy=VH*(narrow?0.5:0.55)+vv.s*(b.y0+b.y1)/2;}
 const v2w=(X,Y)=>({x:(X-vv.ox)/vv.s,y:(vv.oy-Y)/vv.s});
 function vEvXY(e){const r=vcv.getBoundingClientRect();return{X:(e.clientX-r.left)*VW/r.width,Y:(e.clientY-r.top)*VH/r.height};}
-const vAxis=()=>{const r=rootIdx(vps);return r<0?0:vps[r].x;};
+// v1.46: the centre line is fixed at x = 0. The rocket is built on a ROOT part: the first part you place sits on the line, and
+// every other part hangs off it (stack parts centred on the part they sit on, side parts on its sides). Picking a part up takes
+// everything that hangs beyond it; picking the root up moves the whole rocket (up and down only).
+const vAxis=()=>0;
+function vRoot(){return vps.findIndex(p=>p.root);}
+function vRootFix(){if(!vps.length)return;let r=vRoot();
+  if(r<0){r=rootIdx(vps);if(r<0)r=vps.findIndex(p=>!isRad(p)&&Math.abs(p.x)<0.5);if(r<0)r=vps.findIndex(p=>!isRad(p));if(r<0)r=0;vps[r].root=true;}
+  vps.forEach((p,j)=>{if(j!==r&&p.root)delete p.root;});
+  const dx=vps[r].x;if(Math.abs(dx)>0.01)for(const p of vps)p.x-=dx;}   // the root sits on the centre line
 const vSnap=()=>JSON.stringify(vps);
 function vPush(){vU.push(vSnap());if(vU.length>80)vU.shift();vR=[];}
 function vUndo(){if(!vU.length)return;vR.push(vSnap());vps=JSON.parse(vU.pop());vsel=null;vChanged();}
 function vRedo(){if(!vR.length)return;vU.push(vSnap());vps=JSON.parse(vR.pop());vsel=null;vChanged();}
-function vChanged(){vSave();vAn=null;vInspUI();}
+function vChanged(){vRootFix();vSave();vAn=null;vInspUI();}
 function vMsg(t){$("vMsg").textContent=t;$("vMsg").style.display="";vMsgT=performance.now()+3200;}
 // ---------- snapping ----------
 function alignX(px,pw,dw){const lim=(pw-dw)/2;if(lim<1)return[px];const out=[px,px-lim,px+lim];for(let k=-lim;k<=lim+0.01;k+=15)out.push(px+k);return out;}
@@ -27,12 +36,11 @@ function sideYs(P,D,dy){const lo=P.y-D.h+5,hi=P.y+P.h-5,out=[P.y,P.y+P.h-D.h,P.y
 function snapPart(D,dx,dy,O,rad){let best=null,bd=rad;const R=isRad(D);
   const tryC=(x,y,f)=>{const d=Math.hypot(x-dx,y-dy);if(d>=bd)return;const t={...D,x,y};for(const o of O)if(collide(t,o))return;bd=d;best={x,y,f};};
   for(const P of O){const PRd=isRad(P);
-    if(!R&&!PRd){const ts=topW(P);if(ts>0)for(const x of alignX(P.x,ts,D.w))tryC(x,P.y+P.h,D.f);
-      const ds=topW(D);if(ds>0)for(const x of alignX(P.x,P.w,ds))tryC(x,P.y-D.h,D.f);}
+    if(!R&&!PRd){if(topW(P)>0)tryC(P.x,P.y+P.h,D.f);if(topW(D)>0)tryC(P.x,P.y-D.h,D.f);}   /* stacks stay centred on the part they sit on */
     if((R&&!PRd)||(P.t==="sdec"&&!R))for(const s of[-1,1]){if(P.t==="sdec"&&s!==P.f)continue;const x=P.x+s*(P.w+D.w)/2;for(const y of sideYs(P,D,dy))tryC(x,y,R?s:D.f);}}
   return best;}
 // ---------- parts tree: what moves with what ----------
-function vTree(){const adj=adjOf(vps),r=rootIdx(vps),par=new Array(vps.length).fill(-2);
+function vTree(){const adj=adjOf(vps),r=vRoot()>=0?vRoot():rootIdx(vps),par=new Array(vps.length).fill(-2);
   if(r>=0){par[r]=-1;const q=[r];while(q.length){const i=q.shift();for(const j of adj[i])if(par[j]===-2){par[j]=i;q.push(j);}}}
   return{adj,r,par};}
 function vSub(i,alt,T){T=T||vTree();if(alt)return new Set([i]);
@@ -40,13 +48,16 @@ function vSub(i,alt,T){T=T||vTree();if(alt)return new Set([i]);
   const out=new Set([i]);let grew=true;while(grew){grew=false;vps.forEach((p,j)=>{if(!out.has(j)&&T.par[j]>=0&&out.has(T.par[j])){out.add(j);grew=true;}});}return out;}
 const vById=id=>vps.findIndex(p=>p.id===id);
 // ---------- placing, moving, deleting ----------
-function vPlace(p){const ax=vAxis();let snap=vps.length?snapPart(p,p.x,p.y,vps,34/vv.s*VDS):{x:ax,y:0,f:p.f};if(p.kit)return vPlaceKit(p,snap);
-  if(!snap){p.x=Math.round(p.x/5)*5;p.y=Math.round(p.y/5)*5;if(vps.some(o=>collide(p,o))){vMsg("It overlaps another part.");return false;}}
-  else{p.x=snap.x;p.y=snap.y;p.f=snap.f;}
+function vPlace(p){const ax=vAxis(),first=!vps.length;let snap=first?{x:ax,y:Math.max(0,Math.round(p.y/5)*5),f:p.f}:snapPart(p,p.x,p.y,vps,34/vv.s*VDS);if(p.kit)return vPlaceKit(p,snap);
+  if(!snap){vMsg("Attach it to the rocket: bring it close to the top, bottom or side of a part.");return false;}
+  if(first&&isRad(p)){vMsg("Start with a part that goes on the centre line (a probe, tank, engine…), then add side parts to it.");return false;}
+  p.x=snap.x;p.y=snap.y;p.f=snap.f;if(first)p.root=true;
   vPush();vps.push(p);
   if(vMirror&&Math.abs(p.x-ax)>0.5){const t={...p,id:partId++,x:2*ax-p.x,f:-p.f};if(!vps.some(o=>collide(t,o))){t.tw=p.id;p.tw=t.id;vps.push(t);}else vMsg("The mirror copy didn't fit, so only one was placed.");}
   vsel=p.id;vChanged();return true;}
-function vDelete(i){if(i<0)return;const p=vps[i],tw=p.tw?vById(p.tw):-1;vPush();vps=vps.filter((q,j)=>j!==i&&j!==tw);vsel=null;vChanged();}
+function vDelete(i){if(i<0)return;const T=vTree(),p=vps[i],tw=p.tw?vById(p.tw):-1,del=vSub(i,false,T);if(tw>=0)for(const j of vSub(tw,false,T))del.add(j);
+  vPush();vps=vps.filter((q,j)=>!del.has(j));vsel=null;vChanged();
+  if(del.size>(tw>=0?2:1))vMsg(p.root?"Removed the whole rocket (it was built on that part). Ctrl+Z undoes it.":`Removed ${del.size} parts: it and everything hanging off it. Ctrl+Z undoes it.`);}
 function vResize(i,w,h,mut){const p=vps[i];if(!p)return;const before=vSnap();
   const one=(k,mir)=>{const q=vps[k],T=vTree(),dw=w-q.w,dh=h-q.h,top=q.y+q.h;
     const above=new Set(),L=new Set(),Rr=new Set();
@@ -55,6 +66,16 @@ function vResize(i,w,h,mut){const p=vps[i];if(!p)return;const before=vSnap();
     const A=grow(above),RR=grow(Rr),LL=grow(L);
     A.forEach(j=>{vps[j].y+=dh;});RR.forEach(j=>{if(!A.has(j))vps[j].x+=dw/2;});LL.forEach(j=>{if(!A.has(j))vps[j].x-=dw/2;});q.w=w;q.h=h;};
   const oW=p.w,oH=p.h,oE=p.e;if(mut)mut(p);one(i);const tw=p.tw?vById(p.tw):-1;if(tw>=0&&tw!==i&&vps[tw].w===oW&&vps[tw].h===oH&&vps[tw].t===p.t&&vps[tw].e===oE){if(mut)mut(vps[tw]);one(tw);}
+  for(let a=0;a<vps.length;a++)for(let b=a+1;b<vps.length;b++)if(collide(vps[a],vps[b])){vps=JSON.parse(before);vMsg("That doesn't fit: it would bump into another part.");vChanged();return;}
+  vU.push(before);vR=[];vChanged();}
+// fin and wing shape (v1.46): span grows outward (the inner edge stays on the rocket), root grows up, tip and sweep reshape it
+function vFinShape(i,cmd){const p=vps[i];if(!p)return;const[k,d]=cmd.split(":"),dv=+d,before=vSnap();
+  const one=q=>{const s=finShape(q);
+    if(k==="span"){const w=Math.max(8,Math.min(300,q.w+dv));q.x+=q.f*(w-q.w)/2;q.w=w;}
+    else if(k==="root")q.h=Math.max(12,Math.min(400,q.h+dv));
+    else if(k==="tip"){q.tc=Math.max(0,Math.min(1,Math.round((s.tc+dv)*100)/100));q.sb=Math.min(s.sb,1-q.tc);}
+    else if(k==="sweep"){q.tc=s.tc;q.sb=Math.max(0,Math.min(1-s.tc,Math.round((s.sb+dv)*100)/100));}};
+  one(p);const tw=p.tw?vById(p.tw):-1;if(tw>=0&&tw!==i&&vps[tw].t===p.t&&vps[tw].v===p.v)one(vps[tw]);
   for(let a=0;a<vps.length;a++)for(let b=a+1;b<vps.length;b++)if(collide(vps[a],vps[b])){vps=JSON.parse(before);vMsg("That doesn't fit: it would bump into another part.");vChanged();return;}
   vU.push(before);vR=[];vChanged();}
 // ---------- pointer ----------
@@ -84,7 +105,8 @@ function hangSdec(L,O){const sd=L.find(p=>p.t==="sdec"),b=L.find(p=>p.t==="srb")
   const core=O.filter(o=>!isRad(o)&&Math.abs(o.x+s*o.w/2-edge)<0.6&&o.y<b.y+b.h&&o.y+o.h>b.y).sort((a,c)=>c.y-a.y);
   for(const o of core.reverse()){const lo=Math.max(b.y,o.y),hi=Math.min(b.y+b.h,o.y+o.h);if(hi-lo>=sd.h){sd.y=lo+(hi-lo-sd.h)*0.3;sd.x=edge+s*sd.w/2;return true;}}
   return false;}
-function vPlaceKit(B,snap){const ax=vAxis(),s=B.t==="fin"?(snap?snap.f:1):1,x=snap?snap.x:Math.round(B.x/5)*5,y=snap?snap.y:Math.max(0,Math.round(B.y/5)*5);
+function vPlaceKit(B,snap){if(!snap){vMsg("Attach it to the rocket: bring it close to a part.");return false;}
+  const ax=vAxis(),s=B.t==="fin"?snap.f:1,x=snap.x,y=snap.y;
   const L=kitParts(B,x,y,s);if(!hangSdec(L,vps)){vMsg("Drop the boosters right beside a fuel tank or the core.");return false;}
   const hit=(A,O)=>A.some(p=>O.some(o=>collide(p,o)));if(hit(L,vps)){vMsg("It overlaps another part.");return false;}
   vPush();for(const p of L){p.id=partId++;vps.push(p);}
@@ -112,7 +134,7 @@ vcv.addEventListener("pointermove",e=>{const q=vEvXY(e);vptr=q;if(vTouch.has(e.p
   if(!vdrag)return;const w=v2w(q.X,q.Y);if(!vdrag.moved&&Math.hypot(w.x-vdrag.w0.x,w.y-vdrag.w0.y)*vv.s<5*VDS)return;vdrag.moved=true;
   const{i,set,tset,start}=vdrag,p=vps[i],O=vps.filter((o,j)=>!set.has(j)&&!tset.has(j));
   const dx0=start[i][0]+w.x-vdrag.w0.x,dy0=start[i][1]+w.y-vdrag.w0.y,sn=O.length?snapPart({...p,f:start[i][2]},dx0,dy0,O,34/vv.s*VDS):null;
-  const nx=sn?sn.x:Math.round(dx0/5)*5,ny=sn?sn.y:Math.round(dy0/5)*5,ddx=nx-start[i][0],ddy=ny-start[i][1];
+  const isRoot=!!p.root,nx=isRoot?start[i][0]:sn?sn.x:Math.round(dx0/5)*5,ny=sn&&!isRoot?sn.y:Math.round(dy0/5)*5,ddx=nx-start[i][0],ddy=ny-start[i][1];
   const ax=vAxis();vdrag.dropTwin=tset.size>0&&Math.abs(nx-ax)<0.5;
   set.forEach(j=>{vps[j].x=start[j][0]+ddx;vps[j].y=start[j][1]+ddy;});tset.forEach(j=>{if(vdrag.dropTwin){vps[j].x=start[j][0];vps[j].y=start[j][1];}else{vps[j].x=start[j][0]-ddx;vps[j].y=start[j][1]+ddy;}});
   if(sn&&isRad(p)){p.f=sn.f;const ti=p.tw?vById(p.tw):-1;if(ti>=0&&tset.has(ti))vps[ti].f=-sn.f;}
@@ -120,6 +142,9 @@ vcv.addEventListener("pointermove",e=>{const q=vEvXY(e);vptr=q;if(vTouch.has(e.p
 function vUp(e){vTouch.delete(e.pointerId);if(vTouch.size<2)vPinch=null;vpan=null;if(!vdrag)return;const d=vdrag;vdrag=null;if(!d.moved)return;
   if(overPal(e)){const del=new Set([...d.set,...d.tset]);vps.forEach((o,j)=>{o.x=d.start[j][0];o.y=d.start[j][1];o.f=d.start[j][2];});vPush();vps=vps.filter((o,j)=>!del.has(j));vsel=null;vChanged();return;}
   if(d.bad){vps.forEach((o,j)=>{o.x=d.start[j][0];o.y=d.start[j][1];o.f=d.start[j][2];});vMsg("It overlaps another part, so it went back.");return;}
+  {const moved=new Set(d.dropTwin?d.set:[...d.set,...d.tset]),A=adjOf(vps),rest=vps.length>moved.size;   /* must still touch the rocket (unless it IS the whole rocket) */
+    const touches=s=>[...s].some(a=>A[a].some(b=>!s.has(b)));
+    if(rest&&!vps[d.i].root&&(!touches(d.set)||(d.tset.size&&!d.dropTwin&&!touches(d.tset)))){vps.forEach((o,j)=>{o.x=d.start[j][0];o.y=d.start[j][1];o.f=d.start[j][2];});vMsg("That spot isn't attached to the rocket, so it went back.");return;}}
   if(d.dropTwin){const gone=new Set([...d.tset].map(j=>vps[j].id));vps=vps.filter(o=>!gone.has(o.id));for(const o of vps)if(gone.has(o.tw))o.tw=0;vMsg("Moved onto the centre line, so the mirror copy was removed.");}
   vU.push(d.before);vR=[];vChanged();}
 vcv.addEventListener("pointerup",vUp);vcv.addEventListener("pointercancel",vUp);vcv.addEventListener("contextmenu",e=>e.preventDefault());
@@ -149,23 +174,46 @@ function kitIcon(k){const c=document.createElement("canvas");c.width=c.height=88
   g.setTransform(sc,0,0,-sc,44-sc*(x0+x1)/2,44+sc*B.h/2);for(const p of L)drawPart(g,p,{legs:false});return c;}
 function partIcon(t){if(t.startsWith("kit:"))return kitIcon(t.slice(4));const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
   if(t==="tank")p.h=90;if(t==="fair")p.fh=70;if(t==="dock"){p.w=48;p.h=15;}   /* a 2 m port would be a speck in the palette */const hh=p.h+(p.fh||0),sc=Math.min(70/p.w,70/hh,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*hh/2);p.x=0;p.y=0;drawPart(g,p,{legs:false,shell:true});return c;}
-function vPalUI(){const box=$("vParts");box.innerHTML="";
-  const item=(t,name,desc,cls)=>{const b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+cls+(ok?"":" vlock");
+// palette filters (v1.46): every part sits in one group; "All" shows everything; the search box matches names and descriptions
+const PCATS=[["all","All"],["cmd","Command"],["fuel","Fuel"],["eng","Engines"],["boost","Boosters"],["struct","Structure"],["aero","Aero"],["land","Landing"],["util","Utility"],["kit","Kits"]];
+function partCat(t){
+  if(t.startsWith("kit:"))return"kit";
+  if(t.startsWith("lib:")){const e=libGet(t.slice(4));return e&&e.kind==="solid"?"boost":"eng";}
+  if(t.startsWith("engine"))return"eng";if(t.startsWith("srb"))return"boost";
+  const b=t.split(":")[0];
+  if(b==="probe"||b==="capsule"||t==="nose:cockpit")return"cmd";
+  if(b==="tank")return"fuel";
+  if(b==="fin"||b==="nose")return"aero";
+  if(b==="leg"||b==="chute"||b==="brake")return"land";
+  if(b==="rcs"||b==="solar"||b==="antenna"||b==="light"||b==="les")return"util";
+  return(PT[b]&&PT[b].cat)||"struct";}
+let vCat=(()=>{try{return localStorage.getItem("throat.vcat.v1")||"all";}catch(e){return"all";}})(),vFindTxt="";
+function vCatsUI(){const box=$("vCats");if(!box)return;box.innerHTML=PCATS.map(([k,n])=>`<button data-cat="${k}" class="${k===vCat?"on":""}">${n}</button>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{vCat=b.dataset.cat;try{localStorage.setItem("throat.vcat.v1",vCat);}catch(e){}vPalUI();});}
+{const f=$("vFind");if(f)f.addEventListener("input",()=>{vFindTxt=f.value.trim().toLowerCase();vPalUI();});}
+function vPalUI(){const box=$("vParts");box.innerHTML="";vCatsUI();let shown=0;
+  const item=(t,name,desc,cls)=>{
+    if(vFindTxt?!(name+" "+desc).toLowerCase().includes(vFindTxt):vCat!=="all"&&partCat(t)!==vCat)return;   /* searching looks in every group */
+    shown++;const b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+cls+(ok?"":" vlock");
     b.title=ok?desc:`Locked: unlock “${tn?tn.name:"?"}” in the Tech tree (${tn?tn.cost:"?"} science). ${desc}`;   // locked parts show, dimmed: click opens the tree
     b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=name;b.appendChild(s);if(!ok){const l=document.createElement("i");l.className="vlk";l.innerHTML=ico("lock");b.appendChild(l);}
     b.addEventListener("pointerdown",e=>{if(!ok){e.preventDefault();techOpen();return;}startCarry(t,e);});box.appendChild(b);};
   for(const t of PT_ORDER){const ek=t.startsWith("engine:")?t.slice(7).split(":"):null,en=ek?ENG[ek[0]]:t.startsWith("srb:")?BOOST[t.slice(4)]:null,cl=ek&&ek[1];
     const V=VARS[t];item(t,cl?"Engine cluster":en?en.name:V?V.name:PT[t].name,cl?`${ek[1]} engines side by side under one thrust plate (like SLS). Pick the count and type in its settings.`:en?en.desc:V?V.desc:PT[t].desc,en?" veng":"");}
   for(const k in KITS)item("kit:"+k,KITS[k].name,KITS[k].desc," vkit");
-  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}). Sea level ${(e.sl.F/1000).toFixed(2)} kN, ${Math.round(e.sl.isp)} s.`," vlib");}
+  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}). Sea level ${(e.sl.F/1000).toFixed(2)} kN, ${Math.round(e.sl.isp)} s.`," vlib");
+  if(!shown)box.innerHTML=`<div class="vnone">${vFindTxt?"No part matches that.":"Nothing in this group yet."}</div>`;}
 // free width: every part in the stack can be any width in its range. Nose cones, probes and engines keep their shape
 // (height grows with width); tanks, boosters, decouplers and adapters keep their length.
 const canWiden=p=>!!(PT[p.t].wr);
-function vWiden(i,dw){const p=vps[i],r=PT[p.t].wr,w=Math.max(r[0],Math.min(r[1],p.w+dw));if(w===p.w)return;
+function vWiden(i,dw){const p=vps[i],r=PT[p.t].wr;
+  if(p.t==="engine"&&(p.k||1)>1){const es0=clusterGeo(p).ew,es=Math.max(r[0],Math.min(r[1],Math.round(es0+dw)));if(es===Math.round(es0)&&p.es)return;   // a cluster: grow each engine
+    const w=clusterW(p.k,es);vResize(i,w,engH({t:"engine",e:p.e,w,k:p.k,es}),q=>{q.es=es;});return;}
+  const w=Math.max(r[0],Math.min(r[1],p.w+dw));if(w===p.w)return;
   const keepShape=p.t==="nose"||p.t==="probe"||p.t==="capsule"||p.t==="les"||p.t==="engine";vResize(i,w,p.t==="engine"?engH({t:"engine",e:p.e,w,k:p.k}):keepShape?Math.max(4,Math.round(p.h*w/p.w)):p.h,q=>{if(q.t==="adapter"&&q.w2>=w)q.w2=w-2;});}
 function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.display="none";return;}const p=vps[i],d=PT[p.t];el.style.display="";
   const cap=capOf(p),isE=p.t==="engine",isS=p.t==="srb",E=isE||isS?engStat(p):null,lib=libAll();
-  let h=`<div class="ih"><b>${partName(p)}</b><span class="tip">${fM(partMass(p)+cap)}${cap?` (${fM(cap)} ${p.t==="tank"?FUEL_NAME[p.fk||"h2"]+" + oxygen":"propellant"})`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:isS?BOOST[boostKey(p)].desc:varOf(p)?varOf(p).desc:d.desc}</div>`;
+  let h=`<div class="ih"><b>${partName(p)}${p.root?` <span class="vroot" title="The root: the rocket is built on this part. Drag it to move the whole rocket.">ROOT</span>`:""}</b><span class="tip">${fM(partMass(p)+cap)}${cap?` (${fM(cap)} ${p.t==="tank"?FUEL_NAME[p.fk||"h2"]+" + oxygen":"propellant"})`:""}</span></div><div class="tip">${isE?ENG[engKey(p)].desc:isS?BOOST[boostKey(p)].desc:varOf(p)?varOf(p).desc:d.desc}</div>`;
   if(isS){const B=E,k=boostKey(p),bt=cap*B.sl.isp*G0/B.sl.F;
     h+=`<div class="tip" style="margin-top:4px">Sea level <b>${fF(B.sl.F)} · ${Math.round(B.sl.isp)} s</b>${B.sl.est?" (est.)":""}<br>Vacuum <b>${fF(B.vac.F)} · ${Math.round(B.vac.isp)} s</b>${B.vac.est?" (est.)":""}<br>Burns about <b>${Math.round(bt)} s</b> ${curveSvg(B.curve)}${k==="stand"?`<br>${B.src==="tested"?"From your last booster burn on the test stand.":"Not burned yet: these are the Thumper's numbers until you fire a booster on the test stand."}`:""}</div>
     <div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${BOOST_ORDER.map(q=>`<button class="b${k===q?" on":""}" data-bo="${q}"${techOK("srb:"+q)?"":` disabled title="Locked: see the Tech tree"`}>${BOOST[q].name}</button>`).join("")}${lib.filter(e=>e.kind==="solid").map(e=>`<button class="b${k==="lib"&&p.n&&p.n.name===e.name?" on":""}" data-bo="${e.id}"></button>`).join("")}</div>`;}
@@ -179,21 +227,28 @@ function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.di
   if(p.t==="tank")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${TANK_SKINS.map(([k,n])=>`<button class="b${tankSkin(p)===k?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
   if(p.t==="leg"||p.t==="solar")h+=`<div class="row" style="margin-top:6px"><button class="b${vLegsOut?" on":""}" data-legs="1">${vLegsOut?"Show folded":"Show deployed"}</button></div>`;
   h+=`<div class="row" style="margin-top:6px;gap:5px;flex-wrap:wrap">`;
-  if(canWiden(p))h+=`<button class="b" data-dw="-4">− Narrower</button><button class="b" data-dw="4">+ Wider</button><span class="tip">${(p.w*UM).toFixed(1)} m wide</span>`;
+  if(canWiden(p))h+=`<button class="b" data-dw="-4">− Narrower</button><button class="b" data-dw="4">+ Wider</button><span class="tip">${(p.w*UM).toFixed(1)} m wide${p.t==="engine"&&(p.k||1)>1?` · each engine ${(clusterGeo(p).ew*UM).toFixed(1)} m`:""}</span>`;
   if(p.t==="adapter")h+=`<button class="b" data-tw="-4">− Top</button><button class="b" data-tw="4">+ Top</button><span class="tip">top ${(topW(p)*UM).toFixed(1)} m</span>`;
   if(hasProp(p))h+=`<button class="b" data-l="-20">− Shorter</button><button class="b" data-l="20">+ Longer</button><span class="tip">${(p.h*UM).toFixed(0)} m long</span>`;
-  h+=`<button class="b" data-del="1" style="margin-left:auto">${ico("trash")}Remove</button></div>`;el.innerHTML=h;
+  h+=`<button class="b" data-del="1" style="margin-left:auto">${ico("trash")}Remove</button></div>`;
+  if(finPanel(p)){const S=finShape(p),row=(k,lab,val,st,tip)=>`<div class="frow" title="${tip}"><span>${lab}</span><button class="b" data-fn="${k}:-${st}">−</button><b>${val}</b><button class="b" data-fn="${k}:${st}">+</button></div>`;
+    h+=`<div class="fshape"><div class="tip">Shape (a mirrored twin changes too). Bigger fins weigh more and grip the air harder.</div>`+
+      row("span","Span",(p.w*UM).toFixed(1)+" m",5,"How far it sticks out from the rocket")+row("root","Root",(p.h*UM).toFixed(1)+" m",10,"How long it is where it joins the rocket")+
+      row("tip","Tip",Math.round(S.tc*100)+"%",0.1,"How long the outer end is, compared with the root (0% = a point)")+row("sweep","Sweep",Math.round(S.sb*100)+"%",0.1,"How far the outer end leans back")+`</div>`;}
+  el.innerHTML=h;
+  el.querySelectorAll("[data-fn]").forEach(b=>b.onclick=()=>vFinShape(i,b.dataset.fn));
   el.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{const w=+b.dataset.w;vResize(i,w,p.t==="nose"?w:p.h);});
   el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{vResize(i,p.w,Math.max(20,Math.min(900,p.h+ +b.dataset.l)));});
   el.querySelectorAll("[data-dw]").forEach(b=>b.onclick=()=>vWiden(i,+b.dataset.dw));
   el.querySelectorAll("[data-tw]").forEach(b=>b.onclick=()=>vResize(i,p.w,p.h,q=>{q.w2=Math.max(8,Math.min(q.w-2,topW(q)+ +b.dataset.tw));}));
-  el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const k=b.dataset.e;vResize(i,p.w,engH({t:"engine",e:k,w:p.w,k:p.k}),q=>{q.e=k;delete q.n;});});   // keep the size (and count), change the model
+  el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const k=b.dataset.e;vResize(i,p.w,engH({t:"engine",e:k,w:p.w,k:p.k,es:p.es}),q=>{q.e=k;delete q.n;});});   // keep the size (and count), change the model
   // saved names go in as text, not HTML
   el.querySelectorAll("[data-le]").forEach(b=>{const e=libGet(b.dataset.le);b.textContent=e?e.name:"?";b.onclick=()=>{if(e)vResize(i,ENG.lib.w,ENG.lib.h,q=>{q.e="lib";q.n=libNums(e);});};});
   el.querySelectorAll("[data-bo]").forEach(b=>{const k=b.dataset.bo,e=BOOST[k]?null:libGet(k);if(e)b.textContent=e.name;
     b.onclick=()=>vResize(i,p.w,p.h,q=>{if(e){q.b="lib";q.n=libNums(e);}else{q.b=k;delete q.n;}});});
-  el.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const k=Math.max(1,Math.min(9,(p.k||1)+ +b.dataset.k));if(k===(p.k||1))return;const E=ENG[engKey(p)],w=k===1?E.w:Math.max(p.w,Math.round(E.w*(k<=3?k:Math.ceil(k/2))*1.05));
-    vResize(i,w,engH({t:"engine",e:p.e,w,k}),q=>{q.k=k;});});   // more engines: the plate gets wider so they fit
+  el.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const k=Math.max(1,Math.min(9,(p.k||1)+ +b.dataset.k));if(k===(p.k||1))return;
+    const es=Math.round(clusterGeo(p).ew),w=clusterW(k,es);   // every engine keeps its size; the plate fits them
+    vResize(i,w,engH({t:"engine",e:p.e,w,k,es:k>1?es:undefined}),q=>{q.k=k;if(k>1)q.es=es;else delete q.es;});});
   el.querySelectorAll("[data-ns]").forEach(b=>b.onclick=()=>vResize(i,p.w,p.h,q=>{q.ns=b.dataset.ns;}));
   el.querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>vResize(i,p.w,p.h,q=>{if(b.dataset.sk)q.sk=b.dataset.sk;else delete q.sk;}));
   el.querySelectorAll("[data-fh]").forEach(b=>b.onclick=()=>vResize(i,p.w,p.h,q=>{q.fh=Math.max(40,Math.min(400,(q.fh||120)+ +b.dataset.fh));}));   // finish only changes the look
@@ -245,11 +300,12 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   c.setTransform(s,0,0,-s,vv.ox,vv.oy);
   // launch pad under the rocket, and the mirror line
   c.fillStyle="#2a3150";c.fillRect(b.x0-120,b.y0-14,b.x1-b.x0+240,14);c.fillStyle="#3b4570";c.fillRect(b.x0-120,b.y0-4,b.x1-b.x0+240,4);
-  if(vMirror){c.strokeStyle="rgba(255,207,122,.18)";c.lineWidth=2/s;c.setLineDash([8/s,8/s]);c.beginPath();c.moveTo(ax,b.y0-40);c.lineTo(ax,b.y1+80);c.stroke();c.setLineDash([]);}
+  c.strokeStyle=vMirror?"rgba(255,207,122,.32)":"rgba(255,255,255,.1)";c.lineWidth=2/s;c.setLineDash([8/s,8/s]);c.beginPath();c.moveTo(ax,b.y0-40);c.lineTo(ax,b.y1+80);c.stroke();c.setLineDash([]);   // the centre line
   const T=vps.length?vTree():null,loose=T?vps.map((p,j)=>T.r>=0&&T.par[j]===-2):[];
   vps.forEach((p,j)=>{const gone=vdrag&&vdrag.dropTwin&&vdrag.tset.has(j);if(gone)c.globalAlpha=0.25;
     drawPart(c,p,{legs:vLegsOut,sel:p.id===vsel,bad:loose[j]||gone||(vdrag&&vdrag.bad&&(vdrag.set.has(j)||vdrag.tset.has(j))),lw:3/s*VDS});c.globalAlpha=1;});
   for(const sh of shroudsOf(vps))drawShroud(c,sh,0.8);
+  {const r=vRoot();if(r>=0){const p=vps[r],d=6/s*VDS,cx=p.x-p.w/2+d*1.6,cy=p.y+d*1.6;c.fillStyle="#ff3b30";c.strokeStyle="#fff";c.lineWidth=1.2/s;c.beginPath();c.moveTo(cx,cy-d);c.lineTo(cx+d,cy);c.lineTo(cx,cy+d);c.lineTo(cx-d,cy);c.closePath();c.fill();c.stroke();}}   // the root part
   for(const p of vps)if(p.t==="fair")drawFairing(c,p,0.3);   // fairing shells, see-through so you can build the payload inside
   if(vcarry&&vcarry.inside!==false&&vcarry.p.kit){const B=vcarry.p,sn=vcarry.snap,L=kitParts(B,sn?sn.x:B.x,sn?sn.y:B.y,B.t==="fin"&&sn?sn.f:1);if(sn)hangSdec(L,vps);c.globalAlpha=0.75;   // a kit: its parts as ghosts
     for(const p of L)drawPart(c,p,{ghost:!!sn,bad:!sn,legs:vLegsOut,lw:2/s*VDS});
@@ -268,7 +324,7 @@ if(!SMALL)foldUI(vab,"vab",[{el:$("vPal"),label:"PARTS",side:"l",open:true,title
 // "Share" turns the rocket into a short line of text (THROAT-R1:...) you can paste into an email or a chat; pasting one in
 // loads that rocket. Only the shape travels (each part's type, size, place and settings), so a code made today still loads
 // after the game changes. Where the browser can, the text is zipped first (deflate), which makes it about a third as long.
-const SHARE_KEYS=["id","t","x","y","w","h","f","tw","e","b","k","w2","ns","sk","n","v","fh"];
+const SHARE_KEYS=["id","t","x","y","w","h","f","tw","e","b","k","w2","ns","sk","n","v","fh","tc","sb","es","root"];
 const b64=u8=>{let s="";for(const c of u8)s+=String.fromCharCode(c);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");};
 const unb64=t=>{const s=atob(t.replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(s,c=>c.charCodeAt(0));};
 async function pipeBytes(u8,how){const st=new Blob([u8]).stream().pipeThrough(how);return new Uint8Array(await new Response(st).arrayBuffer());}

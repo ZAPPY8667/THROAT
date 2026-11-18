@@ -26,7 +26,12 @@ const isEng=p=>p.t==="engine"||p.t==="srb";
 const isBrain=p=>p.t==="probe"||p.t==="capsule"||p.t==="nose"&&p.v==="cockpit";   // a capsule is a probe core with a heat shield, parachutes and a crew
 // engine clusters: an engine part can hold k engines side by side under one thrust plate (like SLS 4, New Glenn 7, Falcon 9 9).
 // Up to 3 sit in one row; more go in two rows (the back row is drawn behind, a little higher). Each engine is ew wide.
-function clusterGeo(p){const k=Math.max(1,p.k||1),E=ENG[engKey(p)],rows=k<=3?1:2,front=Math.ceil(k/rows),ew=k===1?p.w:Math.min(p.w*0.96/front,E.w*1.15),plate=k>1?5:0;
+// v1.46: a cluster built in the editor stores its engine size (p.es); the plate width always follows from it (clusterW), so
+// changing the engine count keeps every engine the same size and +/− grows the engines, not a plate they rattle around in.
+// (Clusters saved before keep the old rule: engines fill the plate, up to 1.15× the model's own size.)
+const clusterRows=k=>k<=3?1:2,clusterFront=k=>Math.ceil(k/clusterRows(k));
+const clusterW=(k,es)=>k<=1?es:Math.round(clusterFront(k)*es*1.02/0.96);
+function clusterGeo(p){const k=Math.max(1,p.k||1),E=ENG[engKey(p)],rows=clusterRows(k),front=Math.ceil(k/rows),ew=k===1?p.w:p.es?p.es:Math.min(p.w*0.96/front,E.w*1.15),plate=k>1?5:0;
   const xs=[];for(let i=0;i<front;i++)xs.push([(i-(front-1)/2)*ew*1.02,0]);for(let i=0;i<k-front;i++)xs.push([(i-(k-front-1)/2)*ew*1.02,1]);
   return{k,ew,plate,eh:Math.round(E.h*ew/E.w),xs};}
 const engH=p=>{const g=clusterGeo(p);return g.plate+g.eh;};
@@ -44,9 +49,13 @@ const PT={
   engine: {name:"Engine",         ws:[30], wr:[8,120],  h:w=>w, m:()=>9*MK, desc:"An engine."},
   srb:    {name:"Solid booster",  ws:[37], wr:[10,120], h:()=>300,m:(w,h)=>2*MK*A2(w,60)*h/150+0.12*srbCap(w,h), desc:"Fuel and engine in one. Lights when you throttle up and can't be stopped or throttled until it burns out. Stretch it for a longer burn."},
   dock:   {name:"Docking port",   ws:[20], wr:[10,80],  h:w=>Math.max(4,Math.round(w*0.3)), m:w=>0.6*MK*A2(w,20), desc:"Goes on top of a stack. Two craft whose ports touch nose to nose, slower than 0.5 m/s, lock together (N lets go). Use RCS (T, then I J K L) to line up."},
+  truss:  {name:"Truss",          ws:[40], wr:[10,160], h:()=>60, m:(w,h)=>0.5*MK*A2(w,60)*h/60, desc:"An open steel frame: a light spacer between parts. You can see right through it."},
+  chute:  {name:"Parachute",      ws:[16], wr:[8,60],   h:w=>Math.round(w*0.75), m:w=>0.4*MK*A2(w,16), desc:"A packed parachute for any stage or payload: put it on top. P opens it in the air below 280 m/s, and it lands the craft gently."},
+  brake:  {name:"Airbrake",       ws:[12],              h:()=>40, m:()=>0.6*MK, radial:1, desc:"A flap that swings open by itself when the stage falls through the air with its engines off: big drag to slow it down before landing."},
+  antenna:{name:"Antenna dish",   ws:[14],              h:()=>24, m:()=>0.15*MK, radial:1, desc:"A folded dish that opens in space (like the solar panels) to talk to home. Light: for satellites and probes."},
   dec:    {name:"Decoupler",      ws:[40], wr:[10,160], h:()=>6,  m:w=>2*MK*A2(w,60), desc:"Space drops everything below it. Engines sitting on one stay off until it fires."},
   sdec:   {name:"Side decoupler", ws:[3],               h:()=>40, m:()=>1.5*MK, radial:1, desc:"Hang boosters on the side, almost touching the core. Space drops them (it goes with the booster)."},
-  fin:    {name:"Fin",            ws:[30],              h:()=>50, m:()=>1.2*MK, radial:1, desc:"Keeps the rocket pointing where it's going while in the air."},
+  fin:    {name:"Fin",            ws:[30],              h:()=>50, fin:1, m:()=>1.2*MK, radial:1, desc:"Keeps the rocket pointing where it's going while in the air."},
   rcs:    {name:"RCS thrusters",  ws:[10],              h:()=>20, m:()=>0.8*MK+RCS_MONO, radial:1, desc:"Little gas jets. T turns RCS on: they help the rocket turn (in space too), and I J K L nudge it forward, back and sideways. Own fuel."},
   capsule:{name:"Crew capsule",   ws:[50], wr:[16,120], h:w=>Math.round(w*0.66), m:w=>9*MK*A2(w,50), desc:"Orion-style capsule: the brain (like a probe core) with a heat shield underneath and parachutes (P). Come home heat-shield first."},
   les:    {name:"Escape tower",   ws:[14], wr:[6,60],  h:w=>Math.round(w*4.4), m:w=>6*MK*A2(w,14), desc:"Launch escape tower: goes on top of the capsule. ABORT (Backspace) fires it and pulls the capsule away from the rocket. It drops off by itself in space."},
@@ -67,6 +76,20 @@ const VARS={
   "leg:big":     {name:"Big landing leg",w:54,h:()=>162,desc:"A long, wide-stance leg for big landers and boosters. G deploys. Same gentle landing speed, but it holds a heavy stage steady."},
   "capsule:dragon":{name:"Big capsule",w:70, h:w=>Math.round(w*0.72), desc:"Dragon-style capsule: wider and rounder, seats seven. Heat shield underneath and parachutes (P), like the small one."}};
 const varOf=p=>p.v&&VARS[p.t+":"+p.v]?VARS[p.t+":"+p.v]:null;
+// procedural fins and wings (v1.46). A fin is a flat panel: span (p.w, out from the body), root chord (p.h, along the body),
+// tip chord p.tc (as a share of the root) and sweep p.sb (how far the tip's front edge sits behind the root's front edge, as a
+// share of the root). Its mass and its grip on the air follow its area, compared with the default shape of its kind, so
+// every rocket built before keeps exactly the numbers it had. Grid fins are a lattice, not a panel: they stay as they are.
+const FIN_DEF={fin:{w:30,h:50,tc:0.18,sb:0.82},wing:{w:90,h:130,tc:0.18,sb:0.72}};
+const finDef=p=>FIN_DEF[p.v==="wing"?"wing":"fin"];
+function finShape(p){const d=finDef(p),tc=p.tc!=null?p.tc:d.tc,sb=Math.max(0,Math.min(1-tc,p.sb!=null?p.sb:d.sb));return{tc,sb,sw:1-sb-tc};}   // sw: tip's back edge above the root's
+const finPanel=p=>p.t==="fin"&&p.v!=="grid";
+const finShapeK=p=>finPanel(p)?(1+finShape(p).tc)/(1+finDef(p).tc):1;   // area per span×root, vs the default shape
+// height of the fin's lift on its root (share of the root chord): the middle of its area, moved by how this shape differs from
+// the default (so a default fin still reads 0.5, as before; a fin with its tip pushed back lifts lower down)
+const finMidY=(sw,tc)=>(1+sw+sw+tc)/4;
+const finLiftY=p=>{const s=finShape(p),d=finDef(p);return 0.5+finMidY(s.sw,s.tc)-finMidY(1-d.sb-d.tc,d.tc);};
+const finAreaK=p=>finPanel(p)?p.w*p.h*finShapeK(p)/(finDef(p).w*finDef(p).h):1;   // area vs the default fin of its kind
 // paint: tanks (p.sk) and nose cones; each as a base colour for the round-tube shading
 const SKIN_COL={white:[236,238,241],steel:[196,200,206],foam:[196,96,36],black:[44,46,52],stripes:[236,238,241],gold:[214,172,72]};
 // engines: your own (numbers from the test stand) and four ready-made ones, at their default size (w × h units).
@@ -102,8 +125,8 @@ function curveAt(c,u){if(!c||c.length<2)return 1;const x=Math.max(0,Math.min(1,u
 const ENG_ORDER=["stand","gnat","wren","mule","spike","bison","condor","vac","atom"],BOOST_ORDER=["stand","thumper","sprinter","longhorn"];
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
 function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],MK*A2(clusterGeo(p).ew,ENG[k].w)*(p.k||1));}
-const PT_ORDER=["probe","probe:cabin","nose","nose:cockpit","tank","tank:ball","adapter","fair","shield","engine:stand","engine:gnat","engine:wren","engine:mule","engine:spike","engine:bison","engine:condor","engine:vac","engine:atom","engine:stand:4",
-  "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","dock","fin","fin:grid","fin:wing","rcs","leg","leg:big","solar","light","capsule","capsule:dragon","les"];
+const PT_ORDER=["probe","probe:cabin","nose","nose:cockpit","tank","tank:ball","adapter","truss","fair","shield","engine:stand","engine:gnat","engine:wren","engine:mule","engine:spike","engine:bison","engine:condor","engine:vac","engine:atom","engine:stand:4",
+  "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","dock","chute","fin","fin:grid","fin:wing","brake","rcs","leg","leg:big","solar","antenna","light","capsule","capsule:dragon","les"];
 let partId=1;
 // t can carry a model: "engine:mule", "srb:thumper"; n = a saved library entry's numbers to copy onto the part
 function mkPart(t,w,h,e,n){let b,k=1;if(t.startsWith("engine:")){e=t.slice(7);t="engine";if(e.includes(":")){k=+e.split(":")[1];e=e.split(":")[0];}}else if(t.startsWith("srb:")){b=t.slice(4);t="srb";}let va;if(t.includes(":")){va=t.split(":")[1];t=t.split(":")[0];}const d=PT[t],V=va&&VARS[t+":"+va];if(V){w=w||V.w;h=h||V.h(w);}
@@ -113,7 +136,7 @@ function mkPart(t,w,h,e,n){let b,k=1;if(t.startsWith("engine:")){e=t.slice(7);t=
   if(t==="adapter")p.w2=Math.round(w*0.48);if(k>1)p.k=k;
   if(n)p.n=JSON.parse(JSON.stringify(n));return p;}
 const fairShell=p=>p.t==="fair"&&!p.open?0.02*(p.fh||120)*MK*A2(p.w,40):0;   // the shell's mass, gone once it opens
-const partMass=p=>fairShell(p)+(p.t==="engine"?ENG[engKey(p)].m*MK*A2(clusterGeo(p).ew,ENG[engKey(p)].w)*(p.k||1)+(p.k>1?0.6*MK*A2(p.w,40):0):PT[p.t].m(p.w,p.h));
+const partMass=p=>fairShell(p)+(p.t==="engine"?ENG[engKey(p)].m*MK*A2(clusterGeo(p).ew,ENG[engKey(p)].w)*(p.k||1)+(p.k>1?0.6*MK*A2(p.w,40):0):PT[p.t].m(p.w,p.h)*(p.t==="fin"?finAreaK(p):1));
 const partName=p=>varOf(p)?varOf(p).name:p.t==="engine"?(engKey(p)==="lib"&&p.n?p.n.name:ENG[engKey(p)].name)+(p.k>1?" ×"+p.k:""):p.t==="srb"?(boostKey(p)==="lib"&&p.n?p.n.name:BOOST[boostKey(p)].name):PT[p.t].name;
 // a decoupler under an engine gets a shroud (interstage) that covers the engine until it separates
 function shroudsOf(ps){const out=[];ps.forEach((d,i)=>{if(d.t!=="dec"||d.shed)return;let top=-1e9;
@@ -224,7 +247,17 @@ function bell(c,x,yt,ye,tw,ew,cLow,cTop,split){const H=yt-ye,path=()=>{c.beginPa
 // a point on the bell's edge, u = 0 at the throat … 1 at the exit (the same curve bell() draws)
 function bellPt(yt,ye,tw,ew,u){const H=yt-ye,a=1-u,P=[[tw,yt],[tw+(ew-tw)*0.32,yt-H*0.22],[ew*0.9,ye+H*0.32],[ew,ye]],b=[a*a*a,3*a*a*u,3*a*u*u,u*u*u];
   return[b[0]*P[0][0]+b[1]*P[1][0]+b[2]*P[2][0]+b[3]*P[3][0],b[0]*P[0][1]+b[1]*P[1][1]+b[2]*P[2][1]+b[3]*P[3][1]];}
-function drawEngine(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[150,152,158],red="#c23b2e";
+// v1.46: every engine model wears a coloured badge with its initial on the powerhead (and has its own bell finish), so they're
+// easy to tell apart on a rocket and in the parts menu. Your own engine is the red one.
+const ENG_ID={stand:["#e5483a","Y","#fff"],lib:["#e5483a","Y","#fff"],gnat:["#e3b23c","G","#1a1a1a"],wren:["#3fbf6a","W","#08210f"],mule:["#f08a24","M","#1a1006"],
+  spike:["#d0844a","S","#1a0d04"],bison:["#3f7fe0","B","#fff"],condor:["#eef1f6","C","#1b1e26"],vac:["#9a6ae0","V","#fff"],atom:["#f2d03b","A","#1a1a1a"]};
+function drawEngine(c,x,y,w,h,k){drawEngine0(c,x,y,w,h,k);const id=ENG_ID[k];if(!id)return;
+  const bw=Math.max(4,w*0.3),bh=bw*0.64,by=y+h*(k==="spike"?0.72:k==="atom"?0.55:0.8),r=bh*0.3;
+  c.beginPath();c.moveTo(x-bw/2+r,by);c.lineTo(x+bw/2-r,by);c.quadraticCurveTo(x+bw/2,by,x+bw/2,by+r);c.lineTo(x+bw/2,by+bh-r);c.quadraticCurveTo(x+bw/2,by+bh,x+bw/2-r,by+bh);
+  c.lineTo(x-bw/2+r,by+bh);c.quadraticCurveTo(x-bw/2,by+bh,x-bw/2,by+bh-r);c.lineTo(x-bw/2,by+r);c.quadraticCurveTo(x-bw/2,by,x-bw/2+r,by);c.closePath();
+  c.fillStyle=id[0];c.fill();c.strokeStyle="rgba(0,0,0,.45)";c.lineWidth=Math.max(0.3,bw*0.04);c.stroke();
+  if(bh>=3.5){c.save();c.translate(x,by+bh*0.5);c.scale(1,-1);c.fillStyle=id[2];c.font=`700 ${bh*0.8}px sans-serif`;c.textAlign="center";c.textBaseline="middle";c.fillText(id[1],0,bh*0.05);c.restore();}}
+function drawEngine0(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[150,152,158],red="#c23b2e";
   const pipe=(pts,wd,col)=>{c.strokeStyle=col;c.lineWidth=wd;c.lineCap="round";c.lineJoin="round";c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.stroke();c.lineCap="butt";
     c.strokeStyle="rgba(255,255,255,.18)";c.lineWidth=wd*0.3;c.beginPath();c.moveTo(pts[0][0]-wd*0.2,pts[0][1]+wd*0.2);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0]-wd*0.2,pts[i][1]+wd*0.2);c.stroke();};   // a lit edge so it reads as a tube
   const flange=(px,py,s,col)=>{c.fillStyle=col||"#5a5e66";c.fillRect(px-s,py-s,s*2,s*2);c.fillStyle="rgba(255,255,255,.25)";c.fillRect(px-s,py+s-0.4,s*2,0.4);};
@@ -259,7 +292,7 @@ function drawEngine(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[1
     for(const sd of[-1,1]){box(x+sd*w*0.17-(sd<0?w*0.16:0),y+h*0.64,w*0.16,h*0.26,[150,154,162]);box(x+sd*w*0.19-(sd<0?w*0.12:0),y+h*0.86,w*0.12,h*0.04,[70,110,170]);
       pipeF([[x+sd*w*0.25,y+h*0.64],[x+sd*w*0.25,y+h*0.6],[x+sd*w*0.1,y+h*0.58]],Math.max(1.6,w*0.05),"#565a63");pipe([[x+sd*w*0.22,y+h*0.86],[x+sd*w*0.07,y+h*0.82]],2.2,"#9a9ea8");}
     box(x-w*0.11,yt,w*0.22,h*0.3,[170,172,178]);pipeF([[x-w*0.06,y+h*0.9],[x-w*0.06,y+h*0.8],[x+w*0.04,y+h*0.76]],Math.max(0.8,w*0.025),"#7a7e88");
-    bell(c,x,yt,y,tw,ew,[44,45,50],[120,96,80],0.82);struts(yt,tw);cables(yt,tw,ew);c.fillStyle="rgba(230,232,236,.7)";c.fillRect(x-ew,y,ew*2,1.2);return;}
+    bell(c,x,yt,y,tw,ew,[150,156,166],[214,186,160],0.82);struts(yt,tw);cables(yt,tw,ew);c.fillStyle="rgba(230,232,236,.7)";c.fillRect(x-ew,y,ew*2,1.2);return;}
   if(k==="atom"){   // nuclear: a fat reactor drum (with the radiation sign), shielding on top, one pump, then a long bell
     const yt=y+h*0.5,tw=w*0.06,ew=w*0.44;mount(y+h*0.96,w*0.18);box(x-w*0.3,y+h*0.9,w*0.6,h*0.04,[60,62,68]);
     box(x-w*0.24,y+h*0.6,w*0.48,h*0.3,[150,154,160]);c.fillStyle="rgba(0,0,0,.18)";for(let q=0.64;q<0.9;q+=0.05)c.fillRect(x-w*0.24,y+h*q,w*0.48,0.5);
@@ -272,7 +305,7 @@ function drawEngine(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[1
   if(k==="vac"){   // vacuum engine (MVac-style): small regen chamber on top, then a huge, thin, dark radiatively cooled extension
     const yt=y+h*0.74,tw=w*0.05,ew=w*0.47;mount(y+h*0.92,w*0.1);box(x+w*0.06,y+h*0.76,w*0.12,h*0.13,[120,124,132]);
     box(x-w*0.09,yt,w*0.18,h*0.18,ch);valve(x-w*0.14,y+h*0.84,w*0.03);
-    bell(c,x,yt,y,tw,ew,[52,54,62],cu,0.85);
+    bell(c,x,yt,y,tw,ew,[86,70,124],[176,120,96],0.85);
     {const g=c.createLinearGradient(0,yt-(yt-y)*0.15,0,yt-(yt-y)*0.45);g.addColorStop(0,"rgba(150,90,170,.18)");g.addColorStop(1,"rgba(150,90,170,0)");   // heat tint where the extension starts
       c.save();c.beginPath();c.moveTo(x-tw,yt);for(let u=0;u<=1.001;u+=0.1){const[hx,hy]=bellPt(yt,y,tw,ew,u);c.lineTo(x-hx,hy);}for(let u=1;u>=-0.001;u-=0.1){const[hx,hy]=bellPt(yt,y,tw,ew,u);c.lineTo(x+hx,hy);}c.closePath();c.clip();c.fillStyle=g;c.fillRect(x-ew,y,ew*2,yt-y);c.restore();}
     bands(yt,tw,ew,[0.3,0.55,0.8],[40,42,48],0.9);
@@ -284,18 +317,18 @@ function drawEngine(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[1
     pipeF([[x-w*0.23,y+h*0.68],[x-w*0.23,y+h*0.64],[x-w*0.1,y+h*0.64]],2.4,"#6c707a");pipeF([[x+w*0.23,y+h*0.68],[x+w*0.23,y+h*0.64],[x+w*0.1,y+h*0.64]],2.4,"#6c707a");
     pipe([[x-w*0.2,y+h*0.84],[x-w*0.06,y+h*0.8]],1.8,"#8a8e98");pipe([[x+w*0.2,y+h*0.84],[x+w*0.06,y+h*0.8]],1.8,"#8a8e98");
     valve(x-w*0.06,y+h*0.86,w*0.03);valve(x+w*0.25,y+h*0.9,w*0.03);
-    bell(c,x,yt,y,tw,ew,[64,66,72],cu,0.8);bands(yt,tw,ew,[0.45,0.75],[54,56,62],1.2);struts(yt,tw);cables(yt,tw,ew);return;}
+    bell(c,x,yt,y,tw,ew,[36,52,88],[150,110,84],0.8);bands(yt,tw,ew,[0.45,0.75],[30,42,72],1.2);struts(yt,tw);cables(yt,tw,ew);return;}
   if(k==="wren"){   // small pressure-fed engine: no pump, just valves and a helium line; short bell
     const yt=y+h*0.62,tw=w*0.06,ew=w*0.3;mount(y+h*0.88,w*0.1);box(x-w*0.08,yt,w*0.16,h*0.26,ch);
     box(x+w*0.1,y+h*0.72,w*0.1,h*0.1,[100,104,112]);pipeF([[x+w*0.15,y+h*0.72],[x+w*0.08,y+h*0.68]],1.4,"#7a7e88");
     pipeF([[x-w*0.2,y+h*0.86],[x-w*0.14,y+h*0.76],[x-w*0.08,y+h*0.74]],1.2,"#8a8e98");valve(x-w*0.2,y+h*0.8,w*0.05);
-    bell(c,x,yt,y,tw,ew,[70,72,78],cu,0.78);bands(yt,tw,ew,[0.6],[56,58,64],0.9);return;}
+    bell(c,x,yt,y,tw,ew,[150,100,52],[206,156,104],0.78);bands(yt,tw,ew,[0.6],[112,72,38],0.9);return;}
   if(k==="mule"){   // gas-generator kerosene engine (Merlin-like): turbopump on one side, its exhaust pipe down the bell, gimbal struts
     const yt=y+h*0.7,sd=-1,tw=w*0.065,ew=w*0.4;mount(y+h*0.92,w*0.1);
     box(x-w*0.1,yt,w*0.2,h*0.22,ch);c.fillStyle="rgba(0,0,0,.2)";c.fillRect(x-w*0.1,y+h*0.86,w*0.2,1);   // chamber + injector-head line
     box(x+sd*w*0.12-w*0.14,y+h*0.72,w*0.14,h*0.16,[120,124,132]);                                         // turbopump
     pipeF([[x+w*0.11,y+h*0.9],[x+w*0.2,y+h*0.84],[x+w*0.2,y+h*0.76],[x+w*0.1,y+h*0.74]],Math.max(1,w*0.04),"#9aa0a8");valve(x+w*0.2,y+h*0.8,w*0.035);
-    bell(c,x,yt,y,tw,ew,[64,66,72],cu,0.8);bands(yt,tw,ew,[0.5,0.78],[52,54,60],1);struts(yt,tw);
+    bell(c,x,yt,y,tw,ew,[44,44,46],cu,0.8);bands(yt,tw,ew,[0.5,0.78],[226,120,36],1.1);struts(yt,tw);
     pipe([[x+sd*w*0.2,y+h*0.72],[x+sd*w*0.24,y+h*0.5],[x+sd*w*0.34,y+h*0.1]],2.4,"#2c2e33");flange(x+sd*w*0.24,y+h*0.5,1.4);   // gas-generator exhaust
     pipe([[x+sd*w*0.13,y+h*0.78],[x+sd*w*0.08,y+h*0.75]],1.6,"#8a8e98");return;}
   // your engine / saved engines: staged-combustion hydrogen engine (RS-25 style). A busy powerhead: two turbopumps, a big bent
@@ -418,6 +451,26 @@ function drawPart(c,p,o={}){
       c.fillStyle="rgba(255,255,255,.12)";c.fillRect(L+w*0.18,cy+12,0.8,T-cy-15);   // a highlight down the casing
       c.fillStyle="rgba(0,0,0,.3)";c.fillRect(L,T-3,w,3);c.fillStyle="rgba(235,225,210,.55)";c.fillRect(x-w*0.36,y,w*0.72,1.6);   // the nozzle's exit lip
       break;}
+    case"truss":{   // open steel frame: two rails, cross braces and end rings, see-through
+      c.strokeStyle="#aeb3bb";c.lineWidth=Math.max(1.2,w*0.05);c.beginPath();
+      c.moveTo(L+w*0.08,y);c.lineTo(L+w*0.08,T);c.moveTo(R-w*0.08,y);c.lineTo(R-w*0.08,T);
+      const n=Math.max(1,Math.round(h/(w*0.9)));for(let k=0;k<n;k++){const a=y+h*k/n,b=y+h*(k+1)/n;c.moveTo(L+w*0.08,a);c.lineTo(R-w*0.08,b);c.moveTo(R-w*0.08,a);c.lineTo(L+w*0.08,b);}c.stroke();
+      c.fillStyle=cyl(c,L,R,[120,124,132]);c.fillRect(L,y,w,Math.min(3,h*0.08));c.fillRect(L,T-Math.min(3,h*0.08),w,Math.min(3,h*0.08));break;}
+    case"chute":{   // parachute canister: a white drum with a rounded orange cap and a dark strap
+      c.fillStyle=cyl(c,L,R,[232,234,238]);c.fillRect(L+w*0.06,y,w*0.88,h*0.7);
+      c.beginPath();c.moveTo(L+w*0.06,y+h*0.68);c.quadraticCurveTo(x,T+h*0.12,R-w*0.06,y+h*0.68);c.closePath();c.fillStyle=cyl(c,L,R,[226,112,40]);c.fill();
+      c.fillStyle="rgba(30,32,38,.75)";c.fillRect(L+w*0.06,y+h*0.3,w*0.88,Math.max(1,h*0.08));break;}
+    case"brake":{   // airbrake: a panel hinged at its top on the body; it swings out as it opens (o.brake 0..1)
+      const ix=f>0?L:R,k=Math.max(0,Math.min(1,o.brake||0)),ang=k*1.05,len=h,tipx=ix+f*Math.sin(ang)*len,tipy=T-Math.cos(ang)*len;
+      c.fillStyle="#3b3f47";c.fillRect(f>0?L:R-3,T-6,3,6);   // hinge
+      c.beginPath();c.moveTo(ix,T);c.lineTo(tipx,tipy);c.lineTo(tipx+f*Math.cos(ang)*Math.min(w,8),tipy+Math.sin(ang)*Math.min(w,8));c.lineTo(ix+f*Math.min(w,8),T);c.closePath();
+      c.fillStyle=cyl(c,L,R,[176,180,188]);c.fill();c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=0.8;c.stroke();break;}
+    case"antenna":{   // folded: a small box; open (in space): a white dish on a boom
+      const ix=f>0?L:R,ox=f>0?R:L,open=o.open!=null?o.open:o.legs;
+      if(!open){c.fillStyle=cyl(c,L,R,[214,216,222]);c.fillRect(L+1,y+h*0.25,w-2,h*0.5);c.fillStyle="rgba(0,0,0,.3)";c.fillRect(ix,y+h*0.45,f*2,h*0.1);break;}
+      c.strokeStyle="#9aa0a8";c.lineWidth=1.2;c.beginPath();c.moveTo(ix,y+h/2);c.lineTo(ox,y+h/2);c.stroke();
+      c.beginPath();c.ellipse(ox,y+h/2,w*0.35,h*0.62,0,f>0?-Math.PI/2:Math.PI/2,f>0?Math.PI/2:Math.PI*1.5);c.fillStyle="#eef0f3";c.fill();c.strokeStyle="rgba(0,0,0,.25)";c.stroke();
+      c.fillStyle="#c9a24a";c.fillRect(ox+f*w*0.12-1,y+h/2-1,2,2);break;}
     case"dock":{   // docking port: a short collar, a soft-capture ring on top with guide petals, and a white target cross
       c.fillStyle=cyl(c,L,R,[150,154,162]);c.fillRect(L+w*0.1,y,w*0.8,h*0.65);             // collar (bottom)
       c.fillStyle=cyl(c,L,R,[205,208,214]);c.fillRect(L,y+h*0.58,w,h*0.3);                // capture ring
@@ -434,12 +487,12 @@ function drawPart(c,p,o={}){
         c.beginPath();for(let k=0;k<=1.001;k+=0.2){c.moveTo(L+w*k,y);c.lineTo(L+w*k,T);c.moveTo(L,y+h*k);c.lineTo(R,y+h*k);}c.stroke();
         c.strokeStyle="#5d636c";c.lineWidth=Math.max(1,w*0.08);c.strokeRect(L,y,w,h);c.fillStyle="#3a3f46";c.fillRect(f>0?L-1:R-2,y+h*0.35,3,h*0.3);break;}
       else if(p.v==="wing"){   // swept wing: white top, black tiles along the bottom edge, a grey leading edge and an elevon at the back
-        const ix=f>0?L:R,ox=f>0?R:L;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.28);c.lineTo(ox,y+h*0.1);c.lineTo(ix+(ox-ix)*0.2,y);c.lineTo(ix,y);c.closePath();
+        const ix=f>0?L:R,ox=f>0?R:L,S=finShape(p),tb=y+h*S.sw,tt=y+h*(S.sw+S.tc);c.beginPath();c.moveTo(ix,T);c.lineTo(ox,tt);c.lineTo(ox,tb);c.lineTo(ix+(ox-ix)*0.2,y+(tb-y)*0.2);c.lineTo(ix,y);c.closePath();
         c.fillStyle=cyl(c,Math.min(ix,ox),Math.max(ix,ox),[234,236,240]);c.fill();c.save();c.clip();c.fillStyle="#1c1e22";c.fillRect(L,y,w,h*0.06);
-        c.fillStyle="rgba(0,0,0,.15)";c.fillRect(L,y+h*0.12,w,0.8);c.restore();c.strokeStyle="#9aa0a8";c.lineWidth=2;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.28);c.stroke();break;}
-    {const ix=f>0?L:R,ox=f>0?R:L;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.18);c.lineTo(ox,y);c.lineTo(ix,y);c.closePath();
+        c.fillStyle="rgba(0,0,0,.15)";c.fillRect(L,y+h*0.12,w,0.8);c.restore();c.strokeStyle="#9aa0a8";c.lineWidth=2;c.beginPath();c.moveTo(ix,T);c.lineTo(ox,tt);c.stroke();break;}
+    {const ix=f>0?L:R,ox=f>0?R:L,S=finShape(p),tb=y+h*S.sw,tt=y+h*(S.sw+S.tc);c.beginPath();c.moveTo(ix,T);c.lineTo(ox,tt);c.lineTo(ox,tb);c.lineTo(ix,y);c.closePath();
       c.fillStyle=cyl(c,Math.min(ix,ox),Math.max(ix,ox),[58,61,68]);c.fill();c.strokeStyle="rgba(210,214,222,.7)";c.lineWidth=1.5;   // carbon fin, titanium leading edge
-      c.beginPath();c.moveTo(ix,T);c.lineTo(ox,y+h*0.18);c.stroke();c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=1;c.beginPath();c.moveTo(ix,y);c.lineTo(ox,y);c.stroke();break;}
+      c.beginPath();c.moveTo(ix,T);c.lineTo(ox,tt);c.stroke();c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=1;c.beginPath();c.moveTo(ix,y);c.lineTo(ox,tb);c.stroke();break;}
     case"rcs":{const ix=f>0?L:R,ox=f>0?R:L,cx=(L+R)/2;c.fillStyle=cyl(c,L,R,[228,230,234]);c.fillRect(L,y+6,w,h-12);c.fillStyle="rgba(0,0,0,.2)";c.fillRect(ix,y+6,f*2,h-12);   // white thruster pod (Dragon-style)
       c.fillStyle="#1b1e26";for(const[ax,ay,bx,by]of[[cx,y+6,cx,y],[cx,T-6,cx,T],[ox-f*2,y+h/2,ox+f*4,y+h/2]]){const nx=by===ay?0:3,ny=by===ay?3:0;c.beginPath();c.moveTo(ax-nx*0.6,ay-ny*0.6);c.lineTo(bx-nx,by-ny);c.lineTo(bx+nx,by+ny);c.lineTo(ax+nx*0.6,ay+ny*0.6);c.closePath();c.fill();}
       if(o.puff)for(const[px,py,dx,dy]of o.puff){c.fillStyle="rgba(240,244,255,.75)";c.beginPath();c.moveTo(px,py);c.lineTo(px+dx*16-dy*5,py+dy*16-dx*5);c.lineTo(px+dx*16+dy*5,py+dy*16+dx*5);c.closePath();c.fill();}
@@ -482,7 +535,7 @@ function drawPart(c,p,o={}){
 // A rocket is stable in the air when the centre of lift is BELOW the centre of mass (like the feathers on an arrow).
 function centres(ps){if(!ps.length)return null;let m=0,mx=0,my=0,A=0,ax=0,ay=0,F=0,fx=0,fy=0;const adj=adjOf(ps),all=new Set(ps.keys());
   ps.forEach((p,i)=>{const pm=partMass(p)+(p.fuel!=null?p.fuel:capOf(p));m+=pm;mx+=pm*p.x;my+=pm*(p.y+p.h/2);
-    const a=p.w*p.h*(p.t==="fin"?(p.v==="grid"?0.5:2):p.t==="solar"||p.t==="light"?0.3:p.t==="nose"||p.t==="les"?0.5:p.t==="engine"||p.t==="srb"&&false?0.6:1)*(p.t==="rcs"?0.3:1);A+=a;ax+=a*p.x;ay+=a*(p.y+p.h*(p.t==="nose"?0.33:0.5));
+    const a=finShapeK(p)*p.w*p.h*(p.t==="fin"?(p.v==="grid"?0.5:2):p.t==="solar"||p.t==="light"||p.t==="antenna"?0.3:p.t==="nose"||p.t==="les"?0.5:p.t==="engine"||p.t==="srb"&&false?0.6:1)*(p.t==="rcs"?0.3:1);A+=a;ax+=a*p.x;ay+=a*(p.y+p.h*(p.t==="nose"?0.33:finPanel(p)?finLiftY(p):0.5));
     if(isEng(p)&&engOn(ps,adj,i,all)){const f=engStat(p).sl.F;F+=f;fx+=f*p.x;fy+=f*p.y;}});
   return{com:[mx/m,my/m],col:A?[ax/A,ay/A]:null,cot:F?[fx/F,fy/F]:null};}
 // draw the three markers (in part units; k = how many part units one screen pixel is, so the markers stay the same size on screen)

@@ -410,6 +410,33 @@ made on the test stand.
 - **World XXL (480×270)** in the world-size list, marked GPU (11 steps/s on a CPU).
 - Bit us again: a `// comment` inside a long one-line function (vab.js `partIcon`) killed the whole page. Use `/* */`.
 
+## v1.46: rocket editor rework, procedural fins, palette filters, recovery parts, engines you can tell apart
+- **Editor rules** (Wyatt: "the vehicle editor is really weird", mirror line unreliable, placed parts hard to move). The centre
+  line is fixed at x = 0 (`vAxis`), always drawn. The first part placed is the ROOT (`p.root`, red diamond, ROOT tag in the
+  inspector) and sits on the line; older saves pick their brain as root and are slid onto the line (`vRootFix`, also in
+  `vChanged`). Every later part must attach (a drop in empty space is refused; a drag that ends attached to nothing goes
+  back). Stack parts sit centred on the part they attach to (the old off-centre slots are gone). Dragging takes the part and
+  everything hanging beyond it from the root (`vTree` uses the root); dragging the root moves the whole rocket, up and down
+  only. Deleting takes what hangs off it too (undo restores). Before, with no probe placed every part was "loose" and a drag
+  pulled the whole connected clump, which is why moving felt impossible.
+- **Engine clusters** (Wyatt: Condor ×9 widened jumped 32 m → 12 m and stuck; down to 8 jumped to 26 m). The 12 m cap was the
+  single-engine width limit applied to the cluster plate. Clusters now store their engine size `p.es`: the plate follows
+  (`clusterW`), the engine count keeps the size, +/− (Ctrl+wheel, [ ]) grows each engine (0.8–12 m). Old clusters without
+  `es` keep the old rule, so Super Heavy's thrust is unchanged. Inspector shows "each engine N m".
+- **Procedural fins and wings**: span (`w`), root (`h`), tip `p.tc`, sweep `p.sb` in the inspector (`vFinShape`; the mirrored
+  twin follows; span grows outward, inner edge stays on the body). Mass and grip on the air scale with area against the
+  default shape (`finAreaK`, `finShapeK`), lift centre moves with the shape (`finLiftY`), all 1.0 for the default fin, so
+  existing rockets fly exactly as before. Grid fins stay a fixed lattice.
+- **Palette filters**: All / Command / Fuel / Engines / Boosters / Structure / Aero / Landing / Utility / Kits (`PCATS`,
+  `partCat`; library engines and boosters join Engines/Boosters), remembered (`throat.vcat.v1`), plus a search box that looks
+  in every group. Phone: a chip row over the strip (search hidden).
+- **New parts**: Truss (light open frame, Workhorse node), Parachute (`chute`: any stage can come down under chutes, P;
+  `v.hasChute`; Landing node), Airbrake (`brake`: radial flaps that open by themselves falling engines-off through air,
+  `v.brakeA`/`v.brakeK`; Landing node), Antenna dish (opens in space like solar panels; Power node). tests/flight/recovery.js.
+- **Engines easy to tell apart**: each model has its own bell finish (Wren bronze, Mule graphite with orange bands, Bison
+  blue-black, Condor polished steel, Lumen Vac violet) and a coloured badge with its initial on the powerhead (`ENG_ID`;
+  `drawEngine` wraps `drawEngine0`). Your engine stays black with red bands (Y).
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were
