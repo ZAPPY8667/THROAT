@@ -339,6 +339,9 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .tl .ev.done::before{background:#fff;border-color:#fff}.tl .ev.done em{color:#fff}
 .tl .ev.next::before{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,59,47,.2);animation:livePulse 1.4s infinite}
 .call{position:absolute;left:0;right:0;top:30%;text-align:center;pointer-events:none;opacity:0}
+.ftgt{position:absolute;left:50%;top:118px;transform:translateX(-50%);display:flex;gap:12px;align-items:baseline;padding:6px 12px;background:rgba(10,12,16,.72);border:1px solid var(--line);border-radius:4px;pointer-events:none;white-space:nowrap;font:12px var(--mono);color:var(--txt)}
+.ftgt span:first-child{font:600 9.5px var(--sans);letter-spacing:.24em;color:var(--dim)}.ftgt b{font:600 12px var(--sans);color:#fff}.ftgt .bad{color:var(--acc)}
+@media (max-width:700px){.ftgt{top:auto;bottom:196px;gap:7px;font-size:11px;padding:4px 8px}}
 .call b{display:block;font:200 46px var(--sans);letter-spacing:.42em;color:#fff;text-shadow:0 0 2px rgba(0,0,0,.5),0 2px 24px rgba(0,0,0,.65);padding-left:.42em}
 .call small{display:block;margin-top:8px;font:600 11px var(--sans);letter-spacing:.3em;color:var(--dim)}
 .call.go{animation:callIn 3.2s var(--ease) forwards}
@@ -542,6 +545,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="dials" id="fDials"><div class="dial" id="dSpd"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fSpd">–</b><small id="fSpdU">M/S</small></div><span>SPEED</span></div><div class="dial" id="dAlt"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fAlt">–</b><small id="fAltU">M</small></div><span>ALTITUDE</span></div><div class="dial" id="dDvL" title="Δv left: how much more speed the rocket can still gain from all its fuel (small number: this stage). Orbit takes about 4,500 m/s."><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52"/></svg><div class="dv"><b id="fDvL">–</b><small id="fDvLU">M/S</small><small class="dvst" id="fDvS"></small></div><span>Δv LEFT</span></div></div>
   <div class="tline" id="fTline"><div class="tclk"><b id="fClock">T+00:00:00</b><span id="fStageN"></span></div><div class="tl" id="fTl"><div class="tlbar"><i id="fTlFill"></i></div></div></div>
   <div class="call" id="fCall"><b></b><small></small></div>
+  <div class="ftgt" id="fTgt" style="display:none"></div>
   <button class="b go cdbtn" id="fCount" data-ic="play" style="display:none" title="Start the 10-second countdown (Space)">Start countdown</button>
   <div class="sasbox" id="fSas"><svg class="navb" id="fNav" viewBox="0 0 100 100" aria-label="Navball: sky and ground around your nose, with markers for where you're going"></svg>
     <div class="sasb" id="fSasB"></div></div>

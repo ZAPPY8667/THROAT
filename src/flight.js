@@ -81,13 +81,26 @@ function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
 let showCen=false,camShift=0;
 let launchSeed=Date.now()%2147483647||7;
-function startFlight(ps,name,keepWx){
+// ---------- practice targets (v1.47) ----------
+// Small uncrewed stations parked in circular orbits, each with a docking port, to practise rendezvous and docking on. They
+// aren't missions: they're just there. Each one turns slowly with its orbit so its port always faces backwards along the
+// path: catch up from behind (slightly lower = faster), match speed, and nose in. [body, height, how far ahead of the pad]
+const TARGETS=[[0,80e3,0.5],[0,150e3,1.9],[0,300e3,3.6],[1,50e3,0.8]];
+function targetCraft(){const L=[];let y=0;const add=(t,w,h)=>{const p=mkPart(t,w,h);p.x=0;p.y=y;y+=p.h;L.push(p);return p;};
+  add("truss",30,20);const tk=add("tank",30,40);tk.sk="gold";add("dock",20);
+  for(const s of[1,-1]){const p=mkPart("solar");p.x=s*(15+p.w/2);p.y=26;p.f=s;L.push(p);}return L;}
+function spawnTargets(){
+  for(const[b,h,th]of TARGETS){const B=BOD[b],r=B.R+h,vc=Math.sqrt(B.mu/r),v=mkVessel(targetCraft(),`Target ${Math.round(h/1000)} km${b?" (Moon)":""}`,b);
+    v.x=r*Math.sin(th);v.y=r*Math.cos(th);v.vx=vc*Math.cos(th);v.vy=-vc*Math.sin(th);   // circular, the same way round as a launch goes
+    v.phi=th-Math.PI/2;v.om=vc/r;v.landed=false;v.thr=0;v.frost=0;v.target=true;VS.push(v);}}   // port facing backwards, turning with the orbit
+function startFlight(ps,name,keepWx,noTargets){
   launchPs=JSON.parse(JSON.stringify(ps));launchName=name||"Rocket";
   const a=analyze(launchPs,engineNums()),keep=a.root>=0?bfs(adjOf(launchPs),a.root,()=>true):new Set();
   const mine=launchPs.filter((p,i)=>keep.has(i));for(const p of mine){delete p.shed;delete p.fuel;delete p.ign;delete p.open;}EN=engineNums();   // full tanks again on a retry
   const v=mkVessel(mine,launchName);let lo=1e9;for(const q of v.cpts)lo=Math.min(lo,(q[1]-v.py)*UM);v.x=0;v.y=PR+terrH(0)-lo+0.005;v.landed=true;launchW=v.Wall;launchH=v.H;
   v.frost=1;if(JX){CD={s:"wait",t:10};v.clamped=true;}else CD={s:"go",t:0};tRel=0;steam=[];
   VS=[v];AV=v;FT=0;smoke=[];T0=null;qMax=0;kickF=0;flashF=0;wasLit=false;evSig="";dvPad=0;buildEvents(analyze(v.ps,EN));flyers=[];warp=1;mapCam=null;predC=null;mapView=false;zoomF=1;said={};anAV=null;hudN=0;
+  if(JX&&!noTargets)spawnTargets();
   msg=JX?(matchMedia("(pointer:coarse)").matches?"On the pad. Tap Start countdown to count down from 10.":"On the pad. Press Space (or Start countdown) to count down from 10."):"";msgT=JX?8:0;
   // weather for this launch: a new one each time you launch from the editor, the same one when you retry (R)
   if(!keepWx){launchSeed=(launchSeed*16807+12345)%2147483647||7;}pickWeather(launchSeed%9973);
@@ -404,7 +417,7 @@ function flightFrame(now){
       for(const v of VS)if(v!==AV&&!v.dockHost&&!v.landed&&!v.crashed&&Math.hypot(v.x,v.y)-BOD[v.body].R<BOD[v.body].floor){v.gone=true;msg=`${v.name} was lost (left behind in ${BOD[v.body].atm?"the air":"a low orbit"} while you warped)`;msgT=4;}
       VS=VS.filter(v=>!v.gone||v===AV);
       const T=dtR*wv;let stop=false;
-      for(const v of VS){if(v.landed||v.crashed||v.dockHost){v.t+=T;continue;}if(!railStep(v,T)&&v===AV)stop=true;}dockFollow();
+      for(const v of VS){if(v.landed||v.crashed||v.dockHost){v.t+=T;continue;}if(!railStep(v,T)&&v===AV)stop=true;if(v.target)v.phi+=v.om*T;}dockFollow();
       FT+=T;if(stop){warp=10;msg="Warp slowed: "+(B.atm?"entering the air":"close to the ground");msgT=3;}
     }else{
       const fine=VS.some(v=>!v.crashed&&!v.landed&&(BOD[v.body].atm&&Math.hypot(v.x,v.y)-BOD[v.body].R<ATM_TOP||v.F>0||v.thr>0||Math.hypot(v.x,v.y)-BOD[v.body].R<3000));
@@ -545,7 +558,11 @@ function renderFlight(dt){
   const hAGc=h-(r.body===0?Math.max(0,terrH(psi*PR)):0),hAG=Math.max(1,hAGc),sBase=FH/(Math.max(2.4,r.H)*3.4),sFol=FH*0.42/hAG;
   // ...but never so far that a small craft in the air (an aborted capsule under its parachutes) shrinks to a dot: keep it ~40 px tall
   const sMin=r.body===0&&hAGc<ATM_TOP&&r.H<15?40/Math.max(2.4,r.H):0;   // only small craft: big rockets still pull back to show the ground
-  const s=Math.max(1e-7,Math.max(Math.min(sBase,sFol),sMin)*zoomF);
+  // ...and close to a practice target (within 3 km) the camera closes in to frame both, tighter as you get nearer, so docking
+  // doesn't need fifty turns of the mouse wheel (v1.47)
+  let dT=1e9;for(const t of VS)if(t.target&&t!==r&&t.body===r.body&&!t.dockHost&&r.dockHost!==t)dT=Math.min(dT,Math.hypot(t.x-r.x,t.y-r.y));
+  const sTgt=dT<3000?FH*0.3/Math.max(dT,r.H*1.5,8):0;
+  const s=Math.max(1e-7,Math.max(Math.min(sBase,sFol),sMin,sTgt)*zoomF);
   // live camera: a slow drift like a handheld long lens, plus shake from thrust, from the air pushing on the rocket,
   // and a jolt when an engine lights or a stage goes. All of it is off for players who asked their system for less motion.
   camT+=dt;kickF=Math.max(0,kickF-dt*1.5);flashF=Math.max(0,flashF-dt*2);
@@ -726,6 +743,13 @@ function hudFlight(dt){
   set("fClock",CD.s==="count"?"T−"+clk(Math.ceil(CD.t)):CD.s==="wait"?"T−00:00:10":T0==null?"T−00:00:00":"T+"+clk(FT-T0));
   $("fCount").style.display=CD.s==="wait"&&!r.crashed&&!(typeof DEMO!=="undefined"&&DEMO.on)?"":"none";
   if(!anAV||++hudN%15===0)anAV=analyze(r.ps,EN,r.ps.map(p=>p.fuel||0));
+  // TARGET: the nearest practice target (same body, within 200 km): how far, and how fast you're closing in. Docking needs
+  // closing speed under 0.5 m/s when the ports touch.
+  {const el=$("fTgt");let best=null,bd=1e18;
+    if(el&&CD.s==="go")for(const t of VS)if(t.target&&t!==r&&t.body===r.body&&!t.dockHost&&r.dockHost!==t){const d=Math.hypot(t.x-r.x,t.y-r.y);if(d<bd){bd=d;best=t;}}
+    if(best&&bd<200e3){const dx=best.x-r.x,dy=best.y-r.y,dvx=best.vx-r.vx,dvy=best.vy-r.vy,cl=-(dx*dvx+dy*dvy)/Math.max(bd,1e-6),rel=Math.hypot(dvx,dvy);
+      const h=`<span>TARGET</span><b>${best.name.replace("Target ","")}</b><span>${bd<10000?fmt(bd)+" m":(bd/1000).toFixed(1)+" km"}</span><span class="${cl>0.5&&bd<50?"bad":""}">${cl>=0?"closing":"opening"} ${Math.abs(cl).toFixed(1)} m/s</span><span>rel ${rel<100?rel.toFixed(1):fmt(rel)} m/s</span>`;
+      if(el.innerHTML!==h)el.innerHTML=h;el.style.display="";}else el.style.display="none";}
   // Δv left: the speed the rocket can still gain from its fuel, all stages (big) and this stage (small). The arc drains from
   // what it had on the pad, so you can see at a glance whether there's enough left for the next burn.
   {let tot=0;for(const q of anAV.stages)tot+=q.dv;if(!(dvPad>0)||CD.s!=="go")dvPad=Math.max(dvPad||0,tot);

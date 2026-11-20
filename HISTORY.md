@@ -437,6 +437,21 @@ made on the test stand.
   blue-black, Condor polished steel, Lumen Vac violet) and a coloured badge with its initial on the powerhead (`ENG_ID`;
   `drawEngine` wraps `drawEngine0`). Your engine stays black with red bands (Y).
 
+## v1.47: practice targets in orbit
+- Wyatt: "put in-orbit docking ports at different orbital heights as practice targets". Every launch from the editor now also
+  places four small uncrewed stations (`TARGETS`, `spawnTargets`, `targetCraft`: truss, gold tank, two solar panels, a docking
+  port on top) in circular orbits: 80, 150 and 300 km round Earth, spread ahead of the pad, and 50 km round the Moon. No probe,
+  so they can't be flown; not missions, just there. Each turns with its orbit (`om` = v/r; rails warp turns them too) so its
+  port always faces backwards along the path: catch up from behind, match speed, nose in. Not in the demo or headless tests
+  (`startFlight(…, noTargets)`; spawned only when `JX` exists).
+- TARGET readout (`#fTgt`, top centre; above the dials on phones): the nearest target on the same body within 200 km, its
+  distance, closing/opening speed (red when closing faster than 0.5 m/s inside 50 m: too fast to dock) and relative speed.
+- Camera: within 3 km of a target it closes in to frame both (`sTgt`), tighter as you get nearer; at orbit height the normal
+  camera is so far back that docking needed ~50 mouse-wheel notches.
+- Map: targets are white diamonds with "80 km target" labels.
+- tests/flight/targets.js: four targets, still at their heights after 5 minutes with ports facing backwards; a chaser coming up
+  from behind at 0.2 m/s docks.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

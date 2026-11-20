@@ -82,12 +82,16 @@ function renderMap(c){
     for(const L of N.pred.legs){if(!L.pts.length)continue;c.beginPath();c.moveTo(L.pts[0][0],L.pts[0][1]);for(let k=1;k<L.pts.length;k++)c.lineTo(L.pts[k][0],L.pts[k][1]);c.stroke();}c.setLineDash([]);
     const q=stateAt(AV,N.t),an=AV.body===1?moonAt(FT):{x:0,y:0};c.fillStyle="#ff3b2f";c.beginPath();c.arc(q.x+an.x,q.y+an.y,5*px*FDS,0,6.2832);c.fill();}
   // other craft, then yours
-  for(const v of VS){if(v===AV||v.crashed)continue;const p=pfPos(v);c.fillStyle=v.ctrl?"#5ae1f5":"#6d7590";c.beginPath();c.arc(p.x,p.y,(v.ctrl?3.5:2.5)*px*FDS,0,6.2832);c.fill();}
+  for(const v of VS){if(v===AV||v.crashed||v.dockHost)continue;const p=pfPos(v);
+    if(v.target){const d=5*px*FDS;c.fillStyle="#e8ecf4";c.strokeStyle="#000";c.lineWidth=1.2*px*FDS;c.beginPath();c.moveTo(p.x,p.y+d);c.lineTo(p.x+d,p.y);c.lineTo(p.x,p.y-d);c.lineTo(p.x-d,p.y);c.closePath();c.fill();c.stroke();continue;}   // practice target: a white diamond
+    c.fillStyle=v.ctrl?"#5ae1f5":"#6d7590";c.beginPath();c.arc(p.x,p.y,(v.ctrl?3.5:2.5)*px*FDS,0,6.2832);c.fill();}
   const ap=pfPos(AV);c.save();c.translate(ap.x,ap.y);c.rotate(-AV.phi);c.fillStyle="#fff";c.strokeStyle="#000";c.lineWidth=1.5*px*FDS;c.beginPath();
   c.moveTo(0,11*px*FDS);c.lineTo(-6.5*px*FDS,-7*px*FDS);c.lineTo(6.5*px*FDS,-7*px*FDS);c.closePath();c.fill();c.stroke();c.restore();
   // labels, in screen space
   c.setTransform(1,0,0,1,0,0);const SX=x=>ox+x*s,SY=y=>oy-y*s,fs=12*FDS;c.font=`700 ${fs}px ${MONO}`;c.textBaseline="middle";
   const placed=[];
+  for(const v of VS)if(v.target&&!v.crashed&&!v.dockHost){const p=pfPos(v),X=SX(p.x),Y=SY(p.y);if(X<-50||Y<-20||X>FW+50||Y>FH+20)continue;   // practice targets: their names
+    c.fillStyle="#c5cbe0";c.textAlign="left";c.font=`600 ${fs*0.85}px ${MONO}`;c.fillText(v.name.replace(/^Target (.*)$/,"$1 target"),X+9*FDS,Y);c.font=`700 ${fs}px ${MONO}`;}
   const tag=(x,y,col,l1,l2)=>{const X=SX(x),Y=SY(y);if(X<-50||X>FW+50||Y<-50||Y>FH+50)return;c.fillStyle=col;c.beginPath();c.arc(X,Y,4.5*FDS,0,6.2832);c.fill();
     const w=Math.max(c.measureText(l1).width,l2?c.measureText(l2).width:0)+12*FDS,h=(l2?2.2:1.3)*fs+4*FDS;let bx=X+9*FDS,by=Y-h-4*FDS;
     for(let k=0;k<6&&placed.some(q=>bx<q[0]+q[2]&&bx+w>q[0]&&by<q[1]+q[3]&&by+h>q[1]);k++)by+=h+3*FDS;   // don't stack labels on top of each other

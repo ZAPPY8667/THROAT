@@ -6,7 +6,7 @@
 const DEMO={on:false,ph:"",t:0,el:null,zoom:1,said:{}};
 function demoStart(o){   // o.bg: running behind the title screen (no caption box)
   if(FLT.vab&&typeof closeVab==="function")closeVab(true);
-  startFlight(tpl("sls"),"Super Heavy");
+  startFlight(tpl("sls"),"Super Heavy",false,true);   // no practice targets in the demo
   Object.assign(DEMO,{on:true,ph:"pad",t:0,zoom:1,said:{},tz:null,close:false,s:0});msgT=0;
   if(JX)JX.quiet=true;   // watching isn't doing: no goals are ticked off during the demo
   if(!DEMO.el){const d=document.createElement("div");d.className="demo";
