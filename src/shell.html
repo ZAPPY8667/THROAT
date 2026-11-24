@@ -522,7 +522,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 <script>var THROAT_SIZE=(function(){try{var s=JSON.parse(localStorage.getItem("throat.size.v1"));if(s&&s.length===2)return s;}catch(e){}return [240,135];})();</script>
 <div class="vab" id="vab">
   <canvas id="vcv" aria-label="Rocket editor"></canvas>
-  <div class="vhint">The first part (◆ root) sits on the centre line; snap the rest onto it. Drag a part to move it and everything hanging off it (Alt: just that one); drag the root to move the whole rocket. Shift+wheel stretches, Ctrl+wheel or [ ] widens. Del removes. M mirror.</div>
+  <div class="vhint">The first part (◆ root) sits on the centre line; snap the rest onto it. Drag a part to move it and everything hanging off it (Alt: just that one); drop it in empty space to park it. Del or X removes the selected part (or the one under the mouse). M mirror.</div>
   <div class="vpanel vpal" id="vPal"><h3>Parts</h3><input id="vFind" type="search" placeholder="Search parts" autocomplete="off" spellcheck="false"><div id="vCats"></div><div id="vParts"></div></div>
   <div class="vpanel vstat"><h3>Rocket</h3><input id="vName" class="vname" maxlength="40" aria-label="Rocket name"><div id="vStats"></div></div>
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>

@@ -193,7 +193,7 @@ function analyze(ps,_eng,fuel){
   if(!ps.length){out.warn.push("Drag parts in from the left to build a rocket.");return out;}
   if(out.root<0){out.warn.push("Add a probe core. It's the brain, and the rocket is built around it.");return out;}
   const adj=adjOf(ps),all=bfs(adj,out.root,()=>true);tagTanks(ps,adj,!(typeof FLT!=="undefined"&&FLT.on));
-  const loose=ps.length-all.size;if(loose)out.warn.push(`${loose} part${loose>1?"s aren't":" isn't"} attached (shown red) and will be left behind.`);
+  const loose=ps.length-all.size;if(loose)out.warn.push(`${loose} part${loose>1?"s aren't":" isn't"} attached (parked, shown faded) and will stay behind at launch.`);
   const F=ps.map((p,i)=>hasProp(p)?(fuel?fuel[i]:capOf(p)):0);
   let S=all,first=true,lo=1e9,hi=-1e9;for(const i of all){lo=Math.min(lo,ps[i].y);hi=Math.max(hi,ps[i].y+ps[i].h);}out.H=(hi-lo)*UM;
   const massOf=set=>{let m=0;for(const i of set)m+=partMass(ps[i])+F[i];return m;};
