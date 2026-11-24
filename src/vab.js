@@ -246,7 +246,7 @@ function kitIcon(k){const c=document.createElement("canvas");c.width=c.height=88
   const L=kitParts(B,0,0,1),x0=Math.min(...L.map(p=>p.x-p.w/2)),x1=Math.max(...L.map(p=>p.x+p.w/2)),sc=Math.min(70/(x1-x0),76/B.h);
   g.setTransform(sc,0,0,-sc,44-sc*(x0+x1)/2,44+sc*B.h/2);for(const p of L)drawPart(g,p,{legs:false});return c;}
 function partIcon(t){if(t.startsWith("kit:"))return kitIcon(t.slice(4));const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
-  if(t==="tank")p.h=90;if(t==="fair")p.fh=70;if(t==="dock"){p.w=48;p.h=15;}   /* a 2 m port would be a speck in the palette */const hh=p.h+(p.fh||0),sc=Math.min(70/p.w,70/hh,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*hh/2);p.x=0;p.y=0;drawPart(g,p,{legs:false,shell:true});return c;}
+  if(t==="tank")p.h=90;if(t==="fair")p.fh=70;if(t==="dock"){p.w=48;p.h=15;}   /* a 2 m port would be a speck in the palette */const hh=p.h+(p.fh||0),sc=Math.min(70/p.w,70/hh,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*hh/2);p.x=0;p.y=0;drawPart(g,p,{legs:false,shell:true,open:p.t==="antenna",brake:p.t==="brake"?0.6:0});return c;}   /* the palette shows the dish open and the airbrake swung out, so you can see what they do */
 // palette filters (v1.46): every part sits in one group; "All" shows everything; the search box matches names and descriptions
 const PCATS=[["all","All"],["cmd","Command"],["fuel","Fuel"],["eng","Engines"],["boost","Boosters"],["struct","Structure"],["aero","Aero"],["land","Landing"],["util","Utility"],["kit","Kits"]];
 function partCat(t){
@@ -331,7 +331,7 @@ function vInspUI(){if(vSlide)return;const el=$("vInsp"),i=vsel?vById(vsel):-1;if
   if(p.t==="srb"||p.t==="fair")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${(p.t==="srb"?[["","Standard"]]:[]).concat(NOSE_SKINS,p.t==="srb"?[["stripes","Black & white"]]:[]).map(([k,n])=>`<button class="b${(p.sk||"")===k||!p.sk&&k==="white"&&p.t==="fair"?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
   if(p.t==="nose"&&p.v!=="cockpit")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${NOSE_SKINS.map(([k,n])=>`<button class="b${(p.sk||"white")===k?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
   if(p.t==="tank")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${TANK_SKINS.map(([k,n])=>`<button class="b${tankSkin(p)===k?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
-  if(p.t==="leg"||p.t==="solar")h+=`<div class="row" style="margin-top:6px"><button class="b${vLegsOut?" on":""}" data-legs="1">${vLegsOut?"Show folded":"Show deployed"}</button></div>`;
+  if(p.t==="leg"||p.t==="solar"||p.t==="brake"||p.t==="antenna")h+=`<div class="row" style="margin-top:6px"><button class="b${vLegsOut?" on":""}" data-legs="1">${vLegsOut?"Show folded":"Show deployed"}</button></div>`;
   // v1.47 (Wyatt: "all size modifications should be sliders that you can also put exact numbers into"): every size is a slider
   // with a number box beside it. Drag the slider, or type a number and press Enter. One drag is one undo step.
   {const S=finPanel(p)?finShape(p):null,isC=p.t==="engine"&&(p.k||1)>1,rows=[];
@@ -403,7 +403,10 @@ function closeVab(toFlight){FLT.vab=false;vab.classList.remove("show");vcarry=nu
 $("bLaunch").onclick=openVab;$("vCen").onclick=()=>{vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();};
 // ---------- drawing ----------
 let vCentres=store.get("throat.vcentres",true);
+let vLegK=0,vLegT=0;
 function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
+  {const now=performance.now(),dt=Math.min(0.1,(now-(vLegT||now))/1000);vLegT=now;vLegK=Math.max(0,Math.min(1,vLegK+(vLegsOut?1:-1)*dt/0.9));}   // the editor's legs swing too (a little faster)
+
   c.setTransform(1,0,0,1,0,0);c.fillStyle="#0a0f1d";c.fillRect(0,0,VW,VH);
   // blueprint grid: fine every 1.5 m, bold every 6 m
   const s=vv.s;for(const[st,a]of[[15,0.05],[60,0.11]]){if(st*s<6)continue;c.strokeStyle=`rgba(120,150,230,${a})`;c.lineWidth=1;c.beginPath();
@@ -418,7 +421,7 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   const T=vps.length?vTree():null,loose=T?vps.map((p,j)=>T.r>=0&&T.par[j]===-2):[];
   vps.forEach((p,j)=>{const gone=vdrag&&vdrag.dropTwin&&vdrag.tset.has(j);if(gone)c.globalAlpha=0.25;else if(loose[j])c.globalAlpha=0.45;   /* parked parts: faded */
     if(loose[j]&&!gone){c.save();c.strokeStyle="rgba(255,207,122,.7)";c.lineWidth=1.5/s*VDS;c.setLineDash([5/s,4/s]);c.strokeRect(p.x-p.w/2-3,p.y-3,p.w+6,p.h+6);c.restore();}
-    drawPart(c,p,{legs:vLegsOut,sel:p.id===vsel,bad:gone||(vdrag&&vdrag.bad&&(vdrag.set.has(j)||vdrag.tset.has(j))),lw:3/s*VDS});c.globalAlpha=1;});
+    drawPart(c,p,{legs:vLegK,brake:vLegK*0.8,open:vLegsOut,sel:p.id===vsel,bad:gone||(vdrag&&vdrag.bad&&(vdrag.set.has(j)||vdrag.tset.has(j))),lw:3/s*VDS});c.globalAlpha=1;});
   for(const sh of shroudsOf(vps))drawShroud(c,sh,0.8);
   {const r=vRoot();if(r>=0){const p=vps[r],d=6/s*VDS,cx=p.x-p.w/2+d*1.6,cy=p.y+d*1.6;c.fillStyle="#ff3b30";c.strokeStyle="#fff";c.lineWidth=1.2/s;c.beginPath();c.moveTo(cx,cy-d);c.lineTo(cx+d,cy);c.lineTo(cx,cy+d);c.lineTo(cx-d,cy);c.closePath();c.fill();c.stroke();}}   // the root part
   for(const p of vps)if(p.t==="fair")drawFairing(c,p,0.3);   // fairing shells, see-through so you can build the payload inside

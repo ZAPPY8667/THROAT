@@ -247,6 +247,7 @@ function stepV(v,dt,u){
   let ax=F/m*s,ay=F/m*c;const gk=-B.mu/(rr*rr);ax+=gk*ux;ay+=gk*uy;
   // air: drag depends on the shape and on how sideways you fly; fins turn you into the wind
   let tq=0;const sp=Math.hypot(v.vx,v.vy);
+  {const lw=v.legs?1:0;if(v.legK==null)v.legK=lw;if(v.legK!==lw)v.legK=Math.max(0,Math.min(1,v.legK+(lw?1:-1)*dt/1.6));}   // legs swing out (or fold) over ~1.6 s
   if(v.brakeA){const want=rho>0&&F===0&&v.vx*ux+v.vy*uy<-30?1:0;v.brakeK=Math.max(0,Math.min(1,(v.brakeK||0)+(want?1:-1)*dt/1.5));}   // airbrakes swing open in ~1.5 s while falling, engines off
   if(rho>0&&sp>0.3){const q=0.5*rho*sp*sp,ca=(v.vx*s+v.vy*c)/sp,sa=(s*v.vy-c*v.vx)/sp;
     const CdA=v.Af*(ca>=0?(v.nose?0.3:0.8):0.95)*ca*ca+v.As*0.9*sa*sa+v.finA*0.07+(v.brakeA?v.brakeA*1.2*(v.brakeK||0):0);
@@ -505,7 +506,7 @@ function drawVessel(c,v,bright,plumesOnly){
       c.beginPath();c.ellipse(cp.x+ox,top+oy,R2,R2*0.6,0,0,Math.PI);c.closePath();const gg=c.createLinearGradient(cp.x+ox-R2,0,cp.x+ox+R2,0);gg.addColorStop(0,"#d9472f");gg.addColorStop(0.33,"#d9472f");gg.addColorStop(0.34,"#f2f2f2");gg.addColorStop(0.66,"#f2f2f2");gg.addColorStop(0.67,"#d9472f");c.fillStyle=gg;c.fill();}}}
   const vOpen=v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP,lamp=nightK>0.25;   // v1.37: solar panels open in space; floodlights on in the dark
   if(lamp)for(const p of v.ps)if(p.t==="light")drawBeam(c,p,nightK*0.5);
-  for(const p of v.ps)drawPart(c,p,{open:vOpen,brake:v.brakeK||0,lamp,fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
+  for(const p of v.ps)drawPart(c,p,{open:vOpen,brake:v.brakeK||0,lamp,fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legK!=null?v.legK:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
   for(const p of v.ps)if(p.t==="fair"&&!p.open)drawFairing(c,p,1);
   if(showCen&&v===AV){const T=c.getTransform(),sc=Math.hypot(T.a,T.b)||1;drawCentres(c,centres(v.ps),1/sc,false);}   // C: centre of mass / lift / thrust
