@@ -261,21 +261,45 @@ function partCat(t){
   if(b==="rcs"||b==="solar"||b==="antenna"||b==="light"||b==="les")return"util";
   return(PT[b]&&PT[b].cat)||"struct";}
 let vCat=(()=>{try{return localStorage.getItem("throat.vcat.v1")||"all";}catch(e){return"all";}})(),vFindTxt="";
-function vCatsUI(){const box=$("vCats");if(!box)return;box.innerHTML=PCATS.map(([k,n])=>`<button data-cat="${k}" class="${k===vCat?"on":""}">${n}</button>`).join("");
-  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{vCat=b.dataset.cat;try{localStorage.setItem("throat.vcat.v1",vCat);}catch(e){}vPalUI();});}
+// v1.47 (Wyatt: "the part menu still has no filters and tabs"): the groups are proper tabs with a count each, "All" shows the
+// parts under group headings, and hovering a part opens a card with its numbers instead of the browser's plain tooltip.
+const PCAT_TIP={cmd:"Probes and capsules: the part that steers the rocket",fuel:"Tanks of fuel and oxygen",eng:"Liquid engines and clusters",boost:"Solid boosters: full thrust until empty, no throttle",
+  struct:"Decouplers, adapters, trusses and other parts that hold the rocket together",aero:"Nose cones, fins and wings that shape the airflow",land:"Legs, parachutes and airbrakes for coming down",util:"Power, control jets, lights, antennas and the escape tower",kit:"Ready-made groups of parts"};
+function vCatsUI(counts){const box=$("vCats");if(!box)return;box.innerHTML=PCATS.map(([k,n])=>`<button data-cat="${k}" class="${k===vCat&&!vFindTxt?"on":""}" title="${k==="all"?"Every part":PCAT_TIP[k]}"${counts&&k!=="all"&&!counts[k]?" disabled":""}><span>${n}</span><i>${counts?k==="all"?counts.all:counts[k]||0:""}</i></button>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{vCat=b.dataset.cat;try{localStorage.setItem("throat.vcat.v1",vCat);}catch(e){}if(vFindTxt){vFindTxt="";$("vFind").value="";}vPalUI();});}
 {const f=$("vFind");if(f)f.addEventListener("input",()=>{vFindTxt=f.value.trim().toLowerCase();vPalUI();});}
-function vPalUI(){const box=$("vParts");box.innerHTML="";vCatsUI();let shown=0;
-  const item=(t,name,desc,cls)=>{
-    if(vFindTxt?!(name+" "+desc).toLowerCase().includes(vFindTxt):vCat!=="all"&&partCat(t)!==vCat)return;   /* searching looks in every group */
-    shown++;const b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+cls+(ok?"":" vlock");
-    b.title=ok?desc:`Locked: unlock “${tn?tn.name:"?"}” in the Tech tree (${tn?tn.cost:"?"} science). ${desc}`;   // locked parts show, dimmed: click opens the tree
-    b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=name;b.appendChild(s);if(!ok){const l=document.createElement("i");l.className="vlk";l.innerHTML=ico("lock");b.appendChild(l);}
-    b.addEventListener("pointerdown",e=>{if(!ok){e.preventDefault();techOpen();return;}startCarry(t,e);});box.appendChild(b);};
+function vPalList(){const L=[],item=(t,name,desc,cls)=>L.push({t,name,desc,cls,cat:partCat(t)});
   for(const t of PT_ORDER){const ek=t.startsWith("engine:")?t.slice(7).split(":"):null,en=ek?ENG[ek[0]]:t.startsWith("srb:")?BOOST[t.slice(4)]:null,cl=ek&&ek[1];
     const V=VARS[t];item(t,cl?"Engine cluster":en?en.name:V?V.name:PT[t].name,cl?`${ek[1]} engines side by side under one thrust plate (like SLS). Pick the count and type in its settings.`:en?en.desc:V?V.desc:PT[t].desc,en?" veng":"");}
   for(const k in KITS)item("kit:"+k,KITS[k].name,KITS[k].desc," vkit");
-  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}). Sea level ${(e.sl.F/1000).toFixed(2)} kN, ${Math.round(e.sl.isp)} s.`," vlib");
-  if(!shown)box.innerHTML=`<div class="vnone">${vFindTxt?"No part matches that.":"Nothing in this group yet."}</div>`;}
+  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}).`," vlib");
+  return L;}
+function vPalUI(){const box=$("vParts");box.innerHTML="";vTipHide();const L=vPalList(),counts={all:L.length};for(const q of L)counts[q.cat]=(counts[q.cat]||0)+1;vCatsUI(counts);
+  const show=L.filter(q=>vFindTxt?(q.name+" "+q.desc).toLowerCase().includes(vFindTxt):vCat==="all"||q.cat===vCat);   /* searching looks in every group */
+  if(!vFindTxt&&vCat==="all"){const ci=c=>PCATS.findIndex(x=>x[0]===c);show.sort((a,b)=>ci(a.cat)-ci(b.cat));}   /* sort is stable: each group keeps its own order */
+  const head=t=>{const h=document.createElement("div");h.className="vgh";h.textContent=t;box.appendChild(h);};
+  if(vFindTxt&&show.length)head(`${show.length} found`);let last=null;
+  for(const q of show){if(!vFindTxt&&vCat==="all"&&q.cat!==last){last=q.cat;head((PCATS.find(c=>c[0]===q.cat)||[0,q.cat])[1]);}
+    const t=q.t,b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+q.cls+(ok?"":" vlock");b.setAttribute("aria-label",q.name);
+    b.appendChild(partIcon(t));const sp=document.createElement("span");sp.textContent=q.name;b.appendChild(sp);if(!ok){const l=document.createElement("i");l.className="vlk";l.innerHTML=ico("lock");b.appendChild(l);}
+    b.addEventListener("pointerenter",e=>{if(e.pointerType!=="touch")vTipShow(b,q,ok?null:tn);});b.addEventListener("pointerleave",vTipHide);
+    b.addEventListener("pointerdown",e=>{vTipHide();if(!ok){e.preventDefault();techOpen();return;}startCarry(t,e);});box.appendChild(b);}
+  if(!show.length)box.innerHTML=`<div class="vnone">${vFindTxt?"No part matches that.":"Nothing in this group yet."}</div>`;}
+// the hover card: name and group, the part's own numbers, then what it's for
+let vTipT=0;
+function vTipFacts(t){if(t.startsWith("kit:"))return[];const p=newPart(t);partId--;const F=[],cap=capOf(p),m=partMass(p)+cap;
+  F.push(["Mass",fM(m)]);if(p.w)F.push(["Size",`${+(p.w*UM).toFixed(1)} × ${+((p.h+(p.t==="fair"?p.fh||0:0))*UM).toFixed(1)} m`]);
+  if(p.t==="engine"||p.t==="srb"){const E=engStat(p);F.push(["Thrust",`${fF(E.sl.F)} sea level, ${fF(E.vac.F)} vacuum`]);F.push(["Isp",`${Math.round(E.sl.isp)} s sea level, ${Math.round(E.vac.isp)} s vacuum`]);
+    if(cap)F.push(["Burns",`about ${Math.round(cap*E.sl.isp*G0/E.sl.F)} s`]);}
+  else if(cap)F.push(["Holds",`${fM(cap)} of propellant`]);
+  if(PT[p.t]&&PT[p.t].wr)F.push(["Width",`${+(PT[p.t].wr[0]*UM).toFixed(1)} to ${+(PT[p.t].wr[1]*UM).toFixed(1)} m`]);return F;}
+function vTipShow(b,q,tn){clearTimeout(vTipT);vTipT=setTimeout(()=>{let el=$("vTip");if(!el){el=document.createElement("div");el.id="vTip";el.className="ptip";document.body.appendChild(el);}
+  const c=PCATS.find(x=>x[0]===q.cat),F=vTipFacts(q.t);
+  el.innerHTML=`<div class="pth"><b>${q.name}</b><span>${c?c[1]:""}</span></div>${tn?`<div class="ptl">Locked: unlock “${tn.name}” in the Tech tree (${tn.cost} science). Click to open it.</div>`:""}
+    ${F.length?`<div class="ptf">${F.map(([k,v])=>`<span>${k}</span><b>${v}</b>`).join("")}</div>`:""}<div class="ptd">${q.desc}</div>`;
+  const r=b.getBoundingClientRect(),pr=$("vPal").getBoundingClientRect();el.style.display="block";const h=el.offsetHeight||140;
+  el.style.left=Math.round(pr.right+8)+"px";el.style.top=Math.round(Math.max(8,Math.min(innerHeight-h-8,r.top)))+"px";},180);}
+function vTipHide(){clearTimeout(vTipT);const el=$("vTip");if(el)el.style.display="none";}
 // free width: every part in the stack can be any width in its range. Nose cones, probes and engines keep their shape
 // (height grows with width); tanks, boosters, decouplers and adapters keep their length.
 const canWiden=p=>!!(PT[p.t].wr);

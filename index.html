@@ -157,9 +157,20 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 #vParts{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 #vFind{width:100%;box-sizing:border-box;height:28px;margin:0 0 6px;padding:0 8px;background:var(--well);border:1px solid var(--line);border-radius:4px;color:var(--txt);font:12px var(--sans)}
 #vFind:focus{outline:none;border-color:var(--acc)}
-#vCats{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}
-#vCats button{height:22px;padding:0 7px;border:1px solid var(--line);border-radius:11px;background:transparent;color:var(--dim);font:600 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
-#vCats button.on{border-color:var(--acc);color:#fff;background:rgba(255,59,48,.14)}
+#vCats{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:8px}
+#vCats button{display:flex;align-items:center;justify-content:space-between;gap:4px;height:26px;padding:0 8px;border:1px solid var(--line);border-radius:5px;background:var(--well);color:var(--txt);font:600 11px var(--sans);cursor:pointer;text-align:left}
+#vCats button i{font-style:normal;font-size:10px;color:var(--dim);font-weight:500}
+#vCats button:hover:not(:disabled){border-color:var(--accline)}#vCats button:disabled{opacity:.35;cursor:default}
+#vCats button.on{border-color:var(--acc);color:#fff;background:rgba(255,59,48,.22)}#vCats button.on i{color:#fff}
+#vCats button[data-cat="all"]{grid-column:1/-1}
+#vParts .vgh{grid-column:1/-1;font:600 9.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:6px 0 1px;padding-bottom:3px;border-bottom:1px solid var(--line)}
+#vParts .vgh:first-child{margin-top:0}
+.ptip{position:fixed;z-index:60;display:none;width:250px;padding:10px 12px;background:rgba(14,16,21,.97);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);color:var(--txt);font:12px/1.4 var(--sans);pointer-events:none}
+.ptip .pth{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}.ptip .pth b{font-size:13.5px}
+.ptip .pth span{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.ptip .ptf{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;padding:6px 0;margin-bottom:6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:11.5px}
+.ptip .ptf span{color:var(--dim)}.ptip .ptf b{font-weight:600}
+.ptip .ptd{color:var(--dim);font-size:11.5px}.ptip .ptl{color:#ffcf7a;font-size:11.5px;margin-bottom:6px}
 .vnone{grid-column:1/-1;color:var(--dim);font-size:11px;padding:6px 2px}
 .vpart{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--well);border:1px solid var(--line);border-radius:4px;color:var(--txt);font:600 10.5px var(--sans);padding:5px 2px 6px;cursor:grab;touch-action:none;user-select:none}
 .vpart:hover{border-color:var(--accline);background:var(--accbg)}.vpart.veng{background:rgba(255,255,255,.03)}.vpart canvas{width:44px;height:44px;pointer-events:none}.vpart span{pointer-events:none;text-align:center;line-height:1.15}
@@ -212,7 +223,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .warn{color:#ffb4ab;font-size:12px;margin-top:6px;line-height:1.4;padding:5px 8px;background:var(--warnbg);border-left:2px solid var(--warn);border-radius:2px}
 .vhint{position:absolute;left:50%;top:10px;transform:translateX(-50%);color:var(--dim);font-size:11.5px;background:rgba(8,11,17,.8);border:1px solid var(--line);padding:5px 12px;border-radius:var(--r);pointer-events:none;text-align:center;max-width:46vw}
 #vMsg{top:70px}
-@media (max-width:760px){.vpal{top:6px;left:6px;right:6px;bottom:auto;width:auto;height:106px;overflow-x:auto;overflow-y:hidden;padding:4px}#vParts{display:flex;gap:4px}#vFind{display:none}#vCats{flex-wrap:nowrap;margin-bottom:4px;position:sticky;left:0}#vCats button{flex:none}.vpart{min-width:62px;padding:2px 2px 4px}.vpart canvas{width:34px;height:34px}.vpart span{font-size:9.5px}.vpal h3,.vhint{display:none}
+@media (max-width:760px){.vpal{top:6px;left:6px;right:6px;bottom:auto;width:auto;height:106px;overflow-x:auto;overflow-y:hidden;padding:4px}#vParts{display:flex;gap:4px}#vFind{display:none}#vCats{display:flex;flex-wrap:nowrap;margin-bottom:4px;position:sticky;left:0}#vCats button{flex:none;height:22px}#vParts .vgh{display:none}.vpart{min-width:62px;padding:2px 2px 4px}.vpart canvas{width:34px;height:34px}.vpart span{font-size:9.5px}.vpal h3,.vhint{display:none}
   .vstat{top:118px;right:6px;width:182px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}.vstg{top:118px;right:194px;width:108px;max-height:36%;padding:6px}.sgi{width:44px}.sgi canvas{width:32px;height:32px}
   .vbar{bottom:6px;gap:4px;padding:5px 6px}.vbar button.b{padding:0 8px;height:32px;font-size:11.5px}.vbar select{max-width:96px}#vMsg{top:45%}}
 .fmapbar{left:50%;top:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:6px 8px}.fmapbar button.b{height:28px;padding:0 11px}
@@ -4124,21 +4135,45 @@ function partCat(t){
   if(b==="rcs"||b==="solar"||b==="antenna"||b==="light"||b==="les")return"util";
   return(PT[b]&&PT[b].cat)||"struct";}
 let vCat=(()=>{try{return localStorage.getItem("throat.vcat.v1")||"all";}catch(e){return"all";}})(),vFindTxt="";
-function vCatsUI(){const box=$("vCats");if(!box)return;box.innerHTML=PCATS.map(([k,n])=>`<button data-cat="${k}" class="${k===vCat?"on":""}">${n}</button>`).join("");
-  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{vCat=b.dataset.cat;try{localStorage.setItem("throat.vcat.v1",vCat);}catch(e){}vPalUI();});}
+// v1.47 (Wyatt: "the part menu still has no filters and tabs"): the groups are proper tabs with a count each, "All" shows the
+// parts under group headings, and hovering a part opens a card with its numbers instead of the browser's plain tooltip.
+const PCAT_TIP={cmd:"Probes and capsules: the part that steers the rocket",fuel:"Tanks of fuel and oxygen",eng:"Liquid engines and clusters",boost:"Solid boosters: full thrust until empty, no throttle",
+  struct:"Decouplers, adapters, trusses and other parts that hold the rocket together",aero:"Nose cones, fins and wings that shape the airflow",land:"Legs, parachutes and airbrakes for coming down",util:"Power, control jets, lights, antennas and the escape tower",kit:"Ready-made groups of parts"};
+function vCatsUI(counts){const box=$("vCats");if(!box)return;box.innerHTML=PCATS.map(([k,n])=>`<button data-cat="${k}" class="${k===vCat&&!vFindTxt?"on":""}" title="${k==="all"?"Every part":PCAT_TIP[k]}"${counts&&k!=="all"&&!counts[k]?" disabled":""}><span>${n}</span><i>${counts?k==="all"?counts.all:counts[k]||0:""}</i></button>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{vCat=b.dataset.cat;try{localStorage.setItem("throat.vcat.v1",vCat);}catch(e){}if(vFindTxt){vFindTxt="";$("vFind").value="";}vPalUI();});}
 {const f=$("vFind");if(f)f.addEventListener("input",()=>{vFindTxt=f.value.trim().toLowerCase();vPalUI();});}
-function vPalUI(){const box=$("vParts");box.innerHTML="";vCatsUI();let shown=0;
-  const item=(t,name,desc,cls)=>{
-    if(vFindTxt?!(name+" "+desc).toLowerCase().includes(vFindTxt):vCat!=="all"&&partCat(t)!==vCat)return;   /* searching looks in every group */
-    shown++;const b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+cls+(ok?"":" vlock");
-    b.title=ok?desc:`Locked: unlock “${tn?tn.name:"?"}” in the Tech tree (${tn?tn.cost:"?"} science). ${desc}`;   // locked parts show, dimmed: click opens the tree
-    b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=name;b.appendChild(s);if(!ok){const l=document.createElement("i");l.className="vlk";l.innerHTML=ico("lock");b.appendChild(l);}
-    b.addEventListener("pointerdown",e=>{if(!ok){e.preventDefault();techOpen();return;}startCarry(t,e);});box.appendChild(b);};
+function vPalList(){const L=[],item=(t,name,desc,cls)=>L.push({t,name,desc,cls,cat:partCat(t)});
   for(const t of PT_ORDER){const ek=t.startsWith("engine:")?t.slice(7).split(":"):null,en=ek?ENG[ek[0]]:t.startsWith("srb:")?BOOST[t.slice(4)]:null,cl=ek&&ek[1];
     const V=VARS[t];item(t,cl?"Engine cluster":en?en.name:V?V.name:PT[t].name,cl?`${ek[1]} engines side by side under one thrust plate (like SLS). Pick the count and type in its settings.`:en?en.desc:V?V.desc:PT[t].desc,en?" veng":"");}
   for(const k in KITS)item("kit:"+k,KITS[k].name,KITS[k].desc," vkit");
-  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}). Sea level ${(e.sl.F/1000).toFixed(2)} kN, ${Math.round(e.sl.isp)} s.`," vlib");
-  if(!shown)box.innerHTML=`<div class="vnone">${vFindTxt?"No part matches that.":"Nothing in this group yet."}</div>`;}
+  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}).`," vlib");
+  return L;}
+function vPalUI(){const box=$("vParts");box.innerHTML="";vTipHide();const L=vPalList(),counts={all:L.length};for(const q of L)counts[q.cat]=(counts[q.cat]||0)+1;vCatsUI(counts);
+  const show=L.filter(q=>vFindTxt?(q.name+" "+q.desc).toLowerCase().includes(vFindTxt):vCat==="all"||q.cat===vCat);   /* searching looks in every group */
+  if(!vFindTxt&&vCat==="all"){const ci=c=>PCATS.findIndex(x=>x[0]===c);show.sort((a,b)=>ci(a.cat)-ci(b.cat));}   /* sort is stable: each group keeps its own order */
+  const head=t=>{const h=document.createElement("div");h.className="vgh";h.textContent=t;box.appendChild(h);};
+  if(vFindTxt&&show.length)head(`${show.length} found`);let last=null;
+  for(const q of show){if(!vFindTxt&&vCat==="all"&&q.cat!==last){last=q.cat;head((PCATS.find(c=>c[0]===q.cat)||[0,q.cat])[1]);}
+    const t=q.t,b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+q.cls+(ok?"":" vlock");b.setAttribute("aria-label",q.name);
+    b.appendChild(partIcon(t));const sp=document.createElement("span");sp.textContent=q.name;b.appendChild(sp);if(!ok){const l=document.createElement("i");l.className="vlk";l.innerHTML=ico("lock");b.appendChild(l);}
+    b.addEventListener("pointerenter",e=>{if(e.pointerType!=="touch")vTipShow(b,q,ok?null:tn);});b.addEventListener("pointerleave",vTipHide);
+    b.addEventListener("pointerdown",e=>{vTipHide();if(!ok){e.preventDefault();techOpen();return;}startCarry(t,e);});box.appendChild(b);}
+  if(!show.length)box.innerHTML=`<div class="vnone">${vFindTxt?"No part matches that.":"Nothing in this group yet."}</div>`;}
+// the hover card: name and group, the part's own numbers, then what it's for
+let vTipT=0;
+function vTipFacts(t){if(t.startsWith("kit:"))return[];const p=newPart(t);partId--;const F=[],cap=capOf(p),m=partMass(p)+cap;
+  F.push(["Mass",fM(m)]);if(p.w)F.push(["Size",`${+(p.w*UM).toFixed(1)} × ${+((p.h+(p.t==="fair"?p.fh||0:0))*UM).toFixed(1)} m`]);
+  if(p.t==="engine"||p.t==="srb"){const E=engStat(p);F.push(["Thrust",`${fF(E.sl.F)} sea level, ${fF(E.vac.F)} vacuum`]);F.push(["Isp",`${Math.round(E.sl.isp)} s sea level, ${Math.round(E.vac.isp)} s vacuum`]);
+    if(cap)F.push(["Burns",`about ${Math.round(cap*E.sl.isp*G0/E.sl.F)} s`]);}
+  else if(cap)F.push(["Holds",`${fM(cap)} of propellant`]);
+  if(PT[p.t]&&PT[p.t].wr)F.push(["Width",`${+(PT[p.t].wr[0]*UM).toFixed(1)} to ${+(PT[p.t].wr[1]*UM).toFixed(1)} m`]);return F;}
+function vTipShow(b,q,tn){clearTimeout(vTipT);vTipT=setTimeout(()=>{let el=$("vTip");if(!el){el=document.createElement("div");el.id="vTip";el.className="ptip";document.body.appendChild(el);}
+  const c=PCATS.find(x=>x[0]===q.cat),F=vTipFacts(q.t);
+  el.innerHTML=`<div class="pth"><b>${q.name}</b><span>${c?c[1]:""}</span></div>${tn?`<div class="ptl">Locked: unlock “${tn.name}” in the Tech tree (${tn.cost} science). Click to open it.</div>`:""}
+    ${F.length?`<div class="ptf">${F.map(([k,v])=>`<span>${k}</span><b>${v}</b>`).join("")}</div>`:""}<div class="ptd">${q.desc}</div>`;
+  const r=b.getBoundingClientRect(),pr=$("vPal").getBoundingClientRect();el.style.display="block";const h=el.offsetHeight||140;
+  el.style.left=Math.round(pr.right+8)+"px";el.style.top=Math.round(Math.max(8,Math.min(innerHeight-h-8,r.top)))+"px";},180);}
+function vTipHide(){clearTimeout(vTipT);const el=$("vTip");if(el)el.style.display="none";}
 // free width: every part in the stack can be any width in its range. Nose cones, probes and engines keep their shape
 // (height grows with width); tanks, boosters, decouplers and adapters keep their length.
 const canWiden=p=>!!(PT[p.t].wr);
