@@ -181,7 +181,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .vname:focus{border-color:var(--accline);outline:0}
 .vst{margin:6px 0}.vst .sr{display:grid;grid-template-columns:62px 1fr auto;gap:2px 8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:12px;color:var(--dim)}
 .vst .sr>b{font:650 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--txt)}
-.vst .sr span b{font:600 12.5px var(--mono);color:var(--txt)}.vst .sr i{grid-column:2/4;font-style:normal;font-size:11px}.vst .vsep{color:var(--acc2);font-size:11px;padding:4px 0 2px 8px;border-left:2px solid var(--accline);margin:3px 0}
+.vst .sr span b{font:600 12.5px var(--mono);color:var(--txt)}.vst .sr i{grid-column:2/4;font-style:normal;font-size:11px}.vsgb{margin-left:auto;display:inline-flex;gap:3px}.vsgb .b{height:18px;min-width:20px;padding:0 4px;font-size:9px}.vst .vsep{display:flex;align-items:center;gap:6px;color:var(--acc2);font-size:11px;padding:4px 0 2px 8px;border-left:2px solid var(--accline);margin:3px 0}
 .warn{color:#ffb4ab;font-size:12px;margin-top:6px;line-height:1.4;padding:5px 8px;background:var(--warnbg);border-left:2px solid var(--warn);border-radius:2px}
 .vhint{position:absolute;left:50%;top:10px;transform:translateX(-50%);color:var(--dim);font-size:11.5px;background:rgba(8,11,17,.8);border:1px solid var(--line);padding:5px 12px;border-radius:var(--r);pointer-events:none;text-align:center;max-width:46vw}
 #vMsg{top:70px}
@@ -202,6 +202,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .help .cols{display:grid;grid-template-columns:1fr 1fr;gap:3px 26px;font-size:12.5px}
 .help .cols div{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:4px 0}
 .help .cols div i{font-style:normal;color:var(--dim);white-space:nowrap}
+.b kbd{font:600 9px var(--mono);opacity:.75;margin-left:5px;border:1px solid var(--line2);border-radius:3px;padding:0 3px}
 .help kbd,.tip kbd{font:600 11px var(--mono);color:var(--acc2);background:var(--well);border:1px solid var(--line2);border-bottom-width:2px;border-radius:3px;padding:0 5px;white-space:nowrap}
 @media (max-width:900px),(max-height:520px){
   html,body{height:auto;overflow:auto}
@@ -522,7 +523,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 <script>var THROAT_SIZE=(function(){try{var s=JSON.parse(localStorage.getItem("throat.size.v1"));if(s&&s.length===2)return s;}catch(e){}return [240,135];})();</script>
 <div class="vab" id="vab">
   <canvas id="vcv" aria-label="Rocket editor"></canvas>
-  <div class="vhint">The first part (◆ root) sits on the centre line; snap the rest onto it. Drag a part to move it and everything hanging off it (Alt: just that one); drop it in empty space to park it. Del or X removes the selected part (or the one under the mouse). M mirror.</div>
+  <div class="vhint">The first part (◆ root) sits on the centre line; snap the rest onto it. Drag a part to move it and everything hanging off it (Alt: just that one); drop it in empty space to park it. Backspace (or X) removes the selected part, or the one under the mouse. M mirror.</div>
   <div class="vpanel vpal" id="vPal"><h3>Parts</h3><input id="vFind" type="search" placeholder="Search parts" autocomplete="off" spellcheck="false"><div id="vCats"></div><div id="vParts"></div></div>
   <div class="vpanel vstat"><h3>Rocket</h3><input id="vName" class="vname" maxlength="40" aria-label="Rocket name"><div id="vStats"></div></div>
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>

@@ -28,7 +28,17 @@ const vSnap=()=>JSON.stringify(vps);
 function vPush(){vU.push(vSnap());if(vU.length>80)vU.shift();vR=[];}
 function vUndo(){if(!vU.length)return;vR.push(vSnap());vps=JSON.parse(vU.pop());vsel=null;vChanged();}
 function vRedo(){if(!vR.length)return;vU.push(vSnap());vps=JSON.parse(vR.pop());vsel=null;vChanged();}
-function vChanged(){vRootFix();vSave();vAn=null;vInspUI();}
+function vChanged(){vRootFix();vStageFix();vSave();vAn=null;vInspUI();}
+// staging order (v1.47): decouplers level with each other, or mirror twins, fire together as one separation. Each group carries a
+// stage number p.sg (1 = first Space). New decouplers slot in by height; the ▲ ▼ buttons in the stage list swap two separations.
+function vStageFix(){const D=vps.map((p,i)=>i).filter(i=>vps[i].t==="dec"||vps[i].t==="sdec");if(!D.length)return;
+  const mid=i=>vps[i].y+vps[i].h/2;D.sort((a,b)=>mid(a)-mid(b));const G=[];
+  for(const i of D){const tw=vps[i].tw?vById(vps[i].tw):-1;const g=G.find(g=>g.m.includes(tw)||Math.abs(mid(g.m[0])-mid(i))<3);if(g)g.m.push(i);else G.push({m:[i],auto:G.length});}
+  for(const g of G){const n=g.m.map(i=>vps[i].sg).filter(v=>v!=null);g.sg=n.length?Math.min(...n):null;}
+  const out=G.filter(g=>g.sg!=null).sort((a,b)=>a.sg-b.sg||a.auto-b.auto);
+  for(const g of G.filter(g=>g.sg==null)){const k=out.findIndex(h=>h.auto>g.auto);if(k<0)out.push(g);else out.splice(k,0,g);}
+  out.forEach((g,k)=>{for(const i of g.m)vps[i].sg=k+1;});}
+function vStageSwap(a,b){if(!(a>=1&&b>=1))return;vPush();for(const p of vps)if(p.sg===a)p.sg=b;else if(p.sg===b)p.sg=a;vChanged();vMsg(`Separation ${Math.min(a,b)} and ${Math.max(a,b)} swapped.`);}
 function vMsg(t){$("vMsg").textContent=t;$("vMsg").style.display="";vMsgT=performance.now()+3200;}
 // ---------- snapping ----------
 function alignX(px,pw,dw){const lim=(pw-dw)/2;if(lim<1)return[px];const out=[px,px-lim,px+lim];for(let k=-lim;k<=lim+0.01;k+=15)out.push(px+k);return out;}
@@ -247,7 +257,7 @@ function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.di
   if(canWiden(p))h+=`<button class="b" data-dw="-4">− Narrower</button><button class="b" data-dw="4">+ Wider</button><span class="tip">${(p.w*UM).toFixed(1)} m wide${p.t==="engine"&&(p.k||1)>1?` · each engine ${(clusterGeo(p).ew*UM).toFixed(1)} m`:""}</span>`;
   if(p.t==="adapter")h+=`<button class="b" data-tw="-4">− Top</button><button class="b" data-tw="4">+ Top</button><span class="tip">top ${(topW(p)*UM).toFixed(1)} m</span>`;
   if(hasProp(p))h+=`<button class="b" data-l="-20">− Shorter</button><button class="b" data-l="20">+ Longer</button><span class="tip">${(p.h*UM).toFixed(0)} m long</span>`;
-  h+=`<button class="b" data-del="1" style="margin-left:auto" title="Delete, Backspace or X">${ico("trash")}Remove <kbd>Del</kbd></button></div>`;
+  h+=`<button class="b" data-del="1" style="margin-left:auto" title="Backspace, Delete or X">${ico("trash")}Remove <kbd>Backspace</kbd></button></div>`;
   if(finPanel(p)){const S=finShape(p),row=(k,lab,val,st,tip)=>`<div class="frow" title="${tip}"><span>${lab}</span><button class="b" data-fn="${k}:-${st}">−</button><b>${val}</b><button class="b" data-fn="${k}:${st}">+</button></div>`;
     h+=`<div class="fshape"><div class="tip">Shape (a mirrored twin changes too). Bigger fins weigh more and grip the air harder.</div>`+
       row("span","Span",(p.w*UM).toFixed(1)+" m",5,"How far it sticks out from the rocket")+row("root","Root",(p.h*UM).toFixed(1)+" m",10,"How long it is where it joins the rocket")+
@@ -274,7 +284,8 @@ function vInspUI(){const el=$("vInsp"),i=vsel?vById(vsel):-1;if(i<0){el.style.di
 function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stages;
   let h=`<div class="read" style="grid-template-columns:auto 1fr auto 1fr"><span>Mass</span><b data-r="m" data-v="${a.mass}" data-u="mass"></b><span>Height</span><b>${a.H.toFixed(1)} m</b></div>`;
   if(st.length){h+=`<div class="vst">`;st.forEach((s,k)=>{h+=`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b data-r="s${k}" data-v="${s.dv}"></b> m/s</span><span>TWR <b class="${s.twr>(k?0.5:1.1)?"ok":"bad"}">${s.twr.toFixed(2)}</b></span><i>${s.eng} engine${s.eng===1?"":"s"} · burns ${Math.round(s.burn)} s</i></div>`;
-    if(s.dropKind)h+=`<div class="vsep">Space → drop ${s.dropKind==="boosters"?"the side boosters":"stage "+(k+1)}</div>`;});
+    if(s.dropKind){const g=vps[s.decs[0]]&&vps[s.decs[0]].sg,last=k===st.length-2;
+      h+=`<div class="vsep"><span>Space → drop ${s.dropKind==="boosters"?"the side boosters":"stage "+(k+1)}</span>${g?`<span class="vsgb"><button class="b" data-sgm="${g}" data-d="-1" title="Fire this separation earlier"${k===0?" disabled":""}>▲</button><button class="b" data-sgm="${g}" data-d="1" title="Fire this separation later"${last?" disabled":""}>▼</button></span>`:""}</div>`;}});
     h+=`</div><div class="read" style="grid-template-columns:auto 1fr"><span>Total Δv</span><b data-r="t" data-v="${a.total}" data-u=" m/s"></b></div><div class="tip">Orbit takes about 4,500 m/s (the autopilot uses ~4,900). TWR above 1 to lift off.</div>`;}
   for(const w of a.warn)h+=`<div class="warn">⚠ ${w}</div>`;
   if(st.length&&st[0].twr<=1)h+=`<div class="warn">⚠ Too heavy to lift off: add engines or use less fuel.</div>`;
@@ -282,6 +293,7 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;
     for(const b of el.querySelectorAll("[data-r]")){const u=b.dataset.u||"";roll("vs"+b.dataset.r,b,+b.dataset.v,u==="mass"?fM:x=>fmt(x)+u);}}   // numbers roll to their new values
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
+$("vStats").addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-sgm]");if(!b||b.disabled)return;const a=+b.dataset.sgm;vStageSwap(a,a+ +b.dataset.d);});
 function vBarUI(){techBtn();$("vCen").classList.toggle("on",vCentres);icoBtn($("vCen"),"centre","Centres");$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
   const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:sls">Super Heavy (SLS-shaped, 91 m)</option><option value="t:comsat">Comsat (a satellite in a payload fairing)</option><option value="t:pathfinder">Pathfinder (new parts: methane booster, nuclear upper stage)</option><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
@@ -301,7 +313,7 @@ $("vClear").onclick=()=>{if(!vps.length)return;vPush();vps=[];vsel=null;vChanged
 $("vBack").onclick=()=>closeVab();
 $("vGo").onclick=()=>{const miss=techMissing(vps);if(miss.length){techOpen(`This rocket uses parts you haven't unlocked yet: ${miss.join(", ")}. Unlock them below, or tick “Unlock everything”.`);return;}   // tech tree (v1.38)
   const a=analyze(vps,engineNums());if(a.root<0||!a.stages.length||a.stages[0].twr<=1)return;closeVab(true);startFlight(vps,vName);};
-function openVab(){FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();vOldMsg();requestAnimationFrame(vFrame);}
+function openVab(){vStageFix();FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();vOldMsg();requestAnimationFrame(vFrame);}
 function closeVab(toFlight){FLT.vab=false;vab.classList.remove("show");vcarry=null;if(!toFlight)enter($("stage"));if(!toFlight){S.paused=$("bPause").classList.contains("on");cfg();}}
 $("bLaunch").onclick=openVab;$("vCen").onclick=()=>{vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();};
 // ---------- drawing ----------
@@ -333,6 +345,9 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
     if(vMirror&&sn&&Math.abs(p.x-ax)>0.5){const t={...p,x:2*ax-p.x,f:-p.f};c.globalAlpha=0.4;drawPart(c,t,{ghost:true,lw:2/s*VDS});}c.globalAlpha=1;}
   if(vCentres&&vps.length)drawCentres(c,centres(vps),1/s,true);   // centre of mass, lift, thrust
   c.setTransform(1,0,0,1,0,0);
+  {c.font=`600 ${11*VDS}px Rajdhani, sans-serif`;c.textBaseline="middle";   // which Space fires each decoupler (S1 = the first)
+    for(const p of vps)if(p.sg&&(p.t==="dec"||p.t==="sdec")){const side=p.t==="sdec"?p.f:1,X=vv.ox+(p.x+side*(p.w/2+6/s*VDS))*s,Y=vv.oy-(p.y+p.h/2)*s,t="S"+p.sg,tw=c.measureText(t).width;
+      c.fillStyle="rgba(194,59,46,.92)";c.fillRect(side>0?X:X-tw-8*VDS,Y-7*VDS,tw+8*VDS,14*VDS);c.fillStyle="#fff";c.textAlign="left";c.fillText(t,(side>0?X:X-tw-8*VDS)+4*VDS,Y+0.5);}}
   if(vMsgT&&performance.now()>vMsgT){$("vMsg").style.display="none";vMsgT=0;}
   vStatsUI();requestAnimationFrame(vFrame);}
 window.__vab={drawPart,mkPart,get vps(){return vps;},get sel(){return vsel;},w2c:(x,y)=>{const r=vcv.getBoundingClientRect();return{x:r.left+(vv.ox+x*vv.s)*r.width/VW,y:r.top+(vv.oy-y*vv.s)*r.height/VH};}};
@@ -342,7 +357,7 @@ if(!SMALL)foldUI(vab,"vab",[{el:$("vPal"),label:"PARTS",side:"l",open:true,title
 // "Share" turns the rocket into a short line of text (THROAT-R1:...) you can paste into an email or a chat; pasting one in
 // loads that rocket. Only the shape travels (each part's type, size, place and settings), so a code made today still loads
 // after the game changes. Where the browser can, the text is zipped first (deflate), which makes it about a third as long.
-const SHARE_KEYS=["id","t","x","y","w","h","f","tw","e","b","k","w2","ns","sk","n","v","fh","tc","sb","es","root"];
+const SHARE_KEYS=["id","t","x","y","w","h","f","tw","e","b","k","w2","ns","sk","n","v","fh","tc","sb","es","root","sg"];
 const b64=u8=>{let s="";for(const c of u8)s+=String.fromCharCode(c);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");};
 const unb64=t=>{const s=atob(t.replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(s,c=>c.charCodeAt(0));};
 async function pipeBytes(u8,how){const st=new Blob([u8]).stream().pipeThrough(how);return new Uint8Array(await new Response(st).arrayBuffer());}

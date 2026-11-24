@@ -117,6 +117,10 @@ const BOOST={
   longhorn:{name:"Longhorn",w:40,h:520,sl:{F:2200,isp:240},vac:{F:2450,isp:262},curve:[0.9,0.95,1,1,1.02,1.02,1.03,1.03,1,1,0.98,0.95],desc:"Long and steady: a gentler push, but a long burn and the best Isp of the boosters."},
   lib:    {name:"Saved booster",desc:"A booster you burned on the test stand and saved in the engine library."}};
 const boostKey=p=>p.b&&BOOST[p.b]?p.b:"stand";
+// v1.47 (Wyatt: "it's hard to get enough thrust from engines"): liquid engines push 1.3x what they did (more burns rockets up low in the air at full throttle). The real-size tanks
+// (v1.16) are heavy, and one engine of a tank's width barely lifted it. Isp (fuel economy) is unchanged, so delta-v stays the same;
+// the engines just burn their fuel faster and lift more.
+const THR_K=1.3;
 function boostStat(p){const k=boostKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?boosterNums():BOOST[k],MK*A2(p.w,SRB_REF));}
 // numbers at real size: thrust × k (Isp unchanged); keeps the extra fields (curve, name, est, src)
 function scaleStat(E,k){const o=Object.assign({},E);o.sl=Object.assign({},E.sl,{F:E.sl.F*k});o.vac=Object.assign({},E.vac,{F:E.vac.F*k});return o;}
@@ -124,7 +128,7 @@ function scaleStat(E,k){const o=Object.assign({},E);o.sl=Object.assign({},E.sl,{
 function curveAt(c,u){if(!c||c.length<2)return 1;const x=Math.max(0,Math.min(1,u))*(c.length-1),i=Math.min(c.length-2,Math.floor(x));return c[i]+(c[i+1]-c[i])*(x-i);}
 const ENG_ORDER=["stand","gnat","wren","mule","spike","bison","condor","vac","atom"],BOOST_ORDER=["stand","thumper","sprinter","longhorn"];
 const engKey=p=>p.e&&ENG[p.e]?p.e:"stand";
-function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],MK*A2(clusterGeo(p).ew,ENG[k].w)*(p.k||1));}
+function engStat(p){if(p.t==="srb")return boostStat(p);const k=engKey(p);return scaleStat(k==="lib"&&p.n?p.n:k==="stand"?engineNums():ENG[k],THR_K*MK*A2(clusterGeo(p).ew,ENG[k].w)*(p.k||1));}
 const PT_ORDER=["probe","probe:cabin","nose","nose:cockpit","tank","tank:ball","adapter","truss","fair","shield","engine:stand","engine:gnat","engine:wren","engine:mule","engine:spike","engine:bison","engine:condor","engine:vac","engine:atom","engine:stand:4",
   "srb:stand","srb:thumper","srb:sprinter","srb:longhorn","dec","sdec","dock","chute","fin","fin:grid","fin:wing","brake","rcs","leg","leg:big","solar","antenna","light","capsule","capsule:dragon","les"];
 let partId=1;
@@ -171,7 +175,13 @@ function engOn(ps,adj,i,inSet){const e=ps[i];for(const j of adj[i]){const d=ps[j
 function feedOf(ps,adj,i,inSet){if(ps[i].t==="srb")return[i];   // a solid booster burns only what's inside it
   const s=bfs(adj,i,j=>(!inSet||inSet.has(j))&&ps[j].t!=="dec"&&ps[j].t!=="sdec");return[...s].filter(j=>ps[j].t==="tank").sort((a,b)=>a-b);}
 // the decouplers that fire on the next Space: the lowest ones (mirror twins and anything level with them)
-function nextDecs(ps,inSet){let lo=1e9;for(const i of inSet){const p=ps[i];if(p.t==="dec"||p.t==="sdec")lo=Math.min(lo,p.y+p.h/2);}
+// v1.47 (Wyatt: "there's no way to change staging"): the editor's stage list sets the order. Each decoupler then carries a
+// stage number p.sg (1 fires first); everything with the lowest number left fires together. Rockets without numbers
+// (older saves, ready-made ones) stage by height as before: the lowest decouplers go first.
+function nextDecs(ps,inSet){let sg=1e9;for(const i of inSet){const p=ps[i];if((p.t==="dec"||p.t==="sdec")&&p.sg!=null)sg=Math.min(sg,p.sg);}
+  if(sg<1e8)return[...inSet].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===sg);
+  return nextDecsH(ps,inSet);}
+function nextDecsH(ps,inSet){let lo=1e9;for(const i of inSet){const p=ps[i];if(p.t==="dec"||p.t==="sdec")lo=Math.min(lo,p.y+p.h/2);}
   if(lo>1e8)return[];return[...inSet].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&Math.abs(ps[i].y+ps[i].h/2-lo)<3);}
 // fire decouplers: what stays joined to the probe without crossing them, and the pieces that fall away
 function split(ps,adj,inSet,decs,root){const D=new Set(decs);
