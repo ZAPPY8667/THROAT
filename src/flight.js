@@ -56,7 +56,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   const npx=mx/m,npy=my/m;
   if(keepWorld&&v.px!=null){const dx=(npx-v.px)*UM,dy=(npy-v.py)*UM,c=Math.cos(v.phi),s=Math.sin(v.phi);v.x+=dx*c+dy*s;v.y+=-dx*s+dy*c;}
   v.px=npx;v.py=npy;
-  const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
+  const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all)&&(!v.stg||ps[i].sg==null||ps[i].sg<=v.stg));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
   v.dry=ps.reduce((s,p)=>s+partMass(p),0);
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,W=0,top=null,I=0;
   for(const p of ps){x0=Math.min(x0,p.x-p.w/2);x1=Math.max(x1,p.x+p.w/2);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y+p.h,p.t==="fair"&&!p.open?p.y+p.h+(p.fh||120):0);if(!isRad(p))W=Math.max(W,p.w);
@@ -75,7 +75,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   v.cpts=contactPts(ps,false);v.cptsL=contactPts(ps,true);
   v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)*UM,(q[1]-npy)*UM)),v.H);
   v.boomS=Math.max(1.5,v.H*0.6);}
-function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
+function mkVessel(ps,name,body){const v={stg:isStaged(ps)?1:0,rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
   if(ps.some(p=>p.t==="tank"&&p.fuel==null))tagTanks(ps,adjOf(ps),false);   // fresh tanks: fill them with what their engines burn
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
@@ -131,7 +131,13 @@ function callout(t,sub){if(!JX||typeof titleUp!=="undefined"&&titleUp)return;con
 // ---------- staging ----------
 // separation motors on dropped side boosters: how long they burn, how hard they push sideways, and how fast they tip the nose out
 const SEP_T=1.2,SEP_A=25,SEP_OM=0.3;
-function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.keys()),decs=nextDecs(v.ps,all);
+function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.keys());let decs;
+  if(v.stg){   // v1.47: staged in the editor's STAGES panel: set off the next stage (decouplers fire, engines light, fairings open)
+    const n=nextStgNo(v.ps,v.stg);if(n==null){msg="Nothing left to stage.";msgT=2.5;return;}
+    v.stg=n;decs=[...all].filter(i=>(v.ps[i].t==="dec"||v.ps[i].t==="sdec")&&v.ps[i].sg===n);
+    const fo=v.ps.filter(p=>p.t==="fair"&&p.sg===n&&!p.open);if(fo.length)fairOpen(v,fo);
+    if(!decs.length){derive(v,true);anAV=null;callout("STAGE "+n,fo.length&&!v.ps.some(p=>isEng(p)&&p.sg===n)?"fairing open":"ignition");kickF=Math.max(kickF,0.2);if(JX)JX.snd.clunk();return;}}
+  else decs=nextDecs(v.ps,all);
   if(!decs.length){msg="Nothing left to stage.";msgT=2.5;return;}
   const sp=split(v.ps,v.adj,all,decs,v.root),om=v.om,c=Math.cos(v.phi),s=Math.sin(v.phi);
   for(const sh of v.shr)if(decs.includes(sh.i)&&!v.ps[sh.i].shed){v.ps[sh.i].shed=true;const hw=sh.w/2;
@@ -140,7 +146,7 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
   const keepPs=[...sp.keep].map(i=>v.ps[i]),pieces=sp.pieces.map(set=>[...set].map(i=>v.ps[i]));
   const oldPx=v.px,oldPy=v.py,X0=v.x,Y0=v.y,V0x=v.vx,V0y=v.vy;
   v.ps=keepPs;derive(v,true);{const rx=v.x-X0,ry=v.y-Y0;v.vx=V0x+om*ry;v.vy=V0y-om*rx;}
-  for(const P of pieces){const n=mkVessel(P,P.some(p=>p.t==="probe")?v.name+" booster":"Debris",v.body);
+  for(const P of pieces){const n=mkVessel(P,P.some(p=>p.t==="probe")?v.name+" booster":"Debris",v.body);if(v.stg){n.stg=v.stg;derive(n,false);}
     const dx=(n.px-oldPx)*UM,dy=(n.py-oldPy)*UM,rx=dx*c+dy*s,ry=-dx*s+dy*c;
     n.phi=v.phi;n.om=om;n.x=X0+rx;n.y=Y0+ry;
     let ux=n.x-v.x,uy=n.y-v.y;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
@@ -166,11 +172,12 @@ function abort(){const v=AV;if(!v||v.crashed)return;const ci=v.ps.findIndex(p=>p
 // at 34 km on every Super Heavy flight. So: only craft with something besides the tower, and loop over a copy of the list.
 function lesCheck(){for(const v of VS.slice())if(v.hasLes&&!v.crashed&&!(v.lesT>0)&&v.ps.some(p=>p.t!=="les")&&((v.lesDone!=null&&v.t-v.lesDone>1.2)||(v.body===0&&Math.hypot(v.x,v.y)-PR>ATM_TOP*0.85)))jettisonLes(v,v.lesDone!=null?"":"not needed above the air");}
 // payload fairings split open by themselves once the craft is nearly out of the air: two halves tumble away, the craft gets lighter
-function fairCheck(){for(const v of VS){if(v.crashed||!(v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP*0.9))continue;let any=false;
-  for(const p of v.ps){if(p.t!=="fair"||p.open)continue;p.open=true;any=true;const fh=p.fh||120,c=Math.cos(v.phi),s=Math.sin(v.phi);
+function fairCheck(){for(const v of VS){if(v.crashed||!(v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP*0.9))continue;
+  const L=v.ps.filter(p=>p.t==="fair"&&!p.open&&p.sg==null);if(L.length)fairOpen(v,L);}}   // a fairing put in a stage waits for its Space
+function fairOpen(v,L){for(const p of L){p.open=true;const fh=p.fh||120,c=Math.cos(v.phi),s=Math.sin(v.phi);
     for(const side of[-1,1]){const[wx,wy]=loc(v,(p.x+side*p.w/4-v.px)*UM,(p.y+p.h+fh/2-v.py)*UM),out=4;
       flyers.push({body:v.body,x:wx,y:wy,vx:v.vx+side*out*c,vy:v.vy-side*out*s,ang:v.phi,om:side*0.9,w:p.w/2*UM,h:fh*UM,side,t:0,wh:1});}}
-  if(any){derive(v,true);if(v===AV){callout("FAIRING SEP","the shell splits open");if(JX)JX.snd.clunk&&JX.snd.clunk();}}}}
+  derive(v,true);if(v===AV){callout("FAIRING SEP","the shell splits open");if(JX)JX.snd.clunk&&JX.snd.clunk();}}
 function jettisonLes(v,why){const li=v.ps.findIndex(p=>p.t==="les");if(li<0||v.ps.every(p=>p.t==="les"))return;splitOff(v,new Set([li]),"Escape tower",25);if(v===AV)callout("TOWER JETTISON",why||"");}
 function chutes(){const v=AV;if(!v||v.crashed)return;if(!v.hasChute){msg="No parachute on this craft (a crew capsule or a Parachute part has one).";msgT=2.5;return;}
   if(v.chute){msg="Parachutes are already out.";msgT=1.5;return;}if(v.body!==0){msg="No air here: parachutes won't work.";msgT=2.5;return;}
@@ -777,7 +784,7 @@ function hudFlight(dt){
     set("vSrb",bl>0?tfm(bl):"–");rv("vDvT",anAV.total,ms);
     const hs=anAV.stages.map((q,k)=>`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b>${fmt(q.dv)}</b></span><span>${Math.round(q.burn)} s</span><i>TWR ${q.twr.toFixed(2)} · ${q.eng} engine${q.eng===1?"":"s"}</i></div>`).join("");
     if(hs!==stgSig){stgSig=hs;$("fStg").innerHTML=hs;}}
-  $("fStage").disabled=CD.s==="go"&&!st.dropKind;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fAbort").style.display=r.hasLes&&!r.crashed?"":"none";$("fChute").style.display=r.hasChute&&!r.chute&&!r.crashed&&r.body===0?"":"none";$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
+  $("fStage").disabled=CD.s==="go"&&!st.dropKind&&!(r.stg&&nextStgNo(r.ps,r.stg)!=null);$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fAbort").style.display=r.hasLes&&!r.crashed?"":"none";$("fChute").style.display=r.hasChute&&!r.chute&&!r.crashed&&r.body===0?"":"none";$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
   msgT-=dt;const mb=$("fMsg");mb.style.display=msgT>0?"":"none";if(msgT>0)set("fMsg",msg);
   if(JX)apHud();
   $("fRetry").style.display=r.crashed?"":"none";$("fMapBar").style.display=mapView?"":"none";}

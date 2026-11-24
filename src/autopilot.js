@@ -25,7 +25,7 @@ const angOf=(x,y)=>Math.atan2(x,y);
 // staging: when the stage that's burning runs dry (or its solid boosters burn out), drop it. A short pause between, like a real one.
 function apStage(v,dt){AP.stT-=dt;if(AP.stT>0||!(v.thr>0))return;const T=apThrust(v),srbs=v.eng.filter(i=>v.ps[i].t==="srb");
   const srbOut=srbs.length&&srbs.every(i=>v.ps[i].ign&&!(v.ps[i].fuel>1e-6));
-  if((T.all<=0||srbOut)&&nextDecs(v.ps,new Set(v.ps.keys())).length){doStage();AP.stT=0.8;}}
+  if((T.all<=0||srbOut)&&(v.stg?nextStgNo(v.ps,v.stg)!=null:nextDecs(v.ps,new Set(v.ps.keys())).length)){doStage();AP.stT=0.8;}}
 // ---------------- ASCENT ----------------
 function apAscent(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),h=rr-B.R,o=orbitOf(v),up=angOf(v.x,v.y),sp=Math.hypot(v.vx,v.vy),O=AP.o,tt=orbTimes(v,o,B);
   apStage(v,dt);

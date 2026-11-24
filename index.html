@@ -166,6 +166,24 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .vpart.vkit{border-color:rgba(255,255,255,.28);background:linear-gradient(180deg,rgba(255,255,255,.06),transparent)}
 .vpart.vlib{border-color:rgba(255,59,47,.3);background:linear-gradient(180deg,rgba(255,59,47,.08),transparent)}
 .vstat{right:10px;top:10px;width:296px;max-height:calc(100% - 250px);overflow:auto}
+.vstg{right:316px;top:10px;width:132px;max-height:calc(100% - 90px);overflow:auto;padding:8px}
+.vstg h3{margin-bottom:2px}
+#vStg{display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+#vStg .sgbox{border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.03);padding:4px 5px 5px}
+#vStg .sgbox.auto{border-style:dashed;margin-top:8px;opacity:.9}
+#vStg .sgh{display:flex;align-items:center;gap:5px;font-size:10px;letter-spacing:.08em;color:var(--dim);margin-bottom:3px}
+#vStg .sgh b{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:#ffcf7a;color:#1a1206;font-size:11px;letter-spacing:0}
+#vStg .sgic{display:flex;flex-wrap:wrap;gap:4px;min-height:30px}
+#vStg .sgic i{font-size:10px;color:var(--dim);font-style:normal;align-self:center;line-height:1.25}
+.sgi{position:relative;width:54px;display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:6px;background:rgba(0,0,0,.25);cursor:grab;padding:2px 1px 2px;touch-action:none}
+.sgi:hover{border-color:#ffcf7a}.sgi canvas{width:40px;height:40px;pointer-events:none}
+.sgi span{font-size:9px;line-height:1.1;text-align:center;color:var(--dim);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+.sgi b{position:absolute;top:1px;right:2px;font-size:9px;color:#ffcf7a;pointer-events:none}
+.sgi.k-dec{box-shadow:inset 3px 0 0 #e8b04a}.sgi.k-eng{box-shadow:inset 3px 0 0 #ff7a4a}.sgi.k-fair{box-shadow:inset 3px 0 0 #7ab8ff}
+#vStg .sgins{height:6px;margin:1px 0;border-radius:3px}
+#vStg.dragging .sgins{height:14px;border:1px dashed rgba(255,207,122,.45)}
+#vStg .hot{border-color:#ffcf7a!important;background:rgba(255,207,122,.14)!important}
+.sgghost{position:fixed;z-index:99;pointer-events:none;opacity:.85;cursor:grabbing;background:#1b1f27}
 .vinsp{right:10px;bottom:66px;width:296px}.vinsp .ih{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid var(--line)}
 .vinsp .ih b{font:700 12px var(--sans);letter-spacing:.06em;color:var(--acc2)}
 .vinsp button.b{height:28px;padding:0 9px;font-size:11.5px}
@@ -195,7 +213,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .vhint{position:absolute;left:50%;top:10px;transform:translateX(-50%);color:var(--dim);font-size:11.5px;background:rgba(8,11,17,.8);border:1px solid var(--line);padding:5px 12px;border-radius:var(--r);pointer-events:none;text-align:center;max-width:46vw}
 #vMsg{top:70px}
 @media (max-width:760px){.vpal{top:6px;left:6px;right:6px;bottom:auto;width:auto;height:106px;overflow-x:auto;overflow-y:hidden;padding:4px}#vParts{display:flex;gap:4px}#vFind{display:none}#vCats{flex-wrap:nowrap;margin-bottom:4px;position:sticky;left:0}#vCats button{flex:none}.vpart{min-width:62px;padding:2px 2px 4px}.vpart canvas{width:34px;height:34px}.vpart span{font-size:9.5px}.vpal h3,.vhint{display:none}
-  .vstat{top:118px;right:6px;width:182px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}
+  .vstat{top:118px;right:6px;width:182px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}.vstg{top:118px;right:194px;width:108px;max-height:36%;padding:6px}.sgi{width:44px}.sgi canvas{width:32px;height:32px}
   .vbar{bottom:6px;gap:4px;padding:5px 6px}.vbar button.b{padding:0 8px;height:32px;font-size:11.5px}.vbar select{max-width:96px}#vMsg{top:45%}}
 .fmapbar{left:50%;top:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:6px 8px}.fmapbar button.b{height:28px;padding:0 11px}
 .fmapbar .tip{font:650 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:0 4px}
@@ -315,7 +333,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .etab.on{color:#fff;border-color:var(--line2)}.etabs.l .etab.on{box-shadow:inset -2px 0 0 var(--red)}.etabs.r .etab.on{box-shadow:inset -2px 0 0 var(--red)}
 .etabs.l .etab:active{transform:rotate(180deg) scale(.94)}
 .fold.folded{display:none!important}
-.stage .probe{left:30px}.stage .ctx{right:30px}.vpal{left:32px}.vstat{right:32px}
+.stage .probe{left:30px}.stage .ctx{right:30px}.vpal{left:32px}.vstat{right:32px}.vstg{right:336px}
 @keyframes slideL{from{opacity:0;translate:-24px 0}}@keyframes slideR{from{opacity:0;translate:24px 0}}
 @keyframes outL{to{opacity:0;translate:-24px 0}}@keyframes outR{to{opacity:0;translate:24px 0}}
 .fold.fl.opening{animation:slideL .28s var(--ease)}.fold.fr.opening{animation:slideR .28s var(--ease)}
@@ -535,6 +553,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="vhint">The first part (◆ root) sits on the centre line; snap the rest onto it. Drag a part to move it and everything hanging off it (Alt: just that one); drop it in empty space to park it. Backspace (or X) removes the selected part, or the one under the mouse. M mirror.</div>
   <div class="vpanel vpal" id="vPal"><h3>Parts</h3><input id="vFind" type="search" placeholder="Search parts" autocomplete="off" spellcheck="false"><div id="vCats"></div><div id="vParts"></div></div>
   <div class="vpanel vstat"><h3>Rocket</h3><input id="vName" class="vname" maxlength="40" aria-label="Rocket name"><div id="vStats"></div></div>
+  <div class="vpanel vstg"><h3>Stages</h3><div id="vStg"></div></div>
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>
   <div class="vpanel vbar">
     <select id="vLoad" aria-label="Load a rocket"></select>
@@ -2954,6 +2973,12 @@ function feedOf(ps,adj,i,inSet){if(ps[i].t==="srb")return[i];   // a solid boost
 function nextDecs(ps,inSet){let sg=1e9;for(const i of inSet){const p=ps[i];if((p.t==="dec"||p.t==="sdec")&&p.sg!=null)sg=Math.min(sg,p.sg);}
   if(sg<1e8)return[...inSet].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===sg);
   return nextDecsH(ps,inSet);}
+// v1.47 KSP-style staging (the editor's STAGES panel): engines, decouplers and fairings carry p.sg, the stage that sets them off.
+// Stage 1 is the launch (its engines light at lift-off); every Space after that sets off the next stage: its decouplers fire,
+// its engines light, its fairings open. Rockets with no numbers (older saves, ready-made ones) stage by height as before.
+const isStg=p=>p.t==="dec"||p.t==="sdec"||p.t==="engine"||p.t==="srb"||p.t==="fair";
+const isStaged=ps=>ps.some(p=>p.sg!=null&&isStg(p));
+function nextStgNo(ps,cur,inSet){let n=null;(inSet?[...inSet]:ps.keys&&[...ps.keys()]).forEach(i=>{const p=ps[i];if(isStg(p)&&p.sg!=null&&p.sg>cur&&!(p.t==="fair"&&p.open)&&(n==null||p.sg<n))n=p.sg;});return n;}
 function nextDecsH(ps,inSet){let lo=1e9;for(const i of inSet){const p=ps[i];if(p.t==="dec"||p.t==="sdec")lo=Math.min(lo,p.y+p.h/2);}
   if(lo>1e8)return[];return[...inSet].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&Math.abs(ps[i].y+ps[i].h/2-lo)<3);}
 // fire decouplers: what stays joined to the probe without crossing them, and the pieces that fall away
@@ -2981,8 +3006,12 @@ function analyze(ps,_eng,fuel){
   let S=all,first=true,lo=1e9,hi=-1e9;for(const i of all){lo=Math.min(lo,ps[i].y);hi=Math.max(hi,ps[i].y+ps[i].h);}out.H=(hi-lo)*UM;
   const massOf=set=>{let m=0;for(const i of set)m+=partMass(ps[i])+F[i];return m;};
   out.mass=massOf(all);
+  const stg=isStaged(ps);let cur=1;
   for(let k=0;k<12;k++){
-    const act=[...S].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,S)),decs=nextDecs(ps,S);
+    // staged rockets: a Space that only lights engines (no decoupler) counts as pressed at once, so its engines join this burn
+    if(stg)for(;;){const n=nextStgNo(ps,cur,S);if(n==null||[...S].some(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===n))break;cur=n;}
+    const nx=stg?nextStgNo(ps,cur,S):null;
+    const act=[...S].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,S)&&(!stg||ps[i].sg==null||ps[i].sg<=cur)),decs=stg?(nx==null?[]:[...S].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===nx)):nextDecs(ps,S);
     const sp=decs.length?split(ps,adj,S,decs,out.root):null,drop=new Set(sp?[...S].filter(i=>!sp.keep.has(i)):[]);
     const must=decs.length?act.filter(i=>drop.has(i)):act;
     const feeds=act.map(i=>feedOf(ps,adj,i,S)),m0=massOf(S);let m=m0,dv=0,t=0;
@@ -2999,7 +3028,7 @@ function analyze(ps,_eng,fuel){
     out.stages.push({dv,twr:(first?Fsl:Fv)/(m0*G0),burn:t,eng:act.length,m0,decs,dropKind:decs.length?(decs.some(i=>ps[i].t==="sdec")?"boosters":"stage"):null});
     out.total+=dv;
     if(!decs.length)break;
-    S=sp.keep;first=false;}
+    S=sp.keep;first=false;if(stg)cur=nx;}
   out.m0=massOf(all);return out;}
 // ---------- drawing (in centimetres, y up) ----------
 function hazard(c,x0,y0,w,h,vert){c.save();c.beginPath();c.rect(x0,y0,w,h);c.clip();c.fillStyle="#1f232c";c.fillRect(x0,y0,w,h);c.fillStyle="#e8b923";
@@ -3862,17 +3891,63 @@ const vSnap=()=>JSON.stringify(vps);
 function vPush(){vU.push(vSnap());if(vU.length>80)vU.shift();vR=[];}
 function vUndo(){if(!vU.length)return;vR.push(vSnap());vps=JSON.parse(vU.pop());vsel=null;vChanged();}
 function vRedo(){if(!vR.length)return;vU.push(vSnap());vps=JSON.parse(vR.pop());vsel=null;vChanged();}
-function vChanged(){vRootFix();vStageFix();vSave();vAn=null;vInspUI();}
-// staging order (v1.47): decouplers level with each other, or mirror twins, fire together as one separation. Each group carries a
-// stage number p.sg (1 = first Space). New decouplers slot in by height; the ▲ ▼ buttons in the stage list swap two separations.
-function vStageFix(){const D=vps.map((p,i)=>i).filter(i=>vps[i].t==="dec"||vps[i].t==="sdec");if(!D.length)return;
-  const mid=i=>vps[i].y+vps[i].h/2;D.sort((a,b)=>mid(a)-mid(b));const G=[];
-  for(const i of D){const tw=vps[i].tw?vById(vps[i].tw):-1;const g=G.find(g=>g.m.includes(tw)||Math.abs(mid(g.m[0])-mid(i))<3);if(g)g.m.push(i);else G.push({m:[i],auto:G.length});}
-  for(const g of G){const n=g.m.map(i=>vps[i].sg).filter(v=>v!=null);g.sg=n.length?Math.min(...n):null;}
-  const out=G.filter(g=>g.sg!=null).sort((a,b)=>a.sg-b.sg||a.auto-b.auto);
-  for(const g of G.filter(g=>g.sg==null)){const k=out.findIndex(h=>h.auto>g.auto);if(k<0)out.push(g);else out.splice(k,0,g);}
-  out.forEach((g,k)=>{for(const i of g.m)vps[i].sg=k+1;});}
-function vStageSwap(a,b){if(!(a>=1&&b>=1))return;vPush();for(const p of vps)if(p.sg===a)p.sg=b;else if(p.sg===b)p.sg=a;vChanged();vMsg(`Separation ${Math.min(a,b)} and ${Math.max(a,b)} swapped.`);}
+function vChanged(){vRootFix();vStageFix();vSave();vAn=null;vInspUI();vStgUI();}
+// ---------- staging (v1.47, KSP-style; Wyatt: "drag the icons into each stage") ----------
+// Engines, decouplers and fairings each carry p.sg, the stage that sets them off. Stage 1 is the launch: its engines light at
+// lift-off. Each Space after that sets off the next stage. The STAGES panel shows one box per stage (launch at the bottom, as in
+// KSP) with an icon per part (mirror twins share one icon); drag an icon to another box, or into the gap between two boxes to
+// make a new stage there. Fairings may also sit in AUTOMATIC: they open by themselves above the air.
+function vStgGroups(){const mid=i=>vps[i].y+vps[i].h/2,G=[];
+  for(let i=0;i<vps.length;i++){const p=vps[i];if(!isStg(p))continue;const tw=p.tw?vById(p.tw):-1,D=p.t==="dec"||p.t==="sdec";
+    const g=G.find(g=>g.m.includes(tw)||D&&g.dec&&p.sg==null&&g.m.every(j=>vps[j].sg==null)&&Math.abs(mid(g.m[0])-mid(i))<3);
+    if(g)g.m.push(i);else G.push({m:[i],dec:D,kind:D?"dec":p.t==="fair"?"fair":"eng"});}
+  for(const g of G){const n=g.m.map(i=>vps[i].sg).filter(v=>v!=null);g.sg=n.length?Math.min(...n):null;g.key=g.m.map(i=>vps[i].id).sort((a,b)=>a-b).join("-");}
+  return G;}
+function vEngDec(G,i){const e=vps[i];let best=null,by=-1e9;   // the closest stack decoupler under it: once that fires, this engine is the bottom
+  for(const g of G)if(g.dec)for(const j of g.m){const d=vps[j];if(d.t==="dec"&&d.y+d.h<=e.y+e.h/2&&Math.abs(d.x-e.x)<d.w/2&&d.y>by){by=d.y;best=g;}}return best;}
+function vStageFix(){const G=vStgGroups();if(!G.length)return;const mid=g=>vps[g.m[0]].y+vps[g.m[0]].h/2,set=(g,v)=>{g.sg=v;for(const i of g.m)if(v==null)delete vps[i].sg;else vps[i].sg=v;};
+  const D=G.filter(g=>g.dec).sort((a,b)=>mid(a)-mid(b));
+  if(!G.some(g=>g.sg!=null)){D.forEach((g,k)=>set(g,k+2));}   // a fresh rocket: lowest decouplers first, as before
+  else for(const g of D)if(g.sg==null){let s=2;for(const o of D)if(o!==g&&o.sg!=null&&mid(o)<mid(g))s=Math.max(s,o.sg+1);   // a new decoupler: its own stage, by height
+    for(const p of vps)if(p.sg!=null&&p.sg>=s)p.sg++;for(const o of G)if(o.sg!=null&&o.sg>=s)o.sg++;set(g,s);}
+  for(const g of D)if(g.sg<=1){for(const p of vps)if(p.sg!=null&&p.sg>=2)p.sg++;for(const o of G)if(o.sg!=null&&o.sg>=2)o.sg++;set(g,2);}   // nothing fires at launch (v1.47 ▲▼ saves numbered decouplers from 1)
+  for(const g of G)if(!g.dec&&g.sg==null&&g.kind==="eng"){const d=g.m.map(i=>vEngDec(G,i)).find(x=>x);set(g,d?d.sg:1);}   // engines: with the decoupler they sit on, else at launch
+  const vals=[...new Set([1,...G.filter(g=>g.sg!=null).map(g=>g.sg)])].sort((a,b)=>a-b),to=new Map(vals.map((v,k)=>[v,k+1]));   // no empty stages
+  for(const g of G)if(g.sg!=null)set(g,to.get(g.sg));}
+let vStgHi=null,vStgD=null;
+function stgIcon(p){const c=document.createElement("canvas");c.width=c.height=48;const g=c.getContext("2d"),q=JSON.parse(JSON.stringify(p));
+  if(q.t==="fair")q.fh=Math.min(q.fh||120,q.w*1.4);const hh=q.h+(q.t==="fair"?q.fh:0),ww=q.t==="sdec"?Math.max(q.w,q.h*2):q.w*(q.k||1),sc=Math.min(42/ww,42/Math.max(hh,q.w*0.4));
+  g.setTransform(sc,0,0,-sc,24,24+sc*hh/2);q.x=0;q.y=0;q.f=1;drawPart(g,q,{legs:false,shell:true});return c;}
+function stgName(p){return p.t==="dec"?"Decoupler":p.t==="sdec"?"Side dec.":p.t==="fair"?"Fairing":partName(p);}
+function vStgUI(){const box=$("vStg");if(!box)return;const G=vStgGroups(),mx=Math.max(1,...G.map(g=>g.sg||0));box.innerHTML="";
+  const slot=k=>{const d=document.createElement("div");d.className="sgins";d.dataset.ins=k;box.appendChild(d);};
+  const icon=(g,host)=>{const p=vps[g.m[0]],d=document.createElement("div");d.className="sgi k-"+g.kind;d.dataset.g=g.key;d.title=stgName(p)+(g.m.length>1?` (${g.m.length}, mirrored)`:"")+": drag it to another stage";
+    d.appendChild(stgIcon(p));const n=document.createElement("span");n.textContent=stgName(p).replace("Side decoupler","Side dec.");d.appendChild(n);
+    if(g.m.length>1){const b=document.createElement("b");b.textContent="×"+g.m.length;d.appendChild(b);}
+    d.addEventListener("pointerenter",()=>{vStgHi=new Set(g.m.map(i=>vps[i].id));});d.addEventListener("pointerleave",()=>{vStgHi=null;});
+    d.addEventListener("pointerdown",e=>{e.preventDefault();vStgD={key:g.key,kind:g.kind,ghost:null,x0:e.clientX,y0:e.clientY};});host.appendChild(d);};
+  slot(mx+1);
+  for(let s=mx;s>=1;s--){const b=document.createElement("div");b.className="sgbox";b.dataset.st=s;
+    b.innerHTML=`<div class="sgh"><b>${s}</b>${s===1?"LAUNCH":"SPACE"+(s>2?" ×"+(s-1):"")}</div>`;const ic=document.createElement("div");ic.className="sgic";b.appendChild(ic);
+    const L=G.filter(g=>g.sg===s).sort((a,c)=>({dec:0,fair:1,eng:2}[a.kind]-{dec:0,fair:1,eng:2}[c.kind]));L.forEach(g=>icon(g,ic));if(!L.length)ic.innerHTML=`<i>empty</i>`;
+    box.appendChild(b);if(s>1)slot(s);}
+  const A=G.filter(g=>g.sg==null);if(A.length||G.some(g=>g.kind==="fair")){const b=document.createElement("div");b.className="sgbox auto";b.dataset.st="0";
+    b.innerHTML=`<div class="sgh">AUTOMATIC</div>`;const ic=document.createElement("div");ic.className="sgic";b.appendChild(ic);A.forEach(g=>icon(g,ic));if(!A.length)ic.innerHTML=`<i>fairings here open by themselves in space</i>`;box.appendChild(b);}
+  if(!G.length)box.innerHTML=`<div class="tip">Engines, decouplers and fairings show up here. Drag them between stages to choose what each Space does.</div>`;}
+function vStgTarget(e){const el=document.elementFromPoint(e.clientX,e.clientY);return el&&el.closest?el.closest("#vStg [data-st],#vStg [data-ins]"):null;}
+window.addEventListener("pointermove",e=>{if(!vStgD)return;const D=vStgD;
+  if(!D.ghost){if(Math.hypot(e.clientX-D.x0,e.clientY-D.y0)<4)return;const src=document.querySelector(`#vStg [data-g="${D.key}"]`);D.ghost=src?src.cloneNode(true):document.createElement("div");
+    const cv0=src&&src.querySelector("canvas"),cv1=D.ghost.querySelector("canvas");if(cv0&&cv1)cv1.getContext("2d").drawImage(cv0,0,0);D.ghost.classList.add("sgghost");document.body.appendChild(D.ghost);$("vStg").classList.add("dragging");}
+  D.ghost.style.left=e.clientX-26+"px";D.ghost.style.top=e.clientY-26+"px";
+  document.querySelectorAll("#vStg .hot").forEach(x=>x.classList.remove("hot"));const t=vStgTarget(e);if(t)t.classList.add("hot");});
+window.addEventListener("pointerup",e=>{if(!vStgD)return;const D=vStgD;vStgD=null;if(D.ghost)D.ghost.remove();$("vStg").classList.remove("dragging");
+  const t=D.ghost?vStgTarget(e):null;if(!t)return;const G=vStgGroups(),g=G.find(q=>q.key===D.key);if(!g)return;
+  if(t.dataset.st!=null){const s=+t.dataset.st;
+    if(s===0&&g.kind!=="fair"){vMsg("Only fairings can open by themselves. Engines and decouplers need a stage.");return;}
+    if(s===1&&g.kind==="dec"){vMsg("Nothing drops at launch: put decouplers in a later stage (or between two stages).");return;}
+    if(s===(g.sg||0))return;vPush();for(const i of g.m)if(s===0)delete vps[i].sg;else vps[i].sg=s;}
+  else{const k=+t.dataset.ins;vPush();for(const p of vps)if(p.sg!=null&&p.sg>=k&&!g.m.includes(vps.indexOf(p)))p.sg++;for(const i of g.m)vps[i].sg=k;}
+  vChanged();const s2=vps[g.m[0]].sg;vMsg(s2?`${stgName(vps[g.m[0]])} → stage ${s2}${s2===1?" (launch)":""}.`:"It opens by itself in space.");});
 function vMsg(t){$("vMsg").textContent=t;$("vMsg").style.display="";vMsgT=performance.now()+3200;}
 // ---------- snapping ----------
 function alignX(px,pw,dw){const lim=(pw-dw)/2;if(lim<1)return[px];const out=[px,px-lim,px+lim];for(let k=-lim;k<=lim+0.01;k+=15)out.push(px+k);return out;}
@@ -4135,8 +4210,7 @@ function vInspUI(){if(vSlide)return;const el=$("vInsp"),i=vsel?vById(vsel):-1;if
 function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stages;
   let h=`<div class="read" style="grid-template-columns:auto 1fr auto 1fr"><span>Mass</span><b data-r="m" data-v="${a.mass}" data-u="mass"></b><span>Height</span><b>${a.H.toFixed(1)} m</b></div>`;
   if(st.length){h+=`<div class="vst">`;st.forEach((s,k)=>{h+=`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b data-r="s${k}" data-v="${s.dv}"></b> m/s</span><span>TWR <b class="${s.twr>(k?0.5:1.1)?"ok":"bad"}">${s.twr.toFixed(2)}</b></span><i>${s.eng} engine${s.eng===1?"":"s"} · burns ${Math.round(s.burn)} s</i></div>`;
-    if(s.dropKind){const g=vps[s.decs[0]]&&vps[s.decs[0]].sg,last=k===st.length-2;
-      h+=`<div class="vsep"><span>Space → drop ${s.dropKind==="boosters"?"the side boosters":"stage "+(k+1)}</span>${g?`<span class="vsgb"><button class="b" data-sgm="${g}" data-d="-1" title="Fire this separation earlier"${k===0?" disabled":""}>▲</button><button class="b" data-sgm="${g}" data-d="1" title="Fire this separation later"${last?" disabled":""}>▼</button></span>`:""}</div>`;}});
+    if(s.dropKind)h+=`<div class="vsep">Space → drop ${s.dropKind==="boosters"?"the side boosters":"stage "+(k+1)}</div>`;});
     h+=`</div><div class="read" style="grid-template-columns:auto 1fr"><span>Total Δv</span><b data-r="t" data-v="${a.total}" data-u=" m/s"></b></div><div class="tip">Orbit takes about 4,500 m/s (the autopilot uses ~4,900). TWR above 1 to lift off.</div>`;}
   for(const w of a.warn)h+=`<div class="warn">⚠ ${w}</div>`;
   if(st.length&&st[0].twr<=1)h+=`<div class="warn">⚠ Too heavy to lift off: add engines or use less fuel.</div>`;
@@ -4144,7 +4218,6 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;
     for(const b of el.querySelectorAll("[data-r]")){const u=b.dataset.u||"";roll("vs"+b.dataset.r,b,+b.dataset.v,u==="mass"?fM:x=>fmt(x)+u);}}   // numbers roll to their new values
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
-$("vStats").addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-sgm]");if(!b||b.disabled)return;const a=+b.dataset.sgm;vStageSwap(a,a+ +b.dataset.d);});
 function vBarUI(){techBtn();$("vCen").classList.toggle("on",vCentres);icoBtn($("vCen"),"centre","Centres");$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
   const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:sls">Super Heavy (SLS-shaped, 91 m)</option><option value="t:comsat">Comsat (a satellite in a payload fairing)</option><option value="t:pathfinder">Pathfinder (new parts: methane booster, nuclear upper stage)</option><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
@@ -4164,7 +4237,7 @@ $("vClear").onclick=()=>{if(!vps.length)return;vPush();vps=[];vsel=null;vChanged
 $("vBack").onclick=()=>closeVab();
 $("vGo").onclick=()=>{const miss=techMissing(vps);if(miss.length){techOpen(`This rocket uses parts you haven't unlocked yet: ${miss.join(", ")}. Unlock them below, or tick “Unlock everything”.`);return;}   // tech tree (v1.38)
   const a=analyze(vps,engineNums());if(a.root<0||!a.stages.length||a.stages[0].twr<=1)return;closeVab(true);startFlight(vps,vName);};
-function openVab(){vStageFix();FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();vOldMsg();requestAnimationFrame(vFrame);}
+function openVab(){vStageFix();vStgUI();FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();vOldMsg();requestAnimationFrame(vFrame);}
 function closeVab(toFlight){FLT.vab=false;vab.classList.remove("show");vcarry=null;if(!toFlight)enter($("stage"));if(!toFlight){S.paused=$("bPause").classList.contains("on");cfg();}}
 $("bLaunch").onclick=openVab;$("vCen").onclick=()=>{vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();};
 // ---------- drawing ----------
@@ -4194,16 +4267,17 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   else if(vcarry&&vcarry.inside!==false){const p={...vcarry.p},sn=vcarry.snap;if(sn){if(sn.m)Object.assign(p,sn.m);p.x=sn.x;p.y=sn.y;p.f=sn.f;}c.globalAlpha=sn?0.75:0.45;
     const bad=!sn&&vps.some(o=>collide(p,o));drawPart(c,p,{ghost:!bad,bad,legs:vLegsOut,lw:2/s*VDS});
     if(vMirror&&sn&&Math.abs(p.x-ax)>0.5){const t={...p,x:2*ax-p.x,f:-p.f};c.globalAlpha=0.4;drawPart(c,t,{ghost:true,lw:2/s*VDS});}c.globalAlpha=1;}
+  if(vStgHi){c.strokeStyle="#ffcf7a";c.lineWidth=3/s*VDS;for(const p of vps)if(vStgHi.has(p.id))c.strokeRect(p.x-p.w/2-4,p.y-4,p.w+8,p.h+8+(p.t==="fair"?p.fh||120:0));}   // the parts of the stage icon under the mouse
   if(vCentres&&vps.length)drawCentres(c,centres(vps),1/s,true);   // centre of mass, lift, thrust
   c.setTransform(1,0,0,1,0,0);
   {c.font=`600 ${11*VDS}px Rajdhani, sans-serif`;c.textBaseline="middle";   // which Space fires each decoupler (S1 = the first)
-    for(const p of vps)if(p.sg&&(p.t==="dec"||p.t==="sdec")){const side=p.t==="sdec"?p.f:1,X=vv.ox+(p.x+side*(p.w/2+6/s*VDS))*s,Y=vv.oy-(p.y+p.h/2)*s,t="S"+p.sg,tw=c.measureText(t).width;
+    for(const p of vps)if(p.sg&&(p.t==="dec"||p.t==="sdec"||p.t==="fair")){const side=p.t==="sdec"?p.f:1,X=vv.ox+(p.x+side*(p.w/2+6/s*VDS))*s,Y=vv.oy-(p.y+p.h/2)*s,t="S"+p.sg,tw=c.measureText(t).width;
       c.fillStyle="rgba(194,59,46,.92)";c.fillRect(side>0?X:X-tw-8*VDS,Y-7*VDS,tw+8*VDS,14*VDS);c.fillStyle="#fff";c.textAlign="left";c.fillText(t,(side>0?X:X-tw-8*VDS)+4*VDS,Y+0.5);}}
   if(vMsgT&&performance.now()>vMsgT){$("vMsg").style.display="none";vMsgT=0;}
   vStatsUI();requestAnimationFrame(vFrame);}
 window.__vab={drawPart,mkPart,get vps(){return vps;},get sel(){return vsel;},w2c:(x,y)=>{const r=vcv.getBoundingClientRect();return{x:r.left+(vv.ox+x*vv.s)*r.width/VW,y:r.top+(vv.oy-y*vv.s)*r.height/VH};}};
 // fold-away panels in the editor too (phones keep their own strip layout)
-if(!SMALL)foldUI(vab,"vab",[{el:$("vPal"),label:"PARTS",side:"l",open:true,title:"Parts to drag onto the rocket"},{el:document.querySelector(".vstat"),label:"ROCKET",side:"r",open:true,title:"Rocket stats: mass, Δv and thrust per stage"}]);
+if(!SMALL)foldUI(vab,"vab",[{el:$("vPal"),label:"PARTS",side:"l",open:true,title:"Parts to drag onto the rocket"},{el:document.querySelector(".vstat"),label:"ROCKET",side:"r",open:true,title:"Rocket stats: mass, Δv and thrust per stage"},{el:document.querySelector(".vstg"),label:"STAGES",side:"r",open:true,title:"Stages: drag engines, decouplers and fairings between stages"}]);
 // ---------- sharing rockets as a code ----------
 // "Share" turns the rocket into a short line of text (THROAT-R1:...) you can paste into an email or a chat; pasting one in
 // loads that rocket. Only the shape travels (each part's type, size, place and settings), so a code made today still loads
@@ -4306,7 +4380,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   const npx=mx/m,npy=my/m;
   if(keepWorld&&v.px!=null){const dx=(npx-v.px)*UM,dy=(npy-v.py)*UM,c=Math.cos(v.phi),s=Math.sin(v.phi);v.x+=dx*c+dy*s;v.y+=-dx*s+dy*c;}
   v.px=npx;v.py=npy;
-  const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
+  const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all)&&(!v.stg||ps[i].sg==null||ps[i].sg<=v.stg));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
   v.dry=ps.reduce((s,p)=>s+partMass(p),0);
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,W=0,top=null,I=0;
   for(const p of ps){x0=Math.min(x0,p.x-p.w/2);x1=Math.max(x1,p.x+p.w/2);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y+p.h,p.t==="fair"&&!p.open?p.y+p.h+(p.fh||120):0);if(!isRad(p))W=Math.max(W,p.w);
@@ -4325,7 +4399,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   v.cpts=contactPts(ps,false);v.cptsL=contactPts(ps,true);
   v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)*UM,(q[1]-npy)*UM)),v.H);
   v.boomS=Math.max(1.5,v.H*0.6);}
-function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
+function mkVessel(ps,name,body){const v={stg:isStaged(ps)?1:0,rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
   if(ps.some(p=>p.t==="tank"&&p.fuel==null))tagTanks(ps,adjOf(ps),false);   // fresh tanks: fill them with what their engines burn
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
@@ -4381,7 +4455,13 @@ function callout(t,sub){if(!JX||typeof titleUp!=="undefined"&&titleUp)return;con
 // ---------- staging ----------
 // separation motors on dropped side boosters: how long they burn, how hard they push sideways, and how fast they tip the nose out
 const SEP_T=1.2,SEP_A=25,SEP_OM=0.3;
-function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.keys()),decs=nextDecs(v.ps,all);
+function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.keys());let decs;
+  if(v.stg){   // v1.47: staged in the editor's STAGES panel: set off the next stage (decouplers fire, engines light, fairings open)
+    const n=nextStgNo(v.ps,v.stg);if(n==null){msg="Nothing left to stage.";msgT=2.5;return;}
+    v.stg=n;decs=[...all].filter(i=>(v.ps[i].t==="dec"||v.ps[i].t==="sdec")&&v.ps[i].sg===n);
+    const fo=v.ps.filter(p=>p.t==="fair"&&p.sg===n&&!p.open);if(fo.length)fairOpen(v,fo);
+    if(!decs.length){derive(v,true);anAV=null;callout("STAGE "+n,fo.length&&!v.ps.some(p=>isEng(p)&&p.sg===n)?"fairing open":"ignition");kickF=Math.max(kickF,0.2);if(JX)JX.snd.clunk();return;}}
+  else decs=nextDecs(v.ps,all);
   if(!decs.length){msg="Nothing left to stage.";msgT=2.5;return;}
   const sp=split(v.ps,v.adj,all,decs,v.root),om=v.om,c=Math.cos(v.phi),s=Math.sin(v.phi);
   for(const sh of v.shr)if(decs.includes(sh.i)&&!v.ps[sh.i].shed){v.ps[sh.i].shed=true;const hw=sh.w/2;
@@ -4390,7 +4470,7 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
   const keepPs=[...sp.keep].map(i=>v.ps[i]),pieces=sp.pieces.map(set=>[...set].map(i=>v.ps[i]));
   const oldPx=v.px,oldPy=v.py,X0=v.x,Y0=v.y,V0x=v.vx,V0y=v.vy;
   v.ps=keepPs;derive(v,true);{const rx=v.x-X0,ry=v.y-Y0;v.vx=V0x+om*ry;v.vy=V0y-om*rx;}
-  for(const P of pieces){const n=mkVessel(P,P.some(p=>p.t==="probe")?v.name+" booster":"Debris",v.body);
+  for(const P of pieces){const n=mkVessel(P,P.some(p=>p.t==="probe")?v.name+" booster":"Debris",v.body);if(v.stg){n.stg=v.stg;derive(n,false);}
     const dx=(n.px-oldPx)*UM,dy=(n.py-oldPy)*UM,rx=dx*c+dy*s,ry=-dx*s+dy*c;
     n.phi=v.phi;n.om=om;n.x=X0+rx;n.y=Y0+ry;
     let ux=n.x-v.x,uy=n.y-v.y;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
@@ -4416,11 +4496,12 @@ function abort(){const v=AV;if(!v||v.crashed)return;const ci=v.ps.findIndex(p=>p
 // at 34 km on every Super Heavy flight. So: only craft with something besides the tower, and loop over a copy of the list.
 function lesCheck(){for(const v of VS.slice())if(v.hasLes&&!v.crashed&&!(v.lesT>0)&&v.ps.some(p=>p.t!=="les")&&((v.lesDone!=null&&v.t-v.lesDone>1.2)||(v.body===0&&Math.hypot(v.x,v.y)-PR>ATM_TOP*0.85)))jettisonLes(v,v.lesDone!=null?"":"not needed above the air");}
 // payload fairings split open by themselves once the craft is nearly out of the air: two halves tumble away, the craft gets lighter
-function fairCheck(){for(const v of VS){if(v.crashed||!(v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP*0.9))continue;let any=false;
-  for(const p of v.ps){if(p.t!=="fair"||p.open)continue;p.open=true;any=true;const fh=p.fh||120,c=Math.cos(v.phi),s=Math.sin(v.phi);
+function fairCheck(){for(const v of VS){if(v.crashed||!(v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP*0.9))continue;
+  const L=v.ps.filter(p=>p.t==="fair"&&!p.open&&p.sg==null);if(L.length)fairOpen(v,L);}}   // a fairing put in a stage waits for its Space
+function fairOpen(v,L){for(const p of L){p.open=true;const fh=p.fh||120,c=Math.cos(v.phi),s=Math.sin(v.phi);
     for(const side of[-1,1]){const[wx,wy]=loc(v,(p.x+side*p.w/4-v.px)*UM,(p.y+p.h+fh/2-v.py)*UM),out=4;
       flyers.push({body:v.body,x:wx,y:wy,vx:v.vx+side*out*c,vy:v.vy-side*out*s,ang:v.phi,om:side*0.9,w:p.w/2*UM,h:fh*UM,side,t:0,wh:1});}}
-  if(any){derive(v,true);if(v===AV){callout("FAIRING SEP","the shell splits open");if(JX)JX.snd.clunk&&JX.snd.clunk();}}}}
+  derive(v,true);if(v===AV){callout("FAIRING SEP","the shell splits open");if(JX)JX.snd.clunk&&JX.snd.clunk();}}
 function jettisonLes(v,why){const li=v.ps.findIndex(p=>p.t==="les");if(li<0||v.ps.every(p=>p.t==="les"))return;splitOff(v,new Set([li]),"Escape tower",25);if(v===AV)callout("TOWER JETTISON",why||"");}
 function chutes(){const v=AV;if(!v||v.crashed)return;if(!v.hasChute){msg="No parachute on this craft (a crew capsule or a Parachute part has one).";msgT=2.5;return;}
   if(v.chute){msg="Parachutes are already out.";msgT=1.5;return;}if(v.body!==0){msg="No air here: parachutes won't work.";msgT=2.5;return;}
@@ -5027,7 +5108,7 @@ function hudFlight(dt){
     set("vSrb",bl>0?tfm(bl):"–");rv("vDvT",anAV.total,ms);
     const hs=anAV.stages.map((q,k)=>`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b>${fmt(q.dv)}</b></span><span>${Math.round(q.burn)} s</span><i>TWR ${q.twr.toFixed(2)} · ${q.eng} engine${q.eng===1?"":"s"}</i></div>`).join("");
     if(hs!==stgSig){stgSig=hs;$("fStg").innerHTML=hs;}}
-  $("fStage").disabled=CD.s==="go"&&!st.dropKind;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fAbort").style.display=r.hasLes&&!r.crashed?"":"none";$("fChute").style.display=r.hasChute&&!r.chute&&!r.crashed&&r.body===0?"":"none";$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
+  $("fStage").disabled=CD.s==="go"&&!st.dropKind&&!(r.stg&&nextStgNo(r.ps,r.stg)!=null);$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fAbort").style.display=r.hasLes&&!r.crashed?"":"none";$("fChute").style.display=r.hasChute&&!r.chute&&!r.crashed&&r.body===0?"":"none";$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
   msgT-=dt;const mb=$("fMsg");mb.style.display=msgT>0?"":"none";if(msgT>0)set("fMsg",msg);
   if(JX)apHud();
   $("fRetry").style.display=r.crashed?"":"none";$("fMapBar").style.display=mapView?"":"none";}
@@ -5089,7 +5170,7 @@ const angOf=(x,y)=>Math.atan2(x,y);
 // staging: when the stage that's burning runs dry (or its solid boosters burn out), drop it. A short pause between, like a real one.
 function apStage(v,dt){AP.stT-=dt;if(AP.stT>0||!(v.thr>0))return;const T=apThrust(v),srbs=v.eng.filter(i=>v.ps[i].t==="srb");
   const srbOut=srbs.length&&srbs.every(i=>v.ps[i].ign&&!(v.ps[i].fuel>1e-6));
-  if((T.all<=0||srbOut)&&nextDecs(v.ps,new Set(v.ps.keys())).length){doStage();AP.stT=0.8;}}
+  if((T.all<=0||srbOut)&&(v.stg?nextStgNo(v.ps,v.stg)!=null:nextDecs(v.ps,new Set(v.ps.keys())).length)){doStage();AP.stT=0.8;}}
 // ---------------- ASCENT ----------------
 function apAscent(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),h=rr-B.R,o=orbitOf(v),up=angOf(v.x,v.y),sp=Math.hypot(v.vx,v.vy),O=AP.o,tt=orbTimes(v,o,B);
   apStage(v,dt);

@@ -181,6 +181,12 @@ function feedOf(ps,adj,i,inSet){if(ps[i].t==="srb")return[i];   // a solid boost
 function nextDecs(ps,inSet){let sg=1e9;for(const i of inSet){const p=ps[i];if((p.t==="dec"||p.t==="sdec")&&p.sg!=null)sg=Math.min(sg,p.sg);}
   if(sg<1e8)return[...inSet].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===sg);
   return nextDecsH(ps,inSet);}
+// v1.47 KSP-style staging (the editor's STAGES panel): engines, decouplers and fairings carry p.sg, the stage that sets them off.
+// Stage 1 is the launch (its engines light at lift-off); every Space after that sets off the next stage: its decouplers fire,
+// its engines light, its fairings open. Rockets with no numbers (older saves, ready-made ones) stage by height as before.
+const isStg=p=>p.t==="dec"||p.t==="sdec"||p.t==="engine"||p.t==="srb"||p.t==="fair";
+const isStaged=ps=>ps.some(p=>p.sg!=null&&isStg(p));
+function nextStgNo(ps,cur,inSet){let n=null;(inSet?[...inSet]:ps.keys&&[...ps.keys()]).forEach(i=>{const p=ps[i];if(isStg(p)&&p.sg!=null&&p.sg>cur&&!(p.t==="fair"&&p.open)&&(n==null||p.sg<n))n=p.sg;});return n;}
 function nextDecsH(ps,inSet){let lo=1e9;for(const i of inSet){const p=ps[i];if(p.t==="dec"||p.t==="sdec")lo=Math.min(lo,p.y+p.h/2);}
   if(lo>1e8)return[];return[...inSet].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&Math.abs(ps[i].y+ps[i].h/2-lo)<3);}
 // fire decouplers: what stays joined to the probe without crossing them, and the pieces that fall away
@@ -208,8 +214,12 @@ function analyze(ps,_eng,fuel){
   let S=all,first=true,lo=1e9,hi=-1e9;for(const i of all){lo=Math.min(lo,ps[i].y);hi=Math.max(hi,ps[i].y+ps[i].h);}out.H=(hi-lo)*UM;
   const massOf=set=>{let m=0;for(const i of set)m+=partMass(ps[i])+F[i];return m;};
   out.mass=massOf(all);
+  const stg=isStaged(ps);let cur=1;
   for(let k=0;k<12;k++){
-    const act=[...S].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,S)),decs=nextDecs(ps,S);
+    // staged rockets: a Space that only lights engines (no decoupler) counts as pressed at once, so its engines join this burn
+    if(stg)for(;;){const n=nextStgNo(ps,cur,S);if(n==null||[...S].some(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===n))break;cur=n;}
+    const nx=stg?nextStgNo(ps,cur,S):null;
+    const act=[...S].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,S)&&(!stg||ps[i].sg==null||ps[i].sg<=cur)),decs=stg?(nx==null?[]:[...S].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===nx)):nextDecs(ps,S);
     const sp=decs.length?split(ps,adj,S,decs,out.root):null,drop=new Set(sp?[...S].filter(i=>!sp.keep.has(i)):[]);
     const must=decs.length?act.filter(i=>drop.has(i)):act;
     const feeds=act.map(i=>feedOf(ps,adj,i,S)),m0=massOf(S);let m=m0,dv=0,t=0;
@@ -226,7 +236,7 @@ function analyze(ps,_eng,fuel){
     out.stages.push({dv,twr:(first?Fsl:Fv)/(m0*G0),burn:t,eng:act.length,m0,decs,dropKind:decs.length?(decs.some(i=>ps[i].t==="sdec")?"boosters":"stage"):null});
     out.total+=dv;
     if(!decs.length)break;
-    S=sp.keep;first=false;}
+    S=sp.keep;first=false;if(stg)cur=nx;}
   out.m0=massOf(all);return out;}
 // ---------- drawing (in centimetres, y up) ----------
 function hazard(c,x0,y0,w,h,vert){c.save();c.beginPath();c.rect(x0,y0,w,h);c.clip();c.fillStyle="#1f232c";c.fillRect(x0,y0,w,h);c.fillStyle="#e8b923";

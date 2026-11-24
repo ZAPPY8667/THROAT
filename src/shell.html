@@ -164,6 +164,24 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .vpart.vkit{border-color:rgba(255,255,255,.28);background:linear-gradient(180deg,rgba(255,255,255,.06),transparent)}
 .vpart.vlib{border-color:rgba(255,59,47,.3);background:linear-gradient(180deg,rgba(255,59,47,.08),transparent)}
 .vstat{right:10px;top:10px;width:296px;max-height:calc(100% - 250px);overflow:auto}
+.vstg{right:316px;top:10px;width:132px;max-height:calc(100% - 90px);overflow:auto;padding:8px}
+.vstg h3{margin-bottom:2px}
+#vStg{display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+#vStg .sgbox{border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.03);padding:4px 5px 5px}
+#vStg .sgbox.auto{border-style:dashed;margin-top:8px;opacity:.9}
+#vStg .sgh{display:flex;align-items:center;gap:5px;font-size:10px;letter-spacing:.08em;color:var(--dim);margin-bottom:3px}
+#vStg .sgh b{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:#ffcf7a;color:#1a1206;font-size:11px;letter-spacing:0}
+#vStg .sgic{display:flex;flex-wrap:wrap;gap:4px;min-height:30px}
+#vStg .sgic i{font-size:10px;color:var(--dim);font-style:normal;align-self:center;line-height:1.25}
+.sgi{position:relative;width:54px;display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:6px;background:rgba(0,0,0,.25);cursor:grab;padding:2px 1px 2px;touch-action:none}
+.sgi:hover{border-color:#ffcf7a}.sgi canvas{width:40px;height:40px;pointer-events:none}
+.sgi span{font-size:9px;line-height:1.1;text-align:center;color:var(--dim);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+.sgi b{position:absolute;top:1px;right:2px;font-size:9px;color:#ffcf7a;pointer-events:none}
+.sgi.k-dec{box-shadow:inset 3px 0 0 #e8b04a}.sgi.k-eng{box-shadow:inset 3px 0 0 #ff7a4a}.sgi.k-fair{box-shadow:inset 3px 0 0 #7ab8ff}
+#vStg .sgins{height:6px;margin:1px 0;border-radius:3px}
+#vStg.dragging .sgins{height:14px;border:1px dashed rgba(255,207,122,.45)}
+#vStg .hot{border-color:#ffcf7a!important;background:rgba(255,207,122,.14)!important}
+.sgghost{position:fixed;z-index:99;pointer-events:none;opacity:.85;cursor:grabbing;background:#1b1f27}
 .vinsp{right:10px;bottom:66px;width:296px}.vinsp .ih{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid var(--line)}
 .vinsp .ih b{font:700 12px var(--sans);letter-spacing:.06em;color:var(--acc2)}
 .vinsp button.b{height:28px;padding:0 9px;font-size:11.5px}
@@ -193,7 +211,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .vhint{position:absolute;left:50%;top:10px;transform:translateX(-50%);color:var(--dim);font-size:11.5px;background:rgba(8,11,17,.8);border:1px solid var(--line);padding:5px 12px;border-radius:var(--r);pointer-events:none;text-align:center;max-width:46vw}
 #vMsg{top:70px}
 @media (max-width:760px){.vpal{top:6px;left:6px;right:6px;bottom:auto;width:auto;height:106px;overflow-x:auto;overflow-y:hidden;padding:4px}#vParts{display:flex;gap:4px}#vFind{display:none}#vCats{flex-wrap:nowrap;margin-bottom:4px;position:sticky;left:0}#vCats button{flex:none}.vpart{min-width:62px;padding:2px 2px 4px}.vpart canvas{width:34px;height:34px}.vpart span{font-size:9.5px}.vpal h3,.vhint{display:none}
-  .vstat{top:118px;right:6px;width:182px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}
+  .vstat{top:118px;right:6px;width:182px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}.vstg{top:118px;right:194px;width:108px;max-height:36%;padding:6px}.sgi{width:44px}.sgi canvas{width:32px;height:32px}
   .vbar{bottom:6px;gap:4px;padding:5px 6px}.vbar button.b{padding:0 8px;height:32px;font-size:11.5px}.vbar select{max-width:96px}#vMsg{top:45%}}
 .fmapbar{left:50%;top:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:6px 8px}.fmapbar button.b{height:28px;padding:0 11px}
 .fmapbar .tip{font:650 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:0 4px}
@@ -313,7 +331,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .etab.on{color:#fff;border-color:var(--line2)}.etabs.l .etab.on{box-shadow:inset -2px 0 0 var(--red)}.etabs.r .etab.on{box-shadow:inset -2px 0 0 var(--red)}
 .etabs.l .etab:active{transform:rotate(180deg) scale(.94)}
 .fold.folded{display:none!important}
-.stage .probe{left:30px}.stage .ctx{right:30px}.vpal{left:32px}.vstat{right:32px}
+.stage .probe{left:30px}.stage .ctx{right:30px}.vpal{left:32px}.vstat{right:32px}.vstg{right:336px}
 @keyframes slideL{from{opacity:0;translate:-24px 0}}@keyframes slideR{from{opacity:0;translate:24px 0}}
 @keyframes outL{to{opacity:0;translate:-24px 0}}@keyframes outR{to{opacity:0;translate:24px 0}}
 .fold.fl.opening{animation:slideL .28s var(--ease)}.fold.fr.opening{animation:slideR .28s var(--ease)}
@@ -533,6 +551,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="vhint">The first part (◆ root) sits on the centre line; snap the rest onto it. Drag a part to move it and everything hanging off it (Alt: just that one); drop it in empty space to park it. Backspace (or X) removes the selected part, or the one under the mouse. M mirror.</div>
   <div class="vpanel vpal" id="vPal"><h3>Parts</h3><input id="vFind" type="search" placeholder="Search parts" autocomplete="off" spellcheck="false"><div id="vCats"></div><div id="vParts"></div></div>
   <div class="vpanel vstat"><h3>Rocket</h3><input id="vName" class="vname" maxlength="40" aria-label="Rocket name"><div id="vStats"></div></div>
+  <div class="vpanel vstg"><h3>Stages</h3><div id="vStg"></div></div>
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>
   <div class="vpanel vbar">
     <select id="vLoad" aria-label="Load a rocket"></select>
