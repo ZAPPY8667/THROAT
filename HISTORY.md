@@ -437,6 +437,37 @@ made on the test stand.
   blue-black, Condor polished steel, Lumen Vac violet) and a coloured badge with its initial on the powerhead (`ENG_ID`;
   `drawEngine` wraps `drawEngine0`). Your engine stays black with red bands (Y).
 
+## v1.47: Wyatt's playtest list (13 items)
+- **Editor**: a drop in empty space parks the part to the side (faded, dashed amber outline, left behind at launch) instead
+  of being refused, and dragging a part off the rocket parks it there. New parts snapped above or below take the
+  neighbour's width (`vMatch`, `MATCH_T`; adapters fit their open end; nose/probe/capsule keep their shape). Stack parts can
+  snap beside other stack parts. Backspace (Wyatt has a 60% keyboard), Delete or X removes the selected part, or the one
+  under the mouse; never while typing in a box.
+- **Sliders**: every size in the inspector (width, each engine of a cluster, adapter top, length, fairing shell, fin span /
+  root / tip / sweep) is a range slider with a number box (`vSetSize`). One drag is one undo step (`vSlide`).
+- **Thrust**: liquid engines push 1.3× (`THR_K` in `engStat`; 1.45+ made the Sparrow burn up low at full throttle).
+  Boosters unchanged. Wyatt confirmed 1.3× is fine.
+- **Staging, KSP-style** (Wyatt: "drag the icons into each stage"): engines, boosters, decouplers and fairings carry `p.sg`.
+  STAGES panel (`vStgUI`, `#vStg`) beside the stats: one box per stage, launch (1) at the bottom, an icon per part (mirror
+  twins share one, ×2), drag an icon to a box or into the gap between two (a new stage), or a fairing into AUTOMATIC (opens by
+  itself above the air). `vStageFix` fills in defaults: stack decouplers by height from stage 2, an engine with the closest
+  stack decoupler under it (`vEngDec`), else 1; nothing drops at launch; stage numbers stay 1..n. Flight: `v.stg` is the
+  current stage; `derive` lights only engines with `sg <= v.stg`; Space (`doStage`) goes to `nextStgNo`, fires that stage's
+  decouplers, opens its fairings, and a stage with no decoupler just lights engines / opens fairings. `analyze` and the
+  autopilot (`apStage`) follow the same rule. Rockets with no `sg` keep the old height rule (`nextDecsH`). The ▲▼ order
+  buttons from early v1.47 are gone; their saves (decouplers numbered from 1) are renumbered. tests/flight/staging.js.
+- **Part menu**: the group tabs are a grid of buttons with part counts, "All" shows the parts under group headings, and a
+  hover card (`vTipShow`, `.ptip`) shows group, mass, size, thrust/Isp/burn time or capacity, width range and the
+  description instead of the browser's tooltip.
+- **Part art**: bells fade from the hot top to the skirt, cooling tubes follow the curve, a soft highlight and an exit lip;
+  the big coloured badge became a small dark name plate (`drawEngine(...,noPlate)`). Clusters: the back row is symmetric
+  (behind the gaps for odd counts, squeezed inward for even counts) and drawn in shadow (`ctx.filter`), not see-through; the
+  thrust plate has bolts. Airbrake: a perforated flap with its ram and a yellow edge; antenna: a furled dish that opens into a
+  ribbed dish with its feed on struts (the palette shows both open); probe core, RCS pods, floodlight and decoupler got more
+  detail. Landing legs swing out over 1.6 s (`v.legK`, and `vLegK` in the editor); `drawPart`'s `o.legs` takes 0..1.
+- Live: the editor, sliders, 1.3× thrust and Backspace went to main at d336151 on Wyatt's ask; the rest is on
+  `claude/playtest-fixes-v147`.
+
 ## Things that went wrong (don't repeat)
 - Pushing new craft onto `VS` while looping over it (tower jettison) froze and killed the tab: loop over `VS.slice()`.
 - Appending a `// comment` to a one-line edit commented out the next statement on the same line (`v.hasLegs`), so legs were

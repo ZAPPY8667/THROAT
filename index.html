@@ -3323,8 +3323,9 @@ function drawPart(c,p,o={}){
       c.fillStyle="rgba(240,200,60,.9)";for(const f of[0.12,0.5,0.88])c.fillRect(x+(f-0.5)*w-1,T-h*0.14,2,h*0.14);   // guide petals on top
       c.fillStyle="rgba(255,255,255,.85)";c.fillRect(x-0.6,y+h*0.1,1.2,h*0.45);c.fillRect(x-w*0.18,y+h*0.3,w*0.36,1);break;}
     case"dec":{   // separation ring: dark structure, a bright pyro line where it splits, and its bolts
-      c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.7,w,1.4);
-      c.fillStyle="rgba(0,0,0,.35)";for(let xx=L+5;xx<R-2;xx+=9)c.fillRect(xx,y+2,2,2);break;}
+      c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle=cyl(c,L,R,[140,144,152]);c.fillRect(L,y,w,0.9);c.fillRect(L,T-0.9,w,0.9);   // ring with bright rims
+      c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.6,w,1.2);c.fillStyle="#e8b23a";for(let xx=L+3;xx<R-2;xx+=6)c.fillRect(xx,y+h/2-0.6,2.6,1.2);   // the pyro line, marked yellow
+      c.fillStyle="rgba(15,16,20,.6)";for(let xx=L+5;xx<R-2;xx+=9){c.fillRect(xx,y+1.4,1.6,1.4);c.fillRect(xx,T-2.8,1.6,1.4);}break;}   // bolts each side of the split
     case"sdec":{   // side attach strut with its separation bolts
       c.fillStyle=cyl(c,L,R,[64,67,74]);c.fillRect(L+2,y+6,w-4,h-12);c.fillStyle=cyl(c,L,R,[150,154,162]);c.fillRect(L,y+4,w,5);c.fillRect(L,T-9,w,5);
       c.fillStyle="rgba(255,255,255,.75)";c.fillRect(L+2,y+h/2-0.6,w-4,1.2);break;}
