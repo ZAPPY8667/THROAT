@@ -18,6 +18,7 @@ echo "== flight: the world (terrain, sea, clock)"; node flight/world.js | tail -
 echo "== flight: hold-down clamps"; node flight/clamps.js | tail -1
 echo "== flight: capsule (abort, chutes, re-entry)"; node flight/capsule.js | tail -1
 echo "== flight: side boosters push off (separation motors)"; node flight/separation.js | tail -1
+echo "== flight: KSP-style staging (STAGES panel numbers)"; node flight/staging.js | tail -1
 echo "== flight: ASCENT autopilot, every ready-made rocket"; node flight/ap_ascent.js | tail -6
 echo "== flight: NODE (Moon transfer) + LAND (landing zone, Moon) autopilots"; node flight/ap_node_land.js | tail -5
 echo "== flight: the demo mission (Moon and back, Super Heavy)"; node flight/mission.js | tail -1
