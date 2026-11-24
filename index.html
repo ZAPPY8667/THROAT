@@ -157,15 +157,44 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 #vParts{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 #vFind{width:100%;box-sizing:border-box;height:28px;margin:0 0 6px;padding:0 8px;background:var(--well);border:1px solid var(--line);border-radius:4px;color:var(--txt);font:12px var(--sans)}
 #vFind:focus{outline:none;border-color:var(--acc)}
-#vCats{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}
-#vCats button{height:22px;padding:0 7px;border:1px solid var(--line);border-radius:11px;background:transparent;color:var(--dim);font:600 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
-#vCats button.on{border-color:var(--acc);color:#fff;background:rgba(255,59,48,.14)}
+#vCats{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:8px}
+#vCats button{display:flex;align-items:center;justify-content:space-between;gap:4px;height:26px;padding:0 8px;border:1px solid var(--line);border-radius:5px;background:var(--well);color:var(--txt);font:600 11px var(--sans);cursor:pointer;text-align:left}
+#vCats button i{font-style:normal;font-size:10px;color:var(--dim);font-weight:500}
+#vCats button:hover:not(:disabled){border-color:var(--accline)}#vCats button:disabled{opacity:.35;cursor:default}
+#vCats button.on{border-color:var(--acc);color:#fff;background:rgba(255,59,48,.22)}#vCats button.on i{color:#fff}
+#vCats button[data-cat="all"]{grid-column:1/-1}
+#vParts .vgh{grid-column:1/-1;font:600 9.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:6px 0 1px;padding-bottom:3px;border-bottom:1px solid var(--line)}
+#vParts .vgh:first-child{margin-top:0}
+.ptip{position:fixed;z-index:60;display:none;width:250px;padding:10px 12px;background:rgba(14,16,21,.97);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);color:var(--txt);font:12px/1.4 var(--sans);pointer-events:none}
+.ptip .pth{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}.ptip .pth b{font-size:13.5px}
+.ptip .pth span{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.ptip .ptf{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;padding:6px 0;margin-bottom:6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:11.5px}
+.ptip .ptf span{color:var(--dim)}.ptip .ptf b{font-weight:600}
+.ptip .ptd{color:var(--dim);font-size:11.5px}.ptip .ptl{color:#ffcf7a;font-size:11.5px;margin-bottom:6px}
 .vnone{grid-column:1/-1;color:var(--dim);font-size:11px;padding:6px 2px}
 .vpart{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--well);border:1px solid var(--line);border-radius:4px;color:var(--txt);font:600 10.5px var(--sans);padding:5px 2px 6px;cursor:grab;touch-action:none;user-select:none}
 .vpart:hover{border-color:var(--accline);background:var(--accbg)}.vpart.veng{background:rgba(255,255,255,.03)}.vpart canvas{width:44px;height:44px;pointer-events:none}.vpart span{pointer-events:none;text-align:center;line-height:1.15}
 .vpart.vkit{border-color:rgba(255,255,255,.28);background:linear-gradient(180deg,rgba(255,255,255,.06),transparent)}
 .vpart.vlib{border-color:rgba(255,59,47,.3);background:linear-gradient(180deg,rgba(255,59,47,.08),transparent)}
 .vstat{right:10px;top:10px;width:296px;max-height:calc(100% - 250px);overflow:auto}
+.vstg{right:316px;top:10px;width:132px;max-height:calc(100% - 90px);overflow:auto;padding:8px}
+.vstg h3{margin-bottom:2px}
+#vStg{display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+#vStg .sgbox{border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.03);padding:4px 5px 5px}
+#vStg .sgbox.auto{border-style:dashed;margin-top:8px;opacity:.9}
+#vStg .sgh{display:flex;align-items:center;gap:5px;font-size:10px;letter-spacing:.08em;color:var(--dim);margin-bottom:3px}
+#vStg .sgh b{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:#ffcf7a;color:#1a1206;font-size:11px;letter-spacing:0}
+#vStg .sgic{display:flex;flex-wrap:wrap;gap:4px;min-height:30px}
+#vStg .sgic i{font-size:10px;color:var(--dim);font-style:normal;align-self:center;line-height:1.25}
+.sgi{position:relative;width:54px;display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:6px;background:rgba(0,0,0,.25);cursor:grab;padding:2px 1px 2px;touch-action:none}
+.sgi:hover{border-color:#ffcf7a}.sgi canvas{width:40px;height:40px;pointer-events:none}
+.sgi span{font-size:9px;line-height:1.1;text-align:center;color:var(--dim);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+.sgi b{position:absolute;top:1px;right:2px;font-size:9px;color:#ffcf7a;pointer-events:none}
+.sgi.k-dec{box-shadow:inset 3px 0 0 #e8b04a}.sgi.k-eng{box-shadow:inset 3px 0 0 #ff7a4a}.sgi.k-fair{box-shadow:inset 3px 0 0 #7ab8ff}
+#vStg .sgins{height:6px;margin:1px 0;border-radius:3px}
+#vStg.dragging .sgins{height:14px;border:1px dashed rgba(255,207,122,.45)}
+#vStg .hot{border-color:#ffcf7a!important;background:rgba(255,207,122,.14)!important}
+.sgghost{position:fixed;z-index:99;pointer-events:none;opacity:.85;cursor:grabbing;background:#1b1f27}
 .vinsp{right:10px;bottom:66px;width:296px}.vinsp .ih{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid var(--line)}
 .vinsp .ih b{font:700 12px var(--sans);letter-spacing:.06em;color:var(--acc2)}
 .vinsp button.b{height:28px;padding:0 9px;font-size:11.5px}
@@ -194,8 +223,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .warn{color:#ffb4ab;font-size:12px;margin-top:6px;line-height:1.4;padding:5px 8px;background:var(--warnbg);border-left:2px solid var(--warn);border-radius:2px}
 .vhint{position:absolute;left:50%;top:10px;transform:translateX(-50%);color:var(--dim);font-size:11.5px;background:rgba(8,11,17,.8);border:1px solid var(--line);padding:5px 12px;border-radius:var(--r);pointer-events:none;text-align:center;max-width:46vw}
 #vMsg{top:70px}
-@media (max-width:760px){.vpal{top:6px;left:6px;right:6px;bottom:auto;width:auto;height:106px;overflow-x:auto;overflow-y:hidden;padding:4px}#vParts{display:flex;gap:4px}#vFind{display:none}#vCats{flex-wrap:nowrap;margin-bottom:4px;position:sticky;left:0}#vCats button{flex:none}.vpart{min-width:62px;padding:2px 2px 4px}.vpart canvas{width:34px;height:34px}.vpart span{font-size:9.5px}.vpal h3,.vhint{display:none}
-  .vstat{top:118px;right:6px;width:182px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}
+@media (max-width:760px){.vpal{top:6px;left:6px;right:6px;bottom:auto;width:auto;height:106px;overflow-x:auto;overflow-y:hidden;padding:4px}#vParts{display:flex;gap:4px}#vFind{display:none}#vCats{display:flex;flex-wrap:nowrap;margin-bottom:4px;position:sticky;left:0}#vCats button{flex:none;height:22px}#vParts .vgh{display:none}.vpart{min-width:62px;padding:2px 2px 4px}.vpart canvas{width:34px;height:34px}.vpart span{font-size:9.5px}.vpal h3,.vhint{display:none}
+  .vstat{top:118px;right:6px;width:182px;max-height:36%;font-size:11px;padding:6px 8px}.vst .sr{grid-template-columns:50px 1fr;font-size:11px}.vst .sr span:nth-child(3){grid-column:2}.vinsp{left:6px;right:6px;width:auto;bottom:96px}.vstg{top:118px;right:194px;width:108px;max-height:36%;padding:6px}.sgi{width:44px}.sgi canvas{width:32px;height:32px}
   .vbar{bottom:6px;gap:4px;padding:5px 6px}.vbar button.b{padding:0 8px;height:32px;font-size:11.5px}.vbar select{max-width:96px}#vMsg{top:45%}}
 .fmapbar{left:50%;top:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:6px 8px}.fmapbar button.b{height:28px;padding:0 11px}
 .fmapbar .tip{font:650 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:0 4px}
@@ -315,7 +344,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
 .etab.on{color:#fff;border-color:var(--line2)}.etabs.l .etab.on{box-shadow:inset -2px 0 0 var(--red)}.etabs.r .etab.on{box-shadow:inset -2px 0 0 var(--red)}
 .etabs.l .etab:active{transform:rotate(180deg) scale(.94)}
 .fold.folded{display:none!important}
-.stage .probe{left:30px}.stage .ctx{right:30px}.vpal{left:32px}.vstat{right:32px}
+.stage .probe{left:30px}.stage .ctx{right:30px}.vpal{left:32px}.vstat{right:32px}.vstg{right:336px}
 @keyframes slideL{from{opacity:0;translate:-24px 0}}@keyframes slideR{from{opacity:0;translate:24px 0}}
 @keyframes outL{to{opacity:0;translate:-24px 0}}@keyframes outR{to{opacity:0;translate:24px 0}}
 .fold.fl.opening{animation:slideL .28s var(--ease)}.fold.fr.opening{animation:slideR .28s var(--ease)}
@@ -535,6 +564,7 @@ button:active:not(:disabled),.chip:active,.keyb:active,.vpart:active{transform:s
   <div class="vhint">The first part (◆ root) sits on the centre line; snap the rest onto it. Drag a part to move it and everything hanging off it (Alt: just that one); drop it in empty space to park it. Backspace (or X) removes the selected part, or the one under the mouse. M mirror.</div>
   <div class="vpanel vpal" id="vPal"><h3>Parts</h3><input id="vFind" type="search" placeholder="Search parts" autocomplete="off" spellcheck="false"><div id="vCats"></div><div id="vParts"></div></div>
   <div class="vpanel vstat"><h3>Rocket</h3><input id="vName" class="vname" maxlength="40" aria-label="Rocket name"><div id="vStats"></div></div>
+  <div class="vpanel vstg"><h3>Stages</h3><div id="vStg"></div></div>
   <div class="vpanel vinsp" id="vInsp" style="display:none"></div>
   <div class="vpanel vbar">
     <select id="vLoad" aria-label="Load a rocket"></select>
@@ -2805,7 +2835,8 @@ const isBrain=p=>p.t==="probe"||p.t==="capsule"||p.t==="nose"&&p.v==="cockpit"; 
 const clusterRows=k=>k<=3?1:2,clusterFront=k=>Math.ceil(k/clusterRows(k));
 const clusterW=(k,es)=>k<=1?es:Math.round(clusterFront(k)*es*1.02/0.96);
 function clusterGeo(p){const k=Math.max(1,p.k||1),E=ENG[engKey(p)],rows=clusterRows(k),front=Math.ceil(k/rows),ew=k===1?p.w:p.es?p.es:Math.min(p.w*0.96/front,E.w*1.15),plate=k>1?5:0;
-  const xs=[];for(let i=0;i<front;i++)xs.push([(i-(front-1)/2)*ew*1.02,0]);for(let i=0;i<k-front;i++)xs.push([(i-(k-front-1)/2)*ew*1.02,1]);
+  // the back row sits behind the gaps (odd counts) or squeezed inward (even counts), always symmetric about the centre line
+  const back=k-front,bs=back>1?(back===front?(front-1)*(front-1)/front:back-1)/(back-1):0,xs=[];for(let i=0;i<front;i++)xs.push([(i-(front-1)/2)*ew*1.02,0]);for(let i=0;i<back;i++)xs.push([(i-(back-1)/2)*bs*ew*1.02,1]);
   return{k,ew,plate,eh:Math.round(E.h*ew/E.w),xs};}
 const engH=p=>{const g=clusterGeo(p);return g.plate+g.eh;};
 // thrust in readable units: kN up to 1 MN, then MN
@@ -2954,6 +2985,12 @@ function feedOf(ps,adj,i,inSet){if(ps[i].t==="srb")return[i];   // a solid boost
 function nextDecs(ps,inSet){let sg=1e9;for(const i of inSet){const p=ps[i];if((p.t==="dec"||p.t==="sdec")&&p.sg!=null)sg=Math.min(sg,p.sg);}
   if(sg<1e8)return[...inSet].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===sg);
   return nextDecsH(ps,inSet);}
+// v1.47 KSP-style staging (the editor's STAGES panel): engines, decouplers and fairings carry p.sg, the stage that sets them off.
+// Stage 1 is the launch (its engines light at lift-off); every Space after that sets off the next stage: its decouplers fire,
+// its engines light, its fairings open. Rockets with no numbers (older saves, ready-made ones) stage by height as before.
+const isStg=p=>p.t==="dec"||p.t==="sdec"||p.t==="engine"||p.t==="srb"||p.t==="fair";
+const isStaged=ps=>ps.some(p=>p.sg!=null&&isStg(p));
+function nextStgNo(ps,cur,inSet){let n=null;(inSet?[...inSet]:ps.keys&&[...ps.keys()]).forEach(i=>{const p=ps[i];if(isStg(p)&&p.sg!=null&&p.sg>cur&&!(p.t==="fair"&&p.open)&&(n==null||p.sg<n))n=p.sg;});return n;}
 function nextDecsH(ps,inSet){let lo=1e9;for(const i of inSet){const p=ps[i];if(p.t==="dec"||p.t==="sdec")lo=Math.min(lo,p.y+p.h/2);}
   if(lo>1e8)return[];return[...inSet].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&Math.abs(ps[i].y+ps[i].h/2-lo)<3);}
 // fire decouplers: what stays joined to the probe without crossing them, and the pieces that fall away
@@ -2981,8 +3018,12 @@ function analyze(ps,_eng,fuel){
   let S=all,first=true,lo=1e9,hi=-1e9;for(const i of all){lo=Math.min(lo,ps[i].y);hi=Math.max(hi,ps[i].y+ps[i].h);}out.H=(hi-lo)*UM;
   const massOf=set=>{let m=0;for(const i of set)m+=partMass(ps[i])+F[i];return m;};
   out.mass=massOf(all);
+  const stg=isStaged(ps);let cur=1;
   for(let k=0;k<12;k++){
-    const act=[...S].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,S)),decs=nextDecs(ps,S);
+    // staged rockets: a Space that only lights engines (no decoupler) counts as pressed at once, so its engines join this burn
+    if(stg)for(;;){const n=nextStgNo(ps,cur,S);if(n==null||[...S].some(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===n))break;cur=n;}
+    const nx=stg?nextStgNo(ps,cur,S):null;
+    const act=[...S].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,S)&&(!stg||ps[i].sg==null||ps[i].sg<=cur)),decs=stg?(nx==null?[]:[...S].filter(i=>(ps[i].t==="dec"||ps[i].t==="sdec")&&ps[i].sg===nx)):nextDecs(ps,S);
     const sp=decs.length?split(ps,adj,S,decs,out.root):null,drop=new Set(sp?[...S].filter(i=>!sp.keep.has(i)):[]);
     const must=decs.length?act.filter(i=>drop.has(i)):act;
     const feeds=act.map(i=>feedOf(ps,adj,i,S)),m0=massOf(S);let m=m0,dv=0,t=0;
@@ -2999,7 +3040,7 @@ function analyze(ps,_eng,fuel){
     out.stages.push({dv,twr:(first?Fsl:Fv)/(m0*G0),burn:t,eng:act.length,m0,decs,dropKind:decs.length?(decs.some(i=>ps[i].t==="sdec")?"boosters":"stage"):null});
     out.total+=dv;
     if(!decs.length)break;
-    S=sp.keep;first=false;}
+    S=sp.keep;first=false;if(stg)cur=nx;}
   out.m0=massOf(all);return out;}
 // ---------- drawing (in centimetres, y up) ----------
 function hazard(c,x0,y0,w,h,vert){c.save();c.beginPath();c.rect(x0,y0,w,h);c.clip();c.fillStyle="#1f232c";c.fillRect(x0,y0,w,h);c.fillStyle="#e8b923";
@@ -3019,14 +3060,15 @@ function cyl(c,L,R,col){const g=c.createLinearGradient(L,0,R,0),sh=m=>`rgb(${col
 function bell(c,x,yt,ye,tw,ew,cLow,cTop,split){const H=yt-ye,path=()=>{c.beginPath();c.moveTo(x-tw,yt);c.bezierCurveTo(x-tw-(ew-tw)*0.32,yt-H*0.22,x-ew*0.9,ye+H*0.32,x-ew,ye);
     c.lineTo(x+ew,ye);c.bezierCurveTo(x+ew*0.9,ye+H*0.32,x+tw+(ew-tw)*0.32,yt-H*0.22,x+tw,yt);c.closePath();};
   path();c.fillStyle=cyl(c,x-ew,x+ew,cLow);c.fill();c.save();c.clip();
-  const sy=ye+H*(split==null?0.55:split);c.fillStyle=cyl(c,x-ew,x+ew,cTop);c.fillRect(x-ew,sy,ew*2,yt-sy);
-  c.strokeStyle="rgba(0,0,0,.22)";c.lineWidth=0.6;for(let t=-0.9;t<=0.9;t+=0.15){c.beginPath();c.moveTo(x+t*tw,yt);c.lineTo(x+t*ew,ye);c.stroke();}
-  c.fillStyle="rgba(0,0,0,.25)";c.fillRect(x-ew,sy-0.6,ew*2,1.2);c.restore();
-  c.fillStyle="rgba(235,225,210,.55)";c.fillRect(x-ew,ye,ew*2,1.6);}
-// engines: each one drawn after a real type. Mount on top, turbopump + plumbing, combustion chamber, throat, bell.
-// The exit widths stay what they were, because the flame in flight starts there.
-// v1.40 (from Wyatt's reference photos: RS-25, Raptor, the SLS booster): flanged pipes, red valve actuators, gimbal struts,
-// stiffener bands round the bell, a coloured band at the exit, cables down the side.
+  // v1.47 (Wyatt: "the engine models are ugly"): the hot top fades into the cooler skirt instead of a hard line, the cooling
+  // tubes follow the bell's curve and are faint, and a soft highlight runs down one side so it reads as a smooth metal bell
+  const sy=ye+H*(split==null?0.55:split),fade=H*0.16;
+  {c.save();c.fillStyle=cyl(c,x-ew,x+ew,cTop);c.fillRect(x-ew,sy+fade*0.5,ew*2,yt-sy);
+    const g=c.createLinearGradient(0,sy+fade*0.5,0,sy-fade*0.5),mid=cTop.map(v=>Math.round(v*0.8));g.addColorStop(0,`rgba(${mid},.9)`);g.addColorStop(1,`rgba(${mid},0)`);c.fillStyle=g;c.fillRect(x-ew,sy-fade*0.5,ew*2,fade);c.restore();}
+  c.strokeStyle="rgba(0,0,0,.13)";c.lineWidth=Math.max(0.25,ew*0.012);for(let t=-0.88;t<=0.89;t+=0.11){c.beginPath();for(let u=0;u<=1.001;u+=0.1){const[hx,hy]=bellPt(yt,ye,tw,ew,u);u?c.lineTo(x+t*hx,hy):c.moveTo(x+t*hx,hy);}c.stroke();}
+  {const g=c.createLinearGradient(x-ew,0,x+ew,0);g.addColorStop(0.18,"rgba(255,255,255,0)");g.addColorStop(0.3,"rgba(255,255,255,.16)");g.addColorStop(0.4,"rgba(255,255,255,0)");c.fillStyle=g;c.fillRect(x-ew,ye,ew*2,H);}
+  c.restore();
+  c.fillStyle="rgba(10,10,12,.55)";c.fillRect(x-ew,ye,ew*2,Math.max(0.6,H*0.012));c.fillStyle="rgba(235,225,210,.5)";c.fillRect(x-ew,ye+Math.max(0.6,H*0.012),ew*2,Math.max(0.5,H*0.01));}   // the exit lip
 // a point on the bell's edge, u = 0 at the throat … 1 at the exit (the same curve bell() draws)
 function bellPt(yt,ye,tw,ew,u){const H=yt-ye,a=1-u,P=[[tw,yt],[tw+(ew-tw)*0.32,yt-H*0.22],[ew*0.9,ye+H*0.32],[ew,ye]],b=[a*a*a,3*a*a*u,3*a*u*u,u*u*u];
   return[b[0]*P[0][0]+b[1]*P[1][0]+b[2]*P[2][0]+b[3]*P[3][0],b[0]*P[0][1]+b[1]*P[1][1]+b[2]*P[2][1]+b[3]*P[3][1]];}
@@ -3034,16 +3076,17 @@ function bellPt(yt,ye,tw,ew,u){const H=yt-ye,a=1-u,P=[[tw,yt],[tw+(ew-tw)*0.32,y
 // easy to tell apart on a rocket and in the parts menu. Your own engine is the red one.
 const ENG_ID={stand:["#e5483a","Y","#fff"],lib:["#e5483a","Y","#fff"],gnat:["#e3b23c","G","#1a1a1a"],wren:["#3fbf6a","W","#08210f"],mule:["#f08a24","M","#1a1006"],
   spike:["#d0844a","S","#1a0d04"],bison:["#3f7fe0","B","#fff"],condor:["#eef1f6","C","#1b1e26"],vac:["#9a6ae0","V","#fff"],atom:["#f2d03b","A","#1a1a1a"]};
-function drawEngine(c,x,y,w,h,k){drawEngine0(c,x,y,w,h,k);const id=ENG_ID[k];if(!id)return;
-  const bw=Math.max(4,w*0.3),bh=bw*0.64,by=y+h*(k==="spike"?0.72:k==="atom"?0.55:0.8),r=bh*0.3;
+// v1.47: the big coloured badge is now a small dark plate on the thrust frame with the initial in the engine's colour
+function drawEngine(c,x,y,w,h,k,noPlate){drawEngine0(c,x,y,w,h,k);const id=ENG_ID[k];if(!id||noPlate)return;
+  const bw=Math.max(3,w*0.17),bh=bw*0.62,by=y+h*(k==="spike"?0.9:k==="atom"?0.905:k==="gnat"?0.78:0.885)+(k==="gnat"?0:0),r=bh*0.25;
   c.beginPath();c.moveTo(x-bw/2+r,by);c.lineTo(x+bw/2-r,by);c.quadraticCurveTo(x+bw/2,by,x+bw/2,by+r);c.lineTo(x+bw/2,by+bh-r);c.quadraticCurveTo(x+bw/2,by+bh,x+bw/2-r,by+bh);
   c.lineTo(x-bw/2+r,by+bh);c.quadraticCurveTo(x-bw/2,by+bh,x-bw/2,by+bh-r);c.lineTo(x-bw/2,by+r);c.quadraticCurveTo(x-bw/2,by,x-bw/2+r,by);c.closePath();
-  c.fillStyle=id[0];c.fill();c.strokeStyle="rgba(0,0,0,.45)";c.lineWidth=Math.max(0.3,bw*0.04);c.stroke();
-  if(bh>=3.5){c.save();c.translate(x,by+bh*0.5);c.scale(1,-1);c.fillStyle=id[2];c.font=`700 ${bh*0.8}px sans-serif`;c.textAlign="center";c.textBaseline="middle";c.fillText(id[1],0,bh*0.05);c.restore();}}
-function drawEngine0(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[150,152,158],red="#c23b2e";
+  c.fillStyle="#1c1e23";c.fill();c.strokeStyle=id[0];c.lineWidth=Math.max(0.2,bw*0.04);c.stroke();
+  if(bh>=3){c.save();c.translate(x,by+bh*0.5);c.scale(1,-1);c.fillStyle=id[0]==="#eef1f6"?"#dfe3ea":id[0];c.font=`700 ${bh*0.72}px sans-serif`;c.textAlign="center";c.textBaseline="middle";c.fillText(id[1],0,bh*0.04);c.restore();}}
+function drawEngine0(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[150,152,158],red="#a8392d";
   const pipe=(pts,wd,col)=>{c.strokeStyle=col;c.lineWidth=wd;c.lineCap="round";c.lineJoin="round";c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.stroke();c.lineCap="butt";
     c.strokeStyle="rgba(255,255,255,.18)";c.lineWidth=wd*0.3;c.beginPath();c.moveTo(pts[0][0]-wd*0.2,pts[0][1]+wd*0.2);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0]-wd*0.2,pts[i][1]+wd*0.2);c.stroke();};   // a lit edge so it reads as a tube
-  const flange=(px,py,s,col)=>{c.fillStyle=col||"#5a5e66";c.fillRect(px-s,py-s,s*2,s*2);c.fillStyle="rgba(255,255,255,.25)";c.fillRect(px-s,py+s-0.4,s*2,0.4);};
+  const flange=(px,py,s,col)=>{s*=0.75;c.fillStyle=col||"#5a5e66";c.fillRect(px-s,py-s,s*2,s*2);c.fillStyle="rgba(255,255,255,.25)";c.fillRect(px-s,py+s-0.4,s*2,0.4);};
   const pipeF=(pts,wd,col,fc)=>{pipe(pts,wd,col);for(const q of pts)flange(q[0],q[1],wd*0.75,fc);};   // pipe with a bolted flange at every joint
   const valve=(px,py,s)=>{c.fillStyle=red;c.fillRect(px-s,py-s*0.7,s*2,s*1.4);c.fillStyle="rgba(0,0,0,.35)";c.fillRect(px-s,py-s*0.7,s*2,0.5);c.fillStyle="#7a7e88";c.fillRect(px-s*0.25,py+s*0.7,s*0.5,s*0.8);};   // red-painted valve actuator
   const box=(x0,y0,bw,bh,col)=>{c.fillStyle=cyl(c,x0,x0+bw,col);c.fillRect(x0,y0,bw,bh);c.fillStyle="rgba(0,0,0,.18)";c.fillRect(x0,y0,bw,0.5);c.fillRect(x0,y0+bh-0.5,bw,0.5);};
@@ -3125,7 +3168,7 @@ function drawEngine0(c,x,y,w,h,k){const T=y+h,dk=[46,48,54],cu=[176,108,62],ch=[
   pipe([[x-w*0.12,y+h*0.7],[x-w*0.2,y+h*0.74]],Math.max(0.6,w*0.02),"#3a3d44");pipe([[x+w*0.12,y+h*0.72],[x+w*0.2,y+h*0.78]],Math.max(0.6,w*0.02),"#3a3d44");
   valve(x+w*0.08,y+h*0.9,w*0.035);valve(x-w*0.26,y+h*0.72,w*0.03);valve(x+w*0.3,y+h*0.74,w*0.03);valve(x-w*0.05,y+h*0.72,w*0.025);
   box(x-w*0.09,yt,w*0.18,h*0.05,ch);
-  bell(c,x,yt,y,tw,ew,[34,35,40],[58,60,66],0.92);bands(yt,tw,ew,[0.22,0.38,0.52,0.65,0.77,0.88],[52,54,60],1.4);cables(yt,tw,ew);exitBand(ew,[190,44,36],2.2);
+  bell(c,x,yt,y,tw,ew,[34,35,40],[58,60,66],0.92);bands(yt,tw,ew,[0.34,0.6,0.82],[50,52,58],1);cables(yt,tw,ew);exitBand(ew,[190,44,36],2.2);
   struts(yt,tw);}
 // frost on a cryogenic tank: the super-cold propellant freezes the air's moisture onto the skin, so it shows exactly up to
 // the fuel level. k (0..1) fades it as it flakes off on the way up. Patchy streaks from a fixed hash, so it doesn't flicker.
@@ -3178,12 +3221,17 @@ function drawPart(c,p,o={}){
         c.fillStyle="#1d2128";for(const sd of[-1,1]){c.beginPath();c.moveTo(x+sd*w*0.06,y+h*0.62);c.lineTo(x+sd*w*0.24,y+h*0.62);c.lineTo(x+sd*w*0.06,y+h*0.78);c.closePath();c.fill();}
         c.fillStyle=cyl(c,x-w*0.25,x+w*0.25,[120,124,132]);c.fillRect(x-w*0.25,T-2.4,w*0.5,2.4);
         c.strokeStyle="#c9ccd1";c.lineWidth=0.7;c.beginPath();c.moveTo(R-w*0.12,y+h*0.6);c.lineTo(R-w*0.02,y+h*0.86);c.stroke();c.beginPath();c.arc(R-w*0.02,y+h*0.86,w*0.06,Math.PI*0.9,Math.PI*1.9);c.stroke();break;}   // antenna dish
-    {   // avionics ring in black carbon composite, an access hatch and two vents
+    {   // avionics ring in black carbon composite (v1.47: more going on): bright metal rims with bolts, a gold-foil band, an access
+      // hatch with a handle, a row of vents, a green status light and a little whip antenna
       c.fillStyle=cyl(c,L,R,[44,46,52]);c.fillRect(L,y,w,h);
       c.fillStyle="rgba(255,255,255,.05)";for(let yy=y+3;yy<T;yy+=3)c.fillRect(L,yy,w,0.6);
-      c.fillStyle="rgba(255,255,255,.14)";c.fillRect(L,y,w,1.2);c.fillRect(L,T-1.2,w,1.2);
-      c.strokeStyle="rgba(255,255,255,.22)";c.lineWidth=0.8;c.strokeRect(x+w*0.08,y+h*0.25,w*0.22,h*0.5);
-      c.fillStyle="rgba(0,0,0,.4)";for(const q of[-0.32,-0.24])c.fillRect(x+w*q,y+h*0.62,2.5,2);break;}   // two vent holes
+      c.fillStyle=cyl(c,L,R,[150,154,162]);c.fillRect(L,y,w,Math.max(1.2,h*0.1));c.fillRect(L,T-Math.max(1.2,h*0.1),w,Math.max(1.2,h*0.1));
+      c.fillStyle="rgba(30,32,36,.8)";for(let q=L+w*0.05;q<R;q+=Math.max(3,w/12)){c.fillRect(q,y+h*0.035,0.6,0.6);c.fillRect(q,T-h*0.065,0.6,0.6);}
+      c.fillStyle=cyl(c,L,R,[200,160,64]);c.fillRect(L,y+h*0.16,w,h*0.12);c.fillStyle="rgba(255,240,190,.25)";for(let q=L+2;q<R;q+=w/9)c.fillRect(q,y+h*0.16,0.5,h*0.12);   // foil band
+      c.strokeStyle="rgba(255,255,255,.28)";c.lineWidth=0.8;c.strokeRect(x+w*0.06,y+h*0.36,w*0.24,h*0.46);c.fillStyle="#8a8f98";c.fillRect(x+w*0.14,y+h*0.57,w*0.08,Math.max(0.6,h*0.04));   // hatch + handle
+      c.fillStyle="rgba(0,0,0,.45)";for(const q of[-0.34,-0.27,-0.2])c.fillRect(x+w*q,y+h*0.62,Math.max(1,w*0.04),h*0.14);   // vents
+      c.fillStyle="#4fe08a";c.beginPath();c.arc(x-w*0.38,y+h*0.45,Math.max(0.7,w*0.025),0,6.2832);c.fill();
+      c.strokeStyle="#c9ccd1";c.lineWidth=Math.max(0.4,w*0.012);c.beginPath();c.moveTo(R-w*0.1,T);c.lineTo(R-w*0.04,T+h*0.35);c.stroke();break;}
     case"nose":{   // payload fairing: a smooth white ogive with the split line down the middle (or a straight cone: SLS booster tips)
       c.beginPath();if(p.ns==="cone"){c.moveTo(L,y);c.lineTo(x-w*0.04,T-1.5);c.quadraticCurveTo(x,T+0.5,x+w*0.04,T-1.5);c.lineTo(R,y);c.closePath();}else{c.moveTo(L,y);c.bezierCurveTo(L,y+h*0.42,x-w*0.22,y+h*0.86,x-w*0.03,T-0.6);c.quadraticCurveTo(x,T+0.3,x+w*0.03,T-0.6);c.bezierCurveTo(x+w*0.22,y+h*0.86,R,y+h*0.42,R,y);c.closePath();}
       c.fillStyle=cyl(c,L,R,p.v!=="cockpit"&&SKIN_COL[p.sk]||[240,241,244]);c.fill();c.save();c.clip();
@@ -3198,8 +3246,10 @@ function drawPart(c,p,o={}){
       c.save();c.clip();c.fillStyle="rgba(255,255,255,.05)";for(let yy=y+3;yy<T;yy+=3)c.fillRect(L,yy,w,0.6);c.restore();
       c.fillStyle="rgba(255,255,255,.16)";c.fillRect(L,y,w,1.2);c.fillRect(x-tw2,T-1.2,tw2*2,1.2);break;}
     case"engine":{const g=clusterGeo(p);if(g.k===1){drawEngine(c,x,y,w,h,engKey(p));break;}
-      for(const[ex,row]of g.xs.slice().sort((a,b)=>b[1]-a[1])){c.save();if(row){c.globalAlpha=0.75;}drawEngine(c,x+ex+(row?g.ew*0.51:0),y+(row?2:0),g.ew,g.eh,engKey(p));c.restore();}
-      c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,T-g.plate,w,g.plate);c.fillStyle="rgba(0,0,0,.35)";c.fillRect(L,T-g.plate,w,0.8);break;}   // thrust plate on top
+      for(const[ex,row]of g.xs.slice().sort((a,b)=>b[1]-a[1])){c.save();if(row&&"filter"in c)c.filter="brightness(0.55)";else if(row)c.globalAlpha=0.6;   // the back row is in shadow
+        drawEngine(c,x+ex,y+(row?g.eh*0.04:0),g.ew,g.eh*(row?0.96:1),engKey(p),!!row);c.restore();}
+      c.fillStyle=cyl(c,L,R,[78,81,88]);c.fillRect(L,T-g.plate,w,g.plate);c.fillStyle="rgba(0,0,0,.4)";c.fillRect(L,T-g.plate,w,0.8);c.fillStyle="rgba(255,255,255,.18)";c.fillRect(L,T-0.6,w,0.6);
+      c.fillStyle="rgba(20,22,26,.8)";for(let q=L+w*0.04;q<R;q+=Math.max(4,w/24))c.fillRect(q,T-g.plate*0.55,0.7,0.7);break;}   // thrust plate on top, with a row of bolts
     case"capsule":if(p.v==="dragon"){   // Dragon-style: rounder sides, four square windows, little side thrusters, black heat shield, grey nose ring
         const tw=topW(p)/2;c.beginPath();c.moveTo(L,y+2);c.bezierCurveTo(L+w*0.02,y+h*0.6,x-tw-w*0.06,T-2,x-tw,T-2);c.lineTo(x+tw,T-2);c.bezierCurveTo(x+tw+w*0.06,T-2,R-w*0.02,y+h*0.6,R,y+2);c.closePath();
         c.fillStyle=cyl(c,L,R,[232,234,237]);c.fill();c.save();c.clip();c.fillStyle="rgba(0,0,0,.08)";c.fillRect(L,y+h*0.42,w,0.8);c.restore();
@@ -3243,25 +3293,39 @@ function drawPart(c,p,o={}){
       c.fillStyle=cyl(c,L,R,[232,234,238]);c.fillRect(L+w*0.06,y,w*0.88,h*0.7);
       c.beginPath();c.moveTo(L+w*0.06,y+h*0.68);c.quadraticCurveTo(x,T+h*0.12,R-w*0.06,y+h*0.68);c.closePath();c.fillStyle=cyl(c,L,R,[226,112,40]);c.fill();
       c.fillStyle="rgba(30,32,38,.75)";c.fillRect(L+w*0.06,y+h*0.3,w*0.88,Math.max(1,h*0.08));break;}
-    case"brake":{   // airbrake: a panel hinged at its top on the body; it swings out as it opens (o.brake 0..1)
-      const ix=f>0?L:R,k=Math.max(0,Math.min(1,o.brake||0)),ang=k*1.05,len=h,tipx=ix+f*Math.sin(ang)*len,tipy=T-Math.cos(ang)*len;
-      c.fillStyle="#3b3f47";c.fillRect(f>0?L:R-3,T-6,3,6);   // hinge
-      c.beginPath();c.moveTo(ix,T);c.lineTo(tipx,tipy);c.lineTo(tipx+f*Math.cos(ang)*Math.min(w,8),tipy+Math.sin(ang)*Math.min(w,8));c.lineTo(ix+f*Math.min(w,8),T);c.closePath();
-      c.fillStyle=cyl(c,L,R,[176,180,188]);c.fill();c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=0.8;c.stroke();break;}
-    case"antenna":{   // folded: a small box; open (in space): a white dish on a boom
+    case"brake":{   // airbrake (v1.47: Wyatt said it was "just a box"): a hinge block on the body, a perforated flap hinged at its top,
+      // and a hydraulic ram that pushes it out into the airflow as it opens (o.brake 0..1)
+      const ix=f>0?L:R,k=Math.max(0,Math.min(1,o.brake||0)),ang=k*1.05,len=h-4,th=Math.min(w*0.55,6),hx=ix+f*2,hy=T-2,dx=f*Math.sin(ang),dy=-Math.cos(ang),nx=f*Math.cos(ang),ny=Math.sin(ang);
+      const P=(u,v)=>[hx+dx*len*u+nx*th*v,hy+dy*len*u+ny*th*v];
+      c.fillStyle=cyl(c,L,R,[64,68,76]);c.fillRect(f>0?L:R-4,y+2,4,h-4);c.fillStyle="#2a2d33";c.fillRect(f>0?L:R-5,T-7,5,7);   // the housing it folds into, and the hinge block
+      {const r0=[ix+f*2.5,y+h*0.3],r1=P(0.55,0.5);c.strokeStyle="#3a3e46";c.lineWidth=2.4;c.lineCap="round";c.beginPath();c.moveTo(r0[0],r0[1]);c.lineTo(r0[0]+(r1[0]-r0[0])*0.5,r0[1]+(r1[1]-r0[1])*0.5);c.stroke();
+        c.strokeStyle="#cfd3d9";c.lineWidth=1.1;c.beginPath();c.moveTo(r0[0]+(r1[0]-r0[0])*0.45,r0[1]+(r1[1]-r0[1])*0.45);c.lineTo(r1[0],r1[1]);c.stroke();c.lineCap="butt";}   // hydraulic ram
+      c.beginPath();const q=[P(0,0),P(1,0),P(1,1),P(0,1)];c.moveTo(...q[0]);for(const z of q.slice(1))c.lineTo(...z);c.closePath();
+      c.fillStyle=cyl(c,Math.min(q[0][0],q[2][0]),Math.max(q[0][0],q[2][0])+1,[186,190,198]);c.fill();c.strokeStyle="rgba(0,0,0,.4)";c.lineWidth=0.6;c.stroke();
+      c.fillStyle="rgba(20,22,26,.55)";for(let u=0.16;u<0.92;u+=0.12)for(const v of[0.33,0.67]){const[px,py]=P(u,v);c.beginPath();c.arc(px,py,Math.min(0.9,th*0.13),0,6.2832);c.fill();}   // perforations
+      {const[ax,ay]=P(0.97,0),[bx,by]=P(0.97,1);c.strokeStyle="#e8b23a";c.lineWidth=1.4;c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();}   // yellow edge so the moving part reads
+      break;}
+    case"antenna":{   // folded: a closed dish (petals furled like an umbrella) on its mount; open (in space): a boom, a ribbed white dish
+      // and the feed horn held at its focus by three struts
       const ix=f>0?L:R,ox=f>0?R:L,open=o.open!=null?o.open:o.legs;
-      if(!open){c.fillStyle=cyl(c,L,R,[214,216,222]);c.fillRect(L+1,y+h*0.25,w-2,h*0.5);c.fillStyle="rgba(0,0,0,.3)";c.fillRect(ix,y+h*0.45,f*2,h*0.1);break;}
-      c.strokeStyle="#9aa0a8";c.lineWidth=1.2;c.beginPath();c.moveTo(ix,y+h/2);c.lineTo(ox,y+h/2);c.stroke();
-      c.beginPath();c.ellipse(ox,y+h/2,w*0.35,h*0.62,0,f>0?-Math.PI/2:Math.PI/2,f>0?Math.PI/2:Math.PI*1.5);c.fillStyle="#eef0f3";c.fill();c.strokeStyle="rgba(0,0,0,.25)";c.stroke();
-      c.fillStyle="#c9a24a";c.fillRect(ox+f*w*0.12-1,y+h/2-1,2,2);break;}
+      c.fillStyle=cyl(c,L,R,[70,74,82]);c.fillRect(f>0?L:R-3,y+h*0.25,3,h*0.5);   // mount plate on the body
+      if(!open){const bx=ix+f*3;c.beginPath();c.moveTo(bx,y+h*0.42);c.lineTo(ox-f*1,y+h*0.08);c.lineTo(ox,y+h*0.5);c.lineTo(ox-f*1,y+h*0.92);c.closePath();c.fillStyle=cyl(c,L,R,[220,222,228]);c.fill();
+        c.strokeStyle="rgba(0,0,0,.22)";c.lineWidth=0.5;for(const v of[0.25,0.5,0.75]){c.beginPath();c.moveTo(bx,y+h*0.5);c.lineTo(ox-f*0.5,y+h*v);c.stroke();}   // furled petals
+        c.fillStyle="#c9a24a";c.fillRect(bx-1,y+h*0.44,2,h*0.12);break;}
+      const bx=ox+f*3,R0=h*0.62,cy=y+h/2,rx=bx+f*w*0.32;c.strokeStyle="#9aa0a8";c.lineWidth=1.4;c.beginPath();c.moveTo(ix+f*3,cy);c.lineTo(bx,cy);c.stroke();   // boom
+      c.beginPath();c.moveTo(rx,cy-R0);c.quadraticCurveTo(bx-f*w*0.3,cy,rx,cy+R0);c.quadraticCurveTo(bx-f*w*0.02,cy,rx,cy-R0);c.closePath();   // the dish, seen edge-on, hollow side out
+      c.fillStyle=cyl(c,Math.min(bx,rx)-2,Math.max(bx,rx)+2,[236,238,242]);c.fill();c.strokeStyle="rgba(0,0,0,.25)";c.lineWidth=0.5;c.stroke();
+      const fx=bx+f*w*0.75,fy=cy;c.strokeStyle="#b8bdc5";c.lineWidth=0.6;for(const v of[-0.85,0.85]){c.beginPath();c.moveTo(rx,cy+v*R0);c.lineTo(fx,fy);c.stroke();}c.beginPath();c.moveTo(bx+f*w*0.05,cy);c.lineTo(fx,fy);c.stroke();   // feed struts
+      c.fillStyle="#c9a24a";c.fillRect(fx-1.2,fy-1.2,2.4,2.4);break;}
     case"dock":{   // docking port: a short collar, a soft-capture ring on top with guide petals, and a white target cross
       c.fillStyle=cyl(c,L,R,[150,154,162]);c.fillRect(L+w*0.1,y,w*0.8,h*0.65);             // collar (bottom)
       c.fillStyle=cyl(c,L,R,[205,208,214]);c.fillRect(L,y+h*0.58,w,h*0.3);                // capture ring
       c.fillStyle="rgba(240,200,60,.9)";for(const f of[0.12,0.5,0.88])c.fillRect(x+(f-0.5)*w-1,T-h*0.14,2,h*0.14);   // guide petals on top
       c.fillStyle="rgba(255,255,255,.85)";c.fillRect(x-0.6,y+h*0.1,1.2,h*0.45);c.fillRect(x-w*0.18,y+h*0.3,w*0.36,1);break;}
     case"dec":{   // separation ring: dark structure, a bright pyro line where it splits, and its bolts
-      c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.7,w,1.4);
-      c.fillStyle="rgba(0,0,0,.35)";for(let xx=L+5;xx<R-2;xx+=9)c.fillRect(xx,y+2,2,2);break;}
+      c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle=cyl(c,L,R,[140,144,152]);c.fillRect(L,y,w,0.9);c.fillRect(L,T-0.9,w,0.9);   // ring with bright rims
+      c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.6,w,1.2);c.fillStyle="#e8b23a";for(let xx=L+3;xx<R-2;xx+=6)c.fillRect(xx,y+h/2-0.6,2.6,1.2);   // the pyro line, marked yellow
+      c.fillStyle="rgba(15,16,20,.6)";for(let xx=L+5;xx<R-2;xx+=9){c.fillRect(xx,y+1.4,1.6,1.4);c.fillRect(xx,T-2.8,1.6,1.4);}break;}   // bolts each side of the split
     case"sdec":{   // side attach strut with its separation bolts
       c.fillStyle=cyl(c,L,R,[64,67,74]);c.fillRect(L+2,y+6,w-4,h-12);c.fillStyle=cyl(c,L,R,[150,154,162]);c.fillRect(L,y+4,w,5);c.fillRect(L,T-9,w,5);
       c.fillStyle="rgba(255,255,255,.75)";c.fillRect(L+2,y+h/2-0.6,w-4,1.2);break;}
@@ -3277,7 +3341,8 @@ function drawPart(c,p,o={}){
       c.fillStyle=cyl(c,Math.min(ix,ox),Math.max(ix,ox),[58,61,68]);c.fill();c.strokeStyle="rgba(210,214,222,.7)";c.lineWidth=1.5;   // carbon fin, titanium leading edge
       c.beginPath();c.moveTo(ix,T);c.lineTo(ox,tt);c.stroke();c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=1;c.beginPath();c.moveTo(ix,y);c.lineTo(ox,tb);c.stroke();break;}
     case"rcs":{const ix=f>0?L:R,ox=f>0?R:L,cx=(L+R)/2;c.fillStyle=cyl(c,L,R,[228,230,234]);c.fillRect(L,y+6,w,h-12);c.fillStyle="rgba(0,0,0,.2)";c.fillRect(ix,y+6,f*2,h-12);   // white thruster pod (Dragon-style)
-      c.fillStyle="#1b1e26";for(const[ax,ay,bx,by]of[[cx,y+6,cx,y],[cx,T-6,cx,T],[ox-f*2,y+h/2,ox+f*4,y+h/2]]){const nx=by===ay?0:3,ny=by===ay?3:0;c.beginPath();c.moveTo(ax-nx*0.6,ay-ny*0.6);c.lineTo(bx-nx,by-ny);c.lineTo(bx+nx,by+ny);c.lineTo(ax+nx*0.6,ay+ny*0.6);c.closePath();c.fill();}
+      for(const[ax,ay,bx,by]of[[cx,y+6,cx,y],[cx,T-6,cx,T],[ox-f*2,y+h/2,ox+f*4,y+h/2]]){const nx=by===ay?0:3,ny=by===ay?3:0;c.beginPath();c.moveTo(ax-nx*0.6,ay-ny*0.6);c.lineTo(bx-nx,by-ny);c.lineTo(bx+nx,by+ny);c.lineTo(ax+nx*0.6,ay+ny*0.6);c.closePath();c.fillStyle="#8a909a";c.fill();c.strokeStyle="#2a2d33";c.lineWidth=0.5;c.stroke();c.fillStyle="#15171b";c.fillRect(bx-nx*0.6-(nx?0:0.6),by-ny*0.6-(ny?0:0.6),nx?nx*1.2:1.2,ny?ny*1.2:1.2);}   // grey nozzles with dark mouths
+      c.fillStyle="#c23b2e";c.fillRect(ix+f*2.5,y+h/2-1,f*1.6,2);
       if(o.puff)for(const[px,py,dx,dy]of o.puff){c.fillStyle="rgba(240,244,255,.75)";c.beginPath();c.moveTo(px,py);c.lineTo(px+dx*16-dy*5,py+dy*16-dx*5);c.lineTo(px+dx*16+dy*5,py+dy*16+dx*5);c.closePath();c.fill();}
       break;}
     case"solar":{const ix=f>0?L:R,ox=f>0?R:L,open=o.open!=null?o.open:o.legs;
@@ -3288,25 +3353,27 @@ function drawPart(c,p,o={}){
       const g=c.createLinearGradient(0,py+ph,0,py);g.addColorStop(0,"#14284d");g.addColorStop(1,"#2f5596");c.fillStyle=g;c.fillRect(a,py,b-a,ph);
       c.strokeStyle="rgba(200,220,255,.25)";c.lineWidth=0.4;c.beginPath();for(let xx=a+5;xx<b;xx+=5){c.moveTo(xx,py);c.lineTo(xx,py+ph);}c.moveTo(a,py+ph/2);c.lineTo(b,py+ph/2);c.stroke();
       c.strokeStyle="#c9ccd1";c.lineWidth=0.7;c.strokeRect(a,py,b-a,ph);break;}
-    case"light":{c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle=o.lamp?"#fff6d8":"#aab0b8";c.fillRect(f>0?R-2:L,y+1,2,h-2);   // housing and lens
-      if(o.lamp){c.fillStyle="rgba(255,246,216,.5)";c.beginPath();c.arc(f>0?R:L,y+h/2,h*0.9,0,6.2832);c.fill();}break;}
+    case"light":{const ox=f>0?R:L;c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(0,0,0,.3)";for(let q=1;q<h-1;q+=2)c.fillRect(f>0?L:R-w*0.45,y+q,w*0.45,0.6);   // housing with cooling fins
+      c.fillStyle=o.lamp?"#fff6d8":"#c3c8d0";c.fillRect(f>0?R-2.2:L,y+0.8,2.2,h-1.6);c.fillStyle="rgba(255,255,255,.6)";c.fillRect(f>0?R-1.4:L+0.8,y+h*0.6,0.6,h*0.25);   // lens and its glint
+      if(o.lamp){const g=c.createRadialGradient(ox,y+h/2,0,ox,y+h/2,h*1.4);g.addColorStop(0,"rgba(255,246,216,.6)");g.addColorStop(1,"rgba(255,246,216,0)");c.fillStyle=g;c.beginPath();c.arc(ox,y+h/2,h*1.4,0,6.2832);c.fill();}break;}
     case"fair":{c.fillStyle=cyl(c,L,R,[70,73,80]);c.fillRect(L,y,w,h);c.fillStyle="rgba(230,232,236,.8)";c.fillRect(L,y+h/2-0.5,w,1);   // the base ring
       if(o.shell&&!p.open)drawFairing(c,p,1);break;}
     case"shield":{c.fillStyle=cyl(c,L,R,[58,48,40]);c.fillRect(L,y,w,h);c.fillStyle="rgba(0,0,0,.25)";for(let xx=L+3;xx<R;xx+=4)c.fillRect(xx,y,0.6,h);   // ablative tiles
       c.fillStyle="rgba(255,200,150,.12)";c.fillRect(L,T-1,w,1);break;}
     case"leg":if(p.v==="big"){const k=1.8,ix=f>0?L:R,sw=w/k,sh=h/k;   // the big leg is the normal one drawn 1.8× around its top hinge
         c.save();c.translate(ix,T);c.scale(k,k);c.translate(-ix,-T);drawPart(c,Object.assign({},p,{v:undefined,w:sw,h:sh,x:ix+f*sw/2,y:T-sh}),{legs:o.legs});c.restore();break;}
-    {const ix=f>0?L:R,dep=o.legs,hx=ix,hy=y+5;
+    {const ix=f>0?L:R,d0=+(o.legs||0),d=d0<=0?0:d0>=1?1:d0*d0*(3-2*d0);   // o.legs: false/true, or 0..1 while it swings down (v1.47)
       const quad=(ax,ay,bx,by,wa,wb,col)=>{const dx=bx-ax,dy=by-ay,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;c.beginPath();c.moveTo(ax+nx*wa/2,ay+ny*wa/2);c.lineTo(bx+nx*wb/2,by+ny*wb/2);c.lineTo(bx-nx*wb/2,by-ny*wb/2);c.lineTo(ax-nx*wa/2,ay-ny*wa/2);c.closePath();c.fillStyle=col;c.fill();};
-      if(!dep){   // folded flat against the tank, foot at the top (like a Falcon 9 leg)
-        quad(hx+f*7,y+2,hx+f*6,T-12,13,8,"#2a2c31");c.fillStyle="#4b5263";c.fillRect(hx+f*7-1,y+10,2,h-26);
-        c.fillStyle="#1b1e26";c.fillRect(hx+f*6-7,T-12,14,8);c.fillStyle="#9aa3b5";c.fillRect(hx+(f>0?0:-4),y,4,8);}
-      else{const fx=ix+f*63,fy=y-80,kx=hx+(fx-hx)*0.55,ky=hy+(fy+6-hy)*0.55;
-        c.strokeStyle="#d8dbe0";c.lineWidth=4;c.lineCap="round";c.beginPath();c.moveTo(ix+f*2,y+62);c.lineTo(kx,ky);c.stroke();   // shock strut
-        c.strokeStyle="#5a6070";c.lineWidth=6;c.beginPath();c.moveTo(ix+f*2,y+62);c.lineTo(ix+(kx-ix)*0.45,y+62+(ky-y-62)*0.45);c.stroke();c.lineCap="butt";
-        quad(hx,hy,fx,fy+6,14,8,"#2a2c31");c.strokeStyle="#4b5263";c.lineWidth=1.5;c.beginPath();c.moveTo(hx+(fx-hx)*0.1,hy+(fy-hy)*0.1);c.lineTo(hx+(fx-hx)*0.85,hy+(fy+6-hy)*0.85);c.stroke();
-        c.fillStyle="#1b1e26";c.beginPath();c.moveTo(fx-14,fy);c.lineTo(fx+14,fy);c.lineTo(fx+9,fy+8);c.lineTo(fx-9,fy+8);c.closePath();c.fill();
-        c.fillStyle="#9aa3b5";c.beginPath();c.arc(hx,hy,3.5,0,6.2832);c.fill();}
+      // one hinge near the bottom: folded, the leg lies flat up the side with its foot at the top (like a Falcon 9 leg); it swings
+      // out and down through ~145° to stand on its foot pad, the shock strut stretching with it
+      const hx=ix+f*7*(1-d),hy=y+2+3*d,len0=h-14,len1=Math.hypot(63,85),len=len0+(len1-len0)*d,th=d*Math.atan2(63,-85),fx=hx+f*Math.sin(th)*len,fy=hy+Math.cos(th)*len;
+      const sax=ix+f*2,say=y+62,kx=hx+(fx-hx)*0.55,ky=hy+(fy-hy)*0.55;
+      if(d>0.02){c.strokeStyle="#d8dbe0";c.lineWidth=4;c.lineCap="round";c.beginPath();c.moveTo(sax,say);c.lineTo(kx,ky);c.stroke();   // shock strut
+        c.strokeStyle="#5a6070";c.lineWidth=6;c.beginPath();c.moveTo(sax,say);c.lineTo(sax+(kx-sax)*0.45,say+(ky-say)*0.45);c.stroke();c.lineCap="butt";}
+      quad(hx,hy,fx,fy,13+d,8,"#2a2c31");c.strokeStyle="#4b5263";c.lineWidth=1.5;c.beginPath();c.moveTo(hx+(fx-hx)*0.1,hy+(fy-hy)*0.1);c.lineTo(hx+(fx-hx)*0.85,hy+(fy-hy)*0.85);c.stroke();
+      c.fillStyle="#3a3f4a";for(const q of[0.3,0.62])c.fillRect(hx+(fx-hx)*q-1.5,hy+(fy-hy)*q-1.5,3,3);   // rivet plates
+      {const a=d>0.5?14:9,b=d>0.5?9:14;c.fillStyle="#1b1e26";c.beginPath();c.moveTo(fx-a,fy);c.lineTo(fx+a,fy);c.lineTo(fx+b,fy+8);c.lineTo(fx-b,fy+8);c.closePath();c.fill();}   // foot pad, wide side down once it's out
+      c.fillStyle="#9aa3b5";c.beginPath();c.arc(hx,hy,3.5,0,6.2832);c.fill();c.fillStyle="#2a2c31";c.beginPath();c.arc(hx,hy,1.4,0,6.2832);c.fill();
       break;}
   }
   if(o.sel||o.bad||o.ghost){c.save();c.lineWidth=o.lw||3;c.strokeStyle=o.bad?"#ff4d3a":o.sel?"#ffcf7a":"rgba(255,255,255,.5)";c.setLineDash(o.ghost?[6,5]:[]);c.strokeRect(L-2,y-2,w+4,h+4);
@@ -3862,17 +3929,63 @@ const vSnap=()=>JSON.stringify(vps);
 function vPush(){vU.push(vSnap());if(vU.length>80)vU.shift();vR=[];}
 function vUndo(){if(!vU.length)return;vR.push(vSnap());vps=JSON.parse(vU.pop());vsel=null;vChanged();}
 function vRedo(){if(!vR.length)return;vU.push(vSnap());vps=JSON.parse(vR.pop());vsel=null;vChanged();}
-function vChanged(){vRootFix();vStageFix();vSave();vAn=null;vInspUI();}
-// staging order (v1.47): decouplers level with each other, or mirror twins, fire together as one separation. Each group carries a
-// stage number p.sg (1 = first Space). New decouplers slot in by height; the ▲ ▼ buttons in the stage list swap two separations.
-function vStageFix(){const D=vps.map((p,i)=>i).filter(i=>vps[i].t==="dec"||vps[i].t==="sdec");if(!D.length)return;
-  const mid=i=>vps[i].y+vps[i].h/2;D.sort((a,b)=>mid(a)-mid(b));const G=[];
-  for(const i of D){const tw=vps[i].tw?vById(vps[i].tw):-1;const g=G.find(g=>g.m.includes(tw)||Math.abs(mid(g.m[0])-mid(i))<3);if(g)g.m.push(i);else G.push({m:[i],auto:G.length});}
-  for(const g of G){const n=g.m.map(i=>vps[i].sg).filter(v=>v!=null);g.sg=n.length?Math.min(...n):null;}
-  const out=G.filter(g=>g.sg!=null).sort((a,b)=>a.sg-b.sg||a.auto-b.auto);
-  for(const g of G.filter(g=>g.sg==null)){const k=out.findIndex(h=>h.auto>g.auto);if(k<0)out.push(g);else out.splice(k,0,g);}
-  out.forEach((g,k)=>{for(const i of g.m)vps[i].sg=k+1;});}
-function vStageSwap(a,b){if(!(a>=1&&b>=1))return;vPush();for(const p of vps)if(p.sg===a)p.sg=b;else if(p.sg===b)p.sg=a;vChanged();vMsg(`Separation ${Math.min(a,b)} and ${Math.max(a,b)} swapped.`);}
+function vChanged(){vRootFix();vStageFix();vSave();vAn=null;vInspUI();vStgUI();}
+// ---------- staging (v1.47, KSP-style; Wyatt: "drag the icons into each stage") ----------
+// Engines, decouplers and fairings each carry p.sg, the stage that sets them off. Stage 1 is the launch: its engines light at
+// lift-off. Each Space after that sets off the next stage. The STAGES panel shows one box per stage (launch at the bottom, as in
+// KSP) with an icon per part (mirror twins share one icon); drag an icon to another box, or into the gap between two boxes to
+// make a new stage there. Fairings may also sit in AUTOMATIC: they open by themselves above the air.
+function vStgGroups(){const mid=i=>vps[i].y+vps[i].h/2,G=[];
+  for(let i=0;i<vps.length;i++){const p=vps[i];if(!isStg(p))continue;const tw=p.tw?vById(p.tw):-1,D=p.t==="dec"||p.t==="sdec";
+    const g=G.find(g=>g.m.includes(tw)||D&&g.dec&&p.sg==null&&g.m.every(j=>vps[j].sg==null)&&Math.abs(mid(g.m[0])-mid(i))<3);
+    if(g)g.m.push(i);else G.push({m:[i],dec:D,kind:D?"dec":p.t==="fair"?"fair":"eng"});}
+  for(const g of G){const n=g.m.map(i=>vps[i].sg).filter(v=>v!=null);g.sg=n.length?Math.min(...n):null;g.key=g.m.map(i=>vps[i].id).sort((a,b)=>a-b).join("-");}
+  return G;}
+function vEngDec(G,i){const e=vps[i];let best=null,by=-1e9;   // the closest stack decoupler under it: once that fires, this engine is the bottom
+  for(const g of G)if(g.dec)for(const j of g.m){const d=vps[j];if(d.t==="dec"&&d.y+d.h<=e.y+e.h/2&&Math.abs(d.x-e.x)<d.w/2&&d.y>by){by=d.y;best=g;}}return best;}
+function vStageFix(){const G=vStgGroups();if(!G.length)return;const mid=g=>vps[g.m[0]].y+vps[g.m[0]].h/2,set=(g,v)=>{g.sg=v;for(const i of g.m)if(v==null)delete vps[i].sg;else vps[i].sg=v;};
+  const D=G.filter(g=>g.dec).sort((a,b)=>mid(a)-mid(b));
+  if(!G.some(g=>g.sg!=null)){D.forEach((g,k)=>set(g,k+2));}   // a fresh rocket: lowest decouplers first, as before
+  else for(const g of D)if(g.sg==null){let s=2;for(const o of D)if(o!==g&&o.sg!=null&&mid(o)<mid(g))s=Math.max(s,o.sg+1);   // a new decoupler: its own stage, by height
+    for(const p of vps)if(p.sg!=null&&p.sg>=s)p.sg++;for(const o of G)if(o.sg!=null&&o.sg>=s)o.sg++;set(g,s);}
+  for(const g of D)if(g.sg<=1){for(const p of vps)if(p.sg!=null&&p.sg>=2)p.sg++;for(const o of G)if(o.sg!=null&&o.sg>=2)o.sg++;set(g,2);}   // nothing fires at launch (v1.47 ▲▼ saves numbered decouplers from 1)
+  for(const g of G)if(!g.dec&&g.sg==null&&g.kind==="eng"){const d=g.m.map(i=>vEngDec(G,i)).find(x=>x);set(g,d?d.sg:1);}   // engines: with the decoupler they sit on, else at launch
+  const vals=[...new Set([1,...G.filter(g=>g.sg!=null).map(g=>g.sg)])].sort((a,b)=>a-b),to=new Map(vals.map((v,k)=>[v,k+1]));   // no empty stages
+  for(const g of G)if(g.sg!=null)set(g,to.get(g.sg));}
+let vStgHi=null,vStgD=null;
+function stgIcon(p){const c=document.createElement("canvas");c.width=c.height=48;const g=c.getContext("2d"),q=JSON.parse(JSON.stringify(p));
+  if(q.t==="fair")q.fh=Math.min(q.fh||120,q.w*1.4);const hh=q.h+(q.t==="fair"?q.fh:0),ww=q.t==="sdec"?Math.max(q.w,q.h*2):q.w*(q.k||1),sc=Math.min(42/ww,42/Math.max(hh,q.w*0.4));
+  g.setTransform(sc,0,0,-sc,24,24+sc*hh/2);q.x=0;q.y=0;q.f=1;drawPart(g,q,{legs:false,shell:true});return c;}
+function stgName(p){return p.t==="dec"?"Decoupler":p.t==="sdec"?"Side dec.":p.t==="fair"?"Fairing":partName(p);}
+function vStgUI(){const box=$("vStg");if(!box)return;const G=vStgGroups(),mx=Math.max(1,...G.map(g=>g.sg||0));box.innerHTML="";
+  const slot=k=>{const d=document.createElement("div");d.className="sgins";d.dataset.ins=k;box.appendChild(d);};
+  const icon=(g,host)=>{const p=vps[g.m[0]],d=document.createElement("div");d.className="sgi k-"+g.kind;d.dataset.g=g.key;d.title=stgName(p)+(g.m.length>1?` (${g.m.length}, mirrored)`:"")+": drag it to another stage";
+    d.appendChild(stgIcon(p));const n=document.createElement("span");n.textContent=stgName(p).replace("Side decoupler","Side dec.");d.appendChild(n);
+    if(g.m.length>1){const b=document.createElement("b");b.textContent="×"+g.m.length;d.appendChild(b);}
+    d.addEventListener("pointerenter",()=>{vStgHi=new Set(g.m.map(i=>vps[i].id));});d.addEventListener("pointerleave",()=>{vStgHi=null;});
+    d.addEventListener("pointerdown",e=>{e.preventDefault();vStgD={key:g.key,kind:g.kind,ghost:null,x0:e.clientX,y0:e.clientY};});host.appendChild(d);};
+  slot(mx+1);
+  for(let s=mx;s>=1;s--){const b=document.createElement("div");b.className="sgbox";b.dataset.st=s;
+    b.innerHTML=`<div class="sgh"><b>${s}</b>${s===1?"LAUNCH":"SPACE"+(s>2?" ×"+(s-1):"")}</div>`;const ic=document.createElement("div");ic.className="sgic";b.appendChild(ic);
+    const L=G.filter(g=>g.sg===s).sort((a,c)=>({dec:0,fair:1,eng:2}[a.kind]-{dec:0,fair:1,eng:2}[c.kind]));L.forEach(g=>icon(g,ic));if(!L.length)ic.innerHTML=`<i>empty</i>`;
+    box.appendChild(b);if(s>1)slot(s);}
+  const A=G.filter(g=>g.sg==null);if(A.length||G.some(g=>g.kind==="fair")){const b=document.createElement("div");b.className="sgbox auto";b.dataset.st="0";
+    b.innerHTML=`<div class="sgh">AUTOMATIC</div>`;const ic=document.createElement("div");ic.className="sgic";b.appendChild(ic);A.forEach(g=>icon(g,ic));if(!A.length)ic.innerHTML=`<i>fairings here open by themselves in space</i>`;box.appendChild(b);}
+  if(!G.length)box.innerHTML=`<div class="tip">Engines, decouplers and fairings show up here. Drag them between stages to choose what each Space does.</div>`;}
+function vStgTarget(e){const el=document.elementFromPoint(e.clientX,e.clientY);return el&&el.closest?el.closest("#vStg [data-st],#vStg [data-ins]"):null;}
+window.addEventListener("pointermove",e=>{if(!vStgD)return;const D=vStgD;
+  if(!D.ghost){if(Math.hypot(e.clientX-D.x0,e.clientY-D.y0)<4)return;const src=document.querySelector(`#vStg [data-g="${D.key}"]`);D.ghost=src?src.cloneNode(true):document.createElement("div");
+    const cv0=src&&src.querySelector("canvas"),cv1=D.ghost.querySelector("canvas");if(cv0&&cv1)cv1.getContext("2d").drawImage(cv0,0,0);D.ghost.classList.add("sgghost");document.body.appendChild(D.ghost);$("vStg").classList.add("dragging");}
+  D.ghost.style.left=e.clientX-26+"px";D.ghost.style.top=e.clientY-26+"px";
+  document.querySelectorAll("#vStg .hot").forEach(x=>x.classList.remove("hot"));const t=vStgTarget(e);if(t)t.classList.add("hot");});
+window.addEventListener("pointerup",e=>{if(!vStgD)return;const D=vStgD;vStgD=null;if(D.ghost)D.ghost.remove();$("vStg").classList.remove("dragging");
+  const t=D.ghost?vStgTarget(e):null;if(!t)return;const G=vStgGroups(),g=G.find(q=>q.key===D.key);if(!g)return;
+  if(t.dataset.st!=null){const s=+t.dataset.st;
+    if(s===0&&g.kind!=="fair"){vMsg("Only fairings can open by themselves. Engines and decouplers need a stage.");return;}
+    if(s===1&&g.kind==="dec"){vMsg("Nothing drops at launch: put decouplers in a later stage (or between two stages).");return;}
+    if(s===(g.sg||0))return;vPush();for(const i of g.m)if(s===0)delete vps[i].sg;else vps[i].sg=s;}
+  else{const k=+t.dataset.ins;vPush();for(const p of vps)if(p.sg!=null&&p.sg>=k&&!g.m.includes(vps.indexOf(p)))p.sg++;for(const i of g.m)vps[i].sg=k;}
+  vChanged();const s2=vps[g.m[0]].sg;vMsg(s2?`${stgName(vps[g.m[0]])} → stage ${s2}${s2===1?" (launch)":""}.`:"It opens by itself in space.");});
 function vMsg(t){$("vMsg").textContent=t;$("vMsg").style.display="";vMsgT=performance.now()+3200;}
 // ---------- snapping ----------
 function alignX(px,pw,dw){const lim=(pw-dw)/2;if(lim<1)return[px];const out=[px,px-lim,px+lim];for(let k=-lim;k<=lim+0.01;k+=15)out.push(px+k);return out;}
@@ -4034,7 +4147,7 @@ function kitIcon(k){const c=document.createElement("canvas");c.width=c.height=88
   const L=kitParts(B,0,0,1),x0=Math.min(...L.map(p=>p.x-p.w/2)),x1=Math.max(...L.map(p=>p.x+p.w/2)),sc=Math.min(70/(x1-x0),76/B.h);
   g.setTransform(sc,0,0,-sc,44-sc*(x0+x1)/2,44+sc*B.h/2);for(const p of L)drawPart(g,p,{legs:false});return c;}
 function partIcon(t){if(t.startsWith("kit:"))return kitIcon(t.slice(4));const c=document.createElement("canvas");c.width=c.height=88;const g=c.getContext("2d"),p=newPart(t);partId--;
-  if(t==="tank")p.h=90;if(t==="fair")p.fh=70;if(t==="dock"){p.w=48;p.h=15;}   /* a 2 m port would be a speck in the palette */const hh=p.h+(p.fh||0),sc=Math.min(70/p.w,70/hh,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*hh/2);p.x=0;p.y=0;drawPart(g,p,{legs:false,shell:true});return c;}
+  if(t==="tank")p.h=90;if(t==="fair")p.fh=70;if(t==="dock"){p.w=48;p.h=15;}   /* a 2 m port would be a speck in the palette */const hh=p.h+(p.fh||0),sc=Math.min(70/p.w,70/hh,1.4);g.setTransform(sc,0,0,-sc,44,44+sc*hh/2);p.x=0;p.y=0;drawPart(g,p,{legs:false,shell:true,open:p.t==="antenna",brake:p.t==="brake"?0.6:0});return c;}   /* the palette shows the dish open and the airbrake swung out, so you can see what they do */
 // palette filters (v1.46): every part sits in one group; "All" shows everything; the search box matches names and descriptions
 const PCATS=[["all","All"],["cmd","Command"],["fuel","Fuel"],["eng","Engines"],["boost","Boosters"],["struct","Structure"],["aero","Aero"],["land","Landing"],["util","Utility"],["kit","Kits"]];
 function partCat(t){
@@ -4049,21 +4162,45 @@ function partCat(t){
   if(b==="rcs"||b==="solar"||b==="antenna"||b==="light"||b==="les")return"util";
   return(PT[b]&&PT[b].cat)||"struct";}
 let vCat=(()=>{try{return localStorage.getItem("throat.vcat.v1")||"all";}catch(e){return"all";}})(),vFindTxt="";
-function vCatsUI(){const box=$("vCats");if(!box)return;box.innerHTML=PCATS.map(([k,n])=>`<button data-cat="${k}" class="${k===vCat?"on":""}">${n}</button>`).join("");
-  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{vCat=b.dataset.cat;try{localStorage.setItem("throat.vcat.v1",vCat);}catch(e){}vPalUI();});}
+// v1.47 (Wyatt: "the part menu still has no filters and tabs"): the groups are proper tabs with a count each, "All" shows the
+// parts under group headings, and hovering a part opens a card with its numbers instead of the browser's plain tooltip.
+const PCAT_TIP={cmd:"Probes and capsules: the part that steers the rocket",fuel:"Tanks of fuel and oxygen",eng:"Liquid engines and clusters",boost:"Solid boosters: full thrust until empty, no throttle",
+  struct:"Decouplers, adapters, trusses and other parts that hold the rocket together",aero:"Nose cones, fins and wings that shape the airflow",land:"Legs, parachutes and airbrakes for coming down",util:"Power, control jets, lights, antennas and the escape tower",kit:"Ready-made groups of parts"};
+function vCatsUI(counts){const box=$("vCats");if(!box)return;box.innerHTML=PCATS.map(([k,n])=>`<button data-cat="${k}" class="${k===vCat&&!vFindTxt?"on":""}" title="${k==="all"?"Every part":PCAT_TIP[k]}"${counts&&k!=="all"&&!counts[k]?" disabled":""}><span>${n}</span><i>${counts?k==="all"?counts.all:counts[k]||0:""}</i></button>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{vCat=b.dataset.cat;try{localStorage.setItem("throat.vcat.v1",vCat);}catch(e){}if(vFindTxt){vFindTxt="";$("vFind").value="";}vPalUI();});}
 {const f=$("vFind");if(f)f.addEventListener("input",()=>{vFindTxt=f.value.trim().toLowerCase();vPalUI();});}
-function vPalUI(){const box=$("vParts");box.innerHTML="";vCatsUI();let shown=0;
-  const item=(t,name,desc,cls)=>{
-    if(vFindTxt?!(name+" "+desc).toLowerCase().includes(vFindTxt):vCat!=="all"&&partCat(t)!==vCat)return;   /* searching looks in every group */
-    shown++;const b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+cls+(ok?"":" vlock");
-    b.title=ok?desc:`Locked: unlock “${tn?tn.name:"?"}” in the Tech tree (${tn?tn.cost:"?"} science). ${desc}`;   // locked parts show, dimmed: click opens the tree
-    b.appendChild(partIcon(t));const s=document.createElement("span");s.textContent=name;b.appendChild(s);if(!ok){const l=document.createElement("i");l.className="vlk";l.innerHTML=ico("lock");b.appendChild(l);}
-    b.addEventListener("pointerdown",e=>{if(!ok){e.preventDefault();techOpen();return;}startCarry(t,e);});box.appendChild(b);};
+function vPalList(){const L=[],item=(t,name,desc,cls)=>L.push({t,name,desc,cls,cat:partCat(t)});
   for(const t of PT_ORDER){const ek=t.startsWith("engine:")?t.slice(7).split(":"):null,en=ek?ENG[ek[0]]:t.startsWith("srb:")?BOOST[t.slice(4)]:null,cl=ek&&ek[1];
     const V=VARS[t];item(t,cl?"Engine cluster":en?en.name:V?V.name:PT[t].name,cl?`${ek[1]} engines side by side under one thrust plate (like SLS). Pick the count and type in its settings.`:en?en.desc:V?V.desc:PT[t].desc,en?" veng":"");}
   for(const k in KITS)item("kit:"+k,KITS[k].name,KITS[k].desc," vkit");
-  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}). Sea level ${(e.sl.F/1000).toFixed(2)} kN, ${Math.round(e.sl.isp)} s.`," vlib");
-  if(!shown)box.innerHTML=`<div class="vnone">${vFindTxt?"No part matches that.":"Nothing in this group yet."}</div>`;}
+  for(const e of libAll())item("lib:"+e.id,e.name,`From your engine library (${e.kind==="solid"?"solid booster":"engine"}).`," vlib");
+  return L;}
+function vPalUI(){const box=$("vParts");box.innerHTML="";vTipHide();const L=vPalList(),counts={all:L.length};for(const q of L)counts[q.cat]=(counts[q.cat]||0)+1;vCatsUI(counts);
+  const show=L.filter(q=>vFindTxt?(q.name+" "+q.desc).toLowerCase().includes(vFindTxt):vCat==="all"||q.cat===vCat);   /* searching looks in every group */
+  if(!vFindTxt&&vCat==="all"){const ci=c=>PCATS.findIndex(x=>x[0]===c);show.sort((a,b)=>ci(a.cat)-ci(b.cat));}   /* sort is stable: each group keeps its own order */
+  const head=t=>{const h=document.createElement("div");h.className="vgh";h.textContent=t;box.appendChild(h);};
+  if(vFindTxt&&show.length)head(`${show.length} found`);let last=null;
+  for(const q of show){if(!vFindTxt&&vCat==="all"&&q.cat!==last){last=q.cat;head((PCATS.find(c=>c[0]===q.cat)||[0,q.cat])[1]);}
+    const t=q.t,b=document.createElement("button"),ok=techOK(t),tn=ok?null:techNodeOf(t);b.className="vpart"+q.cls+(ok?"":" vlock");b.setAttribute("aria-label",q.name);
+    b.appendChild(partIcon(t));const sp=document.createElement("span");sp.textContent=q.name;b.appendChild(sp);if(!ok){const l=document.createElement("i");l.className="vlk";l.innerHTML=ico("lock");b.appendChild(l);}
+    b.addEventListener("pointerenter",e=>{if(e.pointerType!=="touch")vTipShow(b,q,ok?null:tn);});b.addEventListener("pointerleave",vTipHide);
+    b.addEventListener("pointerdown",e=>{vTipHide();if(!ok){e.preventDefault();techOpen();return;}startCarry(t,e);});box.appendChild(b);}
+  if(!show.length)box.innerHTML=`<div class="vnone">${vFindTxt?"No part matches that.":"Nothing in this group yet."}</div>`;}
+// the hover card: name and group, the part's own numbers, then what it's for
+let vTipT=0;
+function vTipFacts(t){if(t.startsWith("kit:"))return[];const p=newPart(t);partId--;const F=[],cap=capOf(p),m=partMass(p)+cap;
+  F.push(["Mass",fM(m)]);if(p.w)F.push(["Size",`${+(p.w*UM).toFixed(1)} × ${+((p.h+(p.t==="fair"?p.fh||0:0))*UM).toFixed(1)} m`]);
+  if(p.t==="engine"||p.t==="srb"){const E=engStat(p);F.push(["Thrust",`${fF(E.sl.F)} sea level, ${fF(E.vac.F)} vacuum`]);F.push(["Isp",`${Math.round(E.sl.isp)} s sea level, ${Math.round(E.vac.isp)} s vacuum`]);
+    if(cap)F.push(["Burns",`about ${Math.round(cap*E.sl.isp*G0/E.sl.F)} s`]);}
+  else if(cap)F.push(["Holds",`${fM(cap)} of propellant`]);
+  if(PT[p.t]&&PT[p.t].wr)F.push(["Width",`${+(PT[p.t].wr[0]*UM).toFixed(1)} to ${+(PT[p.t].wr[1]*UM).toFixed(1)} m`]);return F;}
+function vTipShow(b,q,tn){clearTimeout(vTipT);vTipT=setTimeout(()=>{let el=$("vTip");if(!el){el=document.createElement("div");el.id="vTip";el.className="ptip";document.body.appendChild(el);}
+  const c=PCATS.find(x=>x[0]===q.cat),F=vTipFacts(q.t);
+  el.innerHTML=`<div class="pth"><b>${q.name}</b><span>${c?c[1]:""}</span></div>${tn?`<div class="ptl">Locked: unlock “${tn.name}” in the Tech tree (${tn.cost} science). Click to open it.</div>`:""}
+    ${F.length?`<div class="ptf">${F.map(([k,v])=>`<span>${k}</span><b>${v}</b>`).join("")}</div>`:""}<div class="ptd">${q.desc}</div>`;
+  const r=b.getBoundingClientRect(),pr=$("vPal").getBoundingClientRect();el.style.display="block";const h=el.offsetHeight||140;
+  el.style.left=Math.round(pr.right+8)+"px";el.style.top=Math.round(Math.max(8,Math.min(innerHeight-h-8,r.top)))+"px";},180);}
+function vTipHide(){clearTimeout(vTipT);const el=$("vTip");if(el)el.style.display="none";}
 // free width: every part in the stack can be any width in its range. Nose cones, probes and engines keep their shape
 // (height grows with width); tanks, boosters, decouplers and adapters keep their length.
 const canWiden=p=>!!(PT[p.t].wr);
@@ -4095,7 +4232,7 @@ function vInspUI(){if(vSlide)return;const el=$("vInsp"),i=vsel?vById(vsel):-1;if
   if(p.t==="srb"||p.t==="fair")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${(p.t==="srb"?[["","Standard"]]:[]).concat(NOSE_SKINS,p.t==="srb"?[["stripes","Black & white"]]:[]).map(([k,n])=>`<button class="b${(p.sk||"")===k||!p.sk&&k==="white"&&p.t==="fair"?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
   if(p.t==="nose"&&p.v!=="cockpit")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${NOSE_SKINS.map(([k,n])=>`<button class="b${(p.sk||"white")===k?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
   if(p.t==="tank")h+=`<div class="row" style="margin-top:6px;gap:4px;flex-wrap:wrap">${TANK_SKINS.map(([k,n])=>`<button class="b${tankSkin(p)===k?" on":""}" data-sk="${k}">${n}</button>`).join("")}</div>`;
-  if(p.t==="leg"||p.t==="solar")h+=`<div class="row" style="margin-top:6px"><button class="b${vLegsOut?" on":""}" data-legs="1">${vLegsOut?"Show folded":"Show deployed"}</button></div>`;
+  if(p.t==="leg"||p.t==="solar"||p.t==="brake"||p.t==="antenna")h+=`<div class="row" style="margin-top:6px"><button class="b${vLegsOut?" on":""}" data-legs="1">${vLegsOut?"Show folded":"Show deployed"}</button></div>`;
   // v1.47 (Wyatt: "all size modifications should be sliders that you can also put exact numbers into"): every size is a slider
   // with a number box beside it. Drag the slider, or type a number and press Enter. One drag is one undo step.
   {const S=finPanel(p)?finShape(p):null,isC=p.t==="engine"&&(p.k||1)>1,rows=[];
@@ -4135,8 +4272,7 @@ function vInspUI(){if(vSlide)return;const el=$("vInsp"),i=vsel?vById(vsel):-1;if
 function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stages;
   let h=`<div class="read" style="grid-template-columns:auto 1fr auto 1fr"><span>Mass</span><b data-r="m" data-v="${a.mass}" data-u="mass"></b><span>Height</span><b>${a.H.toFixed(1)} m</b></div>`;
   if(st.length){h+=`<div class="vst">`;st.forEach((s,k)=>{h+=`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b data-r="s${k}" data-v="${s.dv}"></b> m/s</span><span>TWR <b class="${s.twr>(k?0.5:1.1)?"ok":"bad"}">${s.twr.toFixed(2)}</b></span><i>${s.eng} engine${s.eng===1?"":"s"} · burns ${Math.round(s.burn)} s</i></div>`;
-    if(s.dropKind){const g=vps[s.decs[0]]&&vps[s.decs[0]].sg,last=k===st.length-2;
-      h+=`<div class="vsep"><span>Space → drop ${s.dropKind==="boosters"?"the side boosters":"stage "+(k+1)}</span>${g?`<span class="vsgb"><button class="b" data-sgm="${g}" data-d="-1" title="Fire this separation earlier"${k===0?" disabled":""}>▲</button><button class="b" data-sgm="${g}" data-d="1" title="Fire this separation later"${last?" disabled":""}>▼</button></span>`:""}</div>`;}});
+    if(s.dropKind)h+=`<div class="vsep">Space → drop ${s.dropKind==="boosters"?"the side boosters":"stage "+(k+1)}</div>`;});
     h+=`</div><div class="read" style="grid-template-columns:auto 1fr"><span>Total Δv</span><b data-r="t" data-v="${a.total}" data-u=" m/s"></b></div><div class="tip">Orbit takes about 4,500 m/s (the autopilot uses ~4,900). TWR above 1 to lift off.</div>`;}
   for(const w of a.warn)h+=`<div class="warn">⚠ ${w}</div>`;
   if(st.length&&st[0].twr<=1)h+=`<div class="warn">⚠ Too heavy to lift off: add engines or use less fuel.</div>`;
@@ -4144,7 +4280,6 @@ function vStatsUI(){const a=vAn||(vAn=analyze(vps,engineNums()));const st=a.stag
   const el=$("vStats");if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;
     for(const b of el.querySelectorAll("[data-r]")){const u=b.dataset.u||"";roll("vs"+b.dataset.r,b,+b.dataset.v,u==="mass"?fM:x=>fmt(x)+u);}}   // numbers roll to their new values
   const go=$("vGo"),ok=a.root>=0&&st.length&&st[0].twr>1;go.disabled=!ok;}
-$("vStats").addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-sgm]");if(!b||b.disabled)return;const a=+b.dataset.sgm;vStageSwap(a,a+ +b.dataset.d);});
 function vBarUI(){techBtn();$("vCen").classList.toggle("on",vCentres);icoBtn($("vCen"),"centre","Centres");$("vLegs").classList.toggle("on",vLegsOut);icoBtn($("vLegs"),"legs",vLegsOut?"Legs out":"Legs in");$("vMirror").classList.toggle("on",vMirror);icoBtn($("vMirror"),"mirror",vMirror?"Mirror on":"Mirror off");
   const sel=$("vLoad"),lib=store.get(VLIB,{});let h=`<option value="">Load…</option><optgroup label="Ready-made"><option value="t:sls">Super Heavy (SLS-shaped, 91 m)</option><option value="t:comsat">Comsat (a satellite in a payload fairing)</option><option value="t:pathfinder">Pathfinder (new parts: methane booster, nuclear upper stage)</option><option value="t:hopper">Hopper (lands on legs)</option><option value="t:orbiter">Orbiter (2 stages)</option><option value="t:heavy">Heavy (side boosters)</option><option value="t:sparrow">Sparrow (solid boosters)</option><option value="t:lander">Lander (for later)</option></optgroup>`;
   const names=Object.keys(lib).sort();if(names.length){h+=`<optgroup label="Saved">`;for(const n of names)h+=`<option value="s:${n.replace(/"/g,"&quot;")}">${n.replace(/</g,"&lt;")}</option>`;h+="</optgroup>";}
@@ -4164,12 +4299,15 @@ $("vClear").onclick=()=>{if(!vps.length)return;vPush();vps=[];vsel=null;vChanged
 $("vBack").onclick=()=>closeVab();
 $("vGo").onclick=()=>{const miss=techMissing(vps);if(miss.length){techOpen(`This rocket uses parts you haven't unlocked yet: ${miss.join(", ")}. Unlock them below, or tick “Unlock everything”.`);return;}   // tech tree (v1.38)
   const a=analyze(vps,engineNums());if(a.root<0||!a.stages.length||a.stages[0].twr<=1)return;closeVab(true);startFlight(vps,vName);};
-function openVab(){vStageFix();FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();vOldMsg();requestAnimationFrame(vFrame);}
+function openVab(){vStageFix();vStgUI();FLT.on=false;FLT.vab=true;$("flight").classList.remove("show");vab.classList.add("show");enter(vab);S.paused=true;cfg();vAn=null;vPalUI();vBarUI();vInspUI();vFitC();vFitView();vOldMsg();requestAnimationFrame(vFrame);}
 function closeVab(toFlight){FLT.vab=false;vab.classList.remove("show");vcarry=null;if(!toFlight)enter($("stage"));if(!toFlight){S.paused=$("bPause").classList.contains("on");cfg();}}
 $("bLaunch").onclick=openVab;$("vCen").onclick=()=>{vCentres=!vCentres;store.set("throat.vcentres",vCentres);vBarUI();};
 // ---------- drawing ----------
 let vCentres=store.get("throat.vcentres",true);
+let vLegK=0,vLegT=0;
 function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
+  {const now=performance.now(),dt=Math.min(0.1,(now-(vLegT||now))/1000);vLegT=now;vLegK=Math.max(0,Math.min(1,vLegK+(vLegsOut?1:-1)*dt/0.9));}   // the editor's legs swing too (a little faster)
+
   c.setTransform(1,0,0,1,0,0);c.fillStyle="#0a0f1d";c.fillRect(0,0,VW,VH);
   // blueprint grid: fine every 1.5 m, bold every 6 m
   const s=vv.s;for(const[st,a]of[[15,0.05],[60,0.11]]){if(st*s<6)continue;c.strokeStyle=`rgba(120,150,230,${a})`;c.lineWidth=1;c.beginPath();
@@ -4184,7 +4322,7 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   const T=vps.length?vTree():null,loose=T?vps.map((p,j)=>T.r>=0&&T.par[j]===-2):[];
   vps.forEach((p,j)=>{const gone=vdrag&&vdrag.dropTwin&&vdrag.tset.has(j);if(gone)c.globalAlpha=0.25;else if(loose[j])c.globalAlpha=0.45;   /* parked parts: faded */
     if(loose[j]&&!gone){c.save();c.strokeStyle="rgba(255,207,122,.7)";c.lineWidth=1.5/s*VDS;c.setLineDash([5/s,4/s]);c.strokeRect(p.x-p.w/2-3,p.y-3,p.w+6,p.h+6);c.restore();}
-    drawPart(c,p,{legs:vLegsOut,sel:p.id===vsel,bad:gone||(vdrag&&vdrag.bad&&(vdrag.set.has(j)||vdrag.tset.has(j))),lw:3/s*VDS});c.globalAlpha=1;});
+    drawPart(c,p,{legs:vLegK,brake:vLegK*0.8,open:vLegsOut,sel:p.id===vsel,bad:gone||(vdrag&&vdrag.bad&&(vdrag.set.has(j)||vdrag.tset.has(j))),lw:3/s*VDS});c.globalAlpha=1;});
   for(const sh of shroudsOf(vps))drawShroud(c,sh,0.8);
   {const r=vRoot();if(r>=0){const p=vps[r],d=6/s*VDS,cx=p.x-p.w/2+d*1.6,cy=p.y+d*1.6;c.fillStyle="#ff3b30";c.strokeStyle="#fff";c.lineWidth=1.2/s;c.beginPath();c.moveTo(cx,cy-d);c.lineTo(cx+d,cy);c.lineTo(cx,cy+d);c.lineTo(cx-d,cy);c.closePath();c.fill();c.stroke();}}   // the root part
   for(const p of vps)if(p.t==="fair")drawFairing(c,p,0.3);   // fairing shells, see-through so you can build the payload inside
@@ -4194,16 +4332,17 @@ function vFrame(){if(!vab.classList.contains("show"))return;vFitC();const c=vx;
   else if(vcarry&&vcarry.inside!==false){const p={...vcarry.p},sn=vcarry.snap;if(sn){if(sn.m)Object.assign(p,sn.m);p.x=sn.x;p.y=sn.y;p.f=sn.f;}c.globalAlpha=sn?0.75:0.45;
     const bad=!sn&&vps.some(o=>collide(p,o));drawPart(c,p,{ghost:!bad,bad,legs:vLegsOut,lw:2/s*VDS});
     if(vMirror&&sn&&Math.abs(p.x-ax)>0.5){const t={...p,x:2*ax-p.x,f:-p.f};c.globalAlpha=0.4;drawPart(c,t,{ghost:true,lw:2/s*VDS});}c.globalAlpha=1;}
+  if(vStgHi){c.strokeStyle="#ffcf7a";c.lineWidth=3/s*VDS;for(const p of vps)if(vStgHi.has(p.id))c.strokeRect(p.x-p.w/2-4,p.y-4,p.w+8,p.h+8+(p.t==="fair"?p.fh||120:0));}   // the parts of the stage icon under the mouse
   if(vCentres&&vps.length)drawCentres(c,centres(vps),1/s,true);   // centre of mass, lift, thrust
   c.setTransform(1,0,0,1,0,0);
   {c.font=`600 ${11*VDS}px Rajdhani, sans-serif`;c.textBaseline="middle";   // which Space fires each decoupler (S1 = the first)
-    for(const p of vps)if(p.sg&&(p.t==="dec"||p.t==="sdec")){const side=p.t==="sdec"?p.f:1,X=vv.ox+(p.x+side*(p.w/2+6/s*VDS))*s,Y=vv.oy-(p.y+p.h/2)*s,t="S"+p.sg,tw=c.measureText(t).width;
+    for(const p of vps)if(p.sg&&(p.t==="dec"||p.t==="sdec"||p.t==="fair")){const side=p.t==="sdec"?p.f:1,X=vv.ox+(p.x+side*(p.w/2+6/s*VDS))*s,Y=vv.oy-(p.y+p.h/2)*s,t="S"+p.sg,tw=c.measureText(t).width;
       c.fillStyle="rgba(194,59,46,.92)";c.fillRect(side>0?X:X-tw-8*VDS,Y-7*VDS,tw+8*VDS,14*VDS);c.fillStyle="#fff";c.textAlign="left";c.fillText(t,(side>0?X:X-tw-8*VDS)+4*VDS,Y+0.5);}}
   if(vMsgT&&performance.now()>vMsgT){$("vMsg").style.display="none";vMsgT=0;}
   vStatsUI();requestAnimationFrame(vFrame);}
 window.__vab={drawPart,mkPart,get vps(){return vps;},get sel(){return vsel;},w2c:(x,y)=>{const r=vcv.getBoundingClientRect();return{x:r.left+(vv.ox+x*vv.s)*r.width/VW,y:r.top+(vv.oy-y*vv.s)*r.height/VH};}};
 // fold-away panels in the editor too (phones keep their own strip layout)
-if(!SMALL)foldUI(vab,"vab",[{el:$("vPal"),label:"PARTS",side:"l",open:true,title:"Parts to drag onto the rocket"},{el:document.querySelector(".vstat"),label:"ROCKET",side:"r",open:true,title:"Rocket stats: mass, Δv and thrust per stage"}]);
+if(!SMALL)foldUI(vab,"vab",[{el:$("vPal"),label:"PARTS",side:"l",open:true,title:"Parts to drag onto the rocket"},{el:document.querySelector(".vstat"),label:"ROCKET",side:"r",open:true,title:"Rocket stats: mass, Δv and thrust per stage"},{el:document.querySelector(".vstg"),label:"STAGES",side:"r",open:true,title:"Stages: drag engines, decouplers and fairings between stages"}]);
 // ---------- sharing rockets as a code ----------
 // "Share" turns the rocket into a short line of text (THROAT-R1:...) you can paste into an email or a chat; pasting one in
 // loads that rocket. Only the shape travels (each part's type, size, place and settings), so a code made today still loads
@@ -4306,7 +4445,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   const npx=mx/m,npy=my/m;
   if(keepWorld&&v.px!=null){const dx=(npx-v.px)*UM,dy=(npy-v.py)*UM,c=Math.cos(v.phi),s=Math.sin(v.phi);v.x+=dx*c+dy*s;v.y+=-dx*s+dy*c;}
   v.px=npx;v.py=npy;
-  const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
+  const all=new Set(ps.keys());v.eng=[...all].filter(i=>isEng(ps[i])&&engOn(ps,adj,i,all)&&(!v.stg||ps[i].sg==null||ps[i].sg<=v.stg));v.feeds=v.eng.map(i=>feedOf(ps,adj,i,all));v.est=v.eng.map(i=>engStat(ps[i]));v.shr=shroudsOf(ps);v.lit=v.eng.map(()=>false);
   v.dry=ps.reduce((s,p)=>s+partMass(p),0);
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,W=0,top=null,I=0;
   for(const p of ps){x0=Math.min(x0,p.x-p.w/2);x1=Math.max(x1,p.x+p.w/2);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y+p.h,p.t==="fair"&&!p.open?p.y+p.h+(p.fh||120):0);if(!isRad(p))W=Math.max(W,p.w);
@@ -4325,7 +4464,7 @@ function derive(v,keepWorld){   // recompute everything that follows from the pa
   v.cpts=contactPts(ps,false);v.cptsL=contactPts(ps,true);
   v.reach=Math.max(...v.cptsL.map(q=>Math.hypot((q[0]-npx)*UM,(q[1]-npy)*UM)),v.H);
   v.boomS=Math.max(1.5,v.H*0.6);}
-function mkVessel(ps,name,body){const v={rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
+function mkVessel(ps,name,body){const v={stg:isStaged(ps)?1:0,rcsOn:false,tin:null,id:++vesId,name,ps,body:body||0,x:0,y:PR,vx:0,vy:0,phi:0,om:0,thr:0,landed:false,crashed:false,legs:false,t:0,maxAlt:0,F:0,a:1,boomT:0,debris:null};
   if(ps.some(p=>p.t==="tank"&&p.fuel==null))tagTanks(ps,adjOf(ps),false);   // fresh tanks: fill them with what their engines burn
   for(const p of ps)if(hasProp(p)&&p.fuel==null)p.fuel=capOf(p);derive(v,false);return v;}
 const loc=(v,lx,ly)=>{const c=Math.cos(v.phi),s=Math.sin(v.phi);return[v.x+lx*c+ly*s,v.y-lx*s+ly*c];};
@@ -4381,7 +4520,13 @@ function callout(t,sub){if(!JX||typeof titleUp!=="undefined"&&titleUp)return;con
 // ---------- staging ----------
 // separation motors on dropped side boosters: how long they burn, how hard they push sideways, and how fast they tip the nose out
 const SEP_T=1.2,SEP_A=25,SEP_OM=0.3;
-function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.keys()),decs=nextDecs(v.ps,all);
+function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.keys());let decs;
+  if(v.stg){   // v1.47: staged in the editor's STAGES panel: set off the next stage (decouplers fire, engines light, fairings open)
+    const n=nextStgNo(v.ps,v.stg);if(n==null){msg="Nothing left to stage.";msgT=2.5;return;}
+    v.stg=n;decs=[...all].filter(i=>(v.ps[i].t==="dec"||v.ps[i].t==="sdec")&&v.ps[i].sg===n);
+    const fo=v.ps.filter(p=>p.t==="fair"&&p.sg===n&&!p.open);if(fo.length)fairOpen(v,fo);
+    if(!decs.length){derive(v,true);anAV=null;callout("STAGE "+n,fo.length&&!v.ps.some(p=>isEng(p)&&p.sg===n)?"fairing open":"ignition");kickF=Math.max(kickF,0.2);if(JX)JX.snd.clunk();return;}}
+  else decs=nextDecs(v.ps,all);
   if(!decs.length){msg="Nothing left to stage.";msgT=2.5;return;}
   const sp=split(v.ps,v.adj,all,decs,v.root),om=v.om,c=Math.cos(v.phi),s=Math.sin(v.phi);
   for(const sh of v.shr)if(decs.includes(sh.i)&&!v.ps[sh.i].shed){v.ps[sh.i].shed=true;const hw=sh.w/2;
@@ -4390,7 +4535,7 @@ function doStage(){const v=AV;if(!v||v.crashed)return;const all=new Set(v.ps.key
   const keepPs=[...sp.keep].map(i=>v.ps[i]),pieces=sp.pieces.map(set=>[...set].map(i=>v.ps[i]));
   const oldPx=v.px,oldPy=v.py,X0=v.x,Y0=v.y,V0x=v.vx,V0y=v.vy;
   v.ps=keepPs;derive(v,true);{const rx=v.x-X0,ry=v.y-Y0;v.vx=V0x+om*ry;v.vy=V0y-om*rx;}
-  for(const P of pieces){const n=mkVessel(P,P.some(p=>p.t==="probe")?v.name+" booster":"Debris",v.body);
+  for(const P of pieces){const n=mkVessel(P,P.some(p=>p.t==="probe")?v.name+" booster":"Debris",v.body);if(v.stg){n.stg=v.stg;derive(n,false);}
     const dx=(n.px-oldPx)*UM,dy=(n.py-oldPy)*UM,rx=dx*c+dy*s,ry=-dx*s+dy*c;
     n.phi=v.phi;n.om=om;n.x=X0+rx;n.y=Y0+ry;
     let ux=n.x-v.x,uy=n.y-v.y;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
@@ -4416,11 +4561,12 @@ function abort(){const v=AV;if(!v||v.crashed)return;const ci=v.ps.findIndex(p=>p
 // at 34 km on every Super Heavy flight. So: only craft with something besides the tower, and loop over a copy of the list.
 function lesCheck(){for(const v of VS.slice())if(v.hasLes&&!v.crashed&&!(v.lesT>0)&&v.ps.some(p=>p.t!=="les")&&((v.lesDone!=null&&v.t-v.lesDone>1.2)||(v.body===0&&Math.hypot(v.x,v.y)-PR>ATM_TOP*0.85)))jettisonLes(v,v.lesDone!=null?"":"not needed above the air");}
 // payload fairings split open by themselves once the craft is nearly out of the air: two halves tumble away, the craft gets lighter
-function fairCheck(){for(const v of VS){if(v.crashed||!(v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP*0.9))continue;let any=false;
-  for(const p of v.ps){if(p.t!=="fair"||p.open)continue;p.open=true;any=true;const fh=p.fh||120,c=Math.cos(v.phi),s=Math.sin(v.phi);
+function fairCheck(){for(const v of VS){if(v.crashed||!(v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP*0.9))continue;
+  const L=v.ps.filter(p=>p.t==="fair"&&!p.open&&p.sg==null);if(L.length)fairOpen(v,L);}}   // a fairing put in a stage waits for its Space
+function fairOpen(v,L){for(const p of L){p.open=true;const fh=p.fh||120,c=Math.cos(v.phi),s=Math.sin(v.phi);
     for(const side of[-1,1]){const[wx,wy]=loc(v,(p.x+side*p.w/4-v.px)*UM,(p.y+p.h+fh/2-v.py)*UM),out=4;
       flyers.push({body:v.body,x:wx,y:wy,vx:v.vx+side*out*c,vy:v.vy-side*out*s,ang:v.phi,om:side*0.9,w:p.w/2*UM,h:fh*UM,side,t:0,wh:1});}}
-  if(any){derive(v,true);if(v===AV){callout("FAIRING SEP","the shell splits open");if(JX)JX.snd.clunk&&JX.snd.clunk();}}}}
+  derive(v,true);if(v===AV){callout("FAIRING SEP","the shell splits open");if(JX)JX.snd.clunk&&JX.snd.clunk();}}
 function jettisonLes(v,why){const li=v.ps.findIndex(p=>p.t==="les");if(li<0||v.ps.every(p=>p.t==="les"))return;splitOff(v,new Set([li]),"Escape tower",25);if(v===AV)callout("TOWER JETTISON",why||"");}
 function chutes(){const v=AV;if(!v||v.crashed)return;if(!v.hasChute){msg="No parachute on this craft (a crew capsule or a Parachute part has one).";msgT=2.5;return;}
   if(v.chute){msg="Parachutes are already out.";msgT=1.5;return;}if(v.body!==0){msg="No air here: parachutes won't work.";msgT=2.5;return;}
@@ -4490,6 +4636,7 @@ function stepV(v,dt,u){
   let ax=F/m*s,ay=F/m*c;const gk=-B.mu/(rr*rr);ax+=gk*ux;ay+=gk*uy;
   // air: drag depends on the shape and on how sideways you fly; fins turn you into the wind
   let tq=0;const sp=Math.hypot(v.vx,v.vy);
+  {const lw=v.legs?1:0;if(v.legK==null)v.legK=lw;if(v.legK!==lw)v.legK=Math.max(0,Math.min(1,v.legK+(lw?1:-1)*dt/1.6));}   // legs swing out (or fold) over ~1.6 s
   if(v.brakeA){const want=rho>0&&F===0&&v.vx*ux+v.vy*uy<-30?1:0;v.brakeK=Math.max(0,Math.min(1,(v.brakeK||0)+(want?1:-1)*dt/1.5));}   // airbrakes swing open in ~1.5 s while falling, engines off
   if(rho>0&&sp>0.3){const q=0.5*rho*sp*sp,ca=(v.vx*s+v.vy*c)/sp,sa=(s*v.vy-c*v.vx)/sp;
     const CdA=v.Af*(ca>=0?(v.nose?0.3:0.8):0.95)*ca*ca+v.As*0.9*sa*sa+v.finA*0.07+(v.brakeA?v.brakeA*1.2*(v.brakeK||0):0);
@@ -4748,7 +4895,7 @@ function drawVessel(c,v,bright,plumesOnly){
       c.beginPath();c.ellipse(cp.x+ox,top+oy,R2,R2*0.6,0,0,Math.PI);c.closePath();const gg=c.createLinearGradient(cp.x+ox-R2,0,cp.x+ox+R2,0);gg.addColorStop(0,"#d9472f");gg.addColorStop(0.33,"#d9472f");gg.addColorStop(0.34,"#f2f2f2");gg.addColorStop(0.66,"#f2f2f2");gg.addColorStop(0.67,"#d9472f");c.fillStyle=gg;c.fill();}}}
   const vOpen=v.body!==0||Math.hypot(v.x,v.y)-PR>ATM_TOP,lamp=nightK>0.25;   // v1.37: solar panels open in space; floodlights on in the dark
   if(lamp)for(const p of v.ps)if(p.t==="light")drawBeam(c,p,nightK*0.5);
-  for(const p of v.ps)drawPart(c,p,{open:vOpen,brake:v.brakeK||0,lamp,fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
+  for(const p of v.ps)drawPart(c,p,{open:vOpen,brake:v.brakeK||0,lamp,fuel:hasProp(p)?p.fuel/capOf(p):null,legs:v.legK!=null?v.legK:v.legs,frost:p.t==="tank"&&p.fuel>0&&tankSkin(p)!=="foam"?(v.frost||0):0,puff:rp&&p.t==="rcs"&&p.mono>0?rcsPuffs(v,p):null});
   for(const sh of v.shr)if(!v.ps[sh.i].shed)drawShroud(c,sh,1);
   for(const p of v.ps)if(p.t==="fair"&&!p.open)drawFairing(c,p,1);
   if(showCen&&v===AV){const T=c.getTransform(),sc=Math.hypot(T.a,T.b)||1;drawCentres(c,centres(v.ps),1/sc,false);}   // C: centre of mass / lift / thrust
@@ -5027,7 +5174,7 @@ function hudFlight(dt){
     set("vSrb",bl>0?tfm(bl):"–");rv("vDvT",anAV.total,ms);
     const hs=anAV.stages.map((q,k)=>`<div class="sr"><b>Stage ${k+1}</b><span>Δv <b>${fmt(q.dv)}</b></span><span>${Math.round(q.burn)} s</span><i>TWR ${q.twr.toFixed(2)} · ${q.eng} engine${q.eng===1?"":"s"}</i></div>`).join("");
     if(hs!==stgSig){stgSig=hs;$("fStg").innerHTML=hs;}}
-  $("fStage").disabled=CD.s==="go"&&!st.dropKind;$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fAbort").style.display=r.hasLes&&!r.crashed?"":"none";$("fChute").style.display=r.hasChute&&!r.chute&&!r.crashed&&r.body===0?"":"none";$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
+  $("fStage").disabled=CD.s==="go"&&!st.dropKind&&!(r.stg&&nextStgNo(r.ps,r.stg)!=null);$("fLegs").style.display=r.hasLegs?"":"none";$("fLegs").classList.toggle("on",r.legs);$("fAbort").style.display=r.hasLes&&!r.crashed?"":"none";$("fChute").style.display=r.hasChute&&!r.chute&&!r.crashed&&r.body===0?"":"none";$("fRcs").style.display=r.rcs.length?"":"none";$("fRcs").classList.toggle("on",!!r.rcsOn);
   msgT-=dt;const mb=$("fMsg");mb.style.display=msgT>0?"":"none";if(msgT>0)set("fMsg",msg);
   if(JX)apHud();
   $("fRetry").style.display=r.crashed?"":"none";$("fMapBar").style.display=mapView?"":"none";}
@@ -5089,7 +5236,7 @@ const angOf=(x,y)=>Math.atan2(x,y);
 // staging: when the stage that's burning runs dry (or its solid boosters burn out), drop it. A short pause between, like a real one.
 function apStage(v,dt){AP.stT-=dt;if(AP.stT>0||!(v.thr>0))return;const T=apThrust(v),srbs=v.eng.filter(i=>v.ps[i].t==="srb");
   const srbOut=srbs.length&&srbs.every(i=>v.ps[i].ign&&!(v.ps[i].fuel>1e-6));
-  if((T.all<=0||srbOut)&&nextDecs(v.ps,new Set(v.ps.keys())).length){doStage();AP.stT=0.8;}}
+  if((T.all<=0||srbOut)&&(v.stg?nextStgNo(v.ps,v.stg)!=null:nextDecs(v.ps,new Set(v.ps.keys())).length)){doStage();AP.stT=0.8;}}
 // ---------------- ASCENT ----------------
 function apAscent(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),h=rr-B.R,o=orbitOf(v),up=angOf(v.x,v.y),sp=Math.hypot(v.vx,v.vy),O=AP.o,tt=orbTimes(v,o,B);
   apStage(v,dt);
