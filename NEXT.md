@@ -11,7 +11,7 @@ Read CLAUDE.md, then HISTORY.md v1.43–v1.45.
 - **Real GPU speed**: still unmeasured (this container only has SwiftShader). Wyatt: click the Sim readout on the test stand.
   If the GPU isn't far ahead: profile bursts (encode vs GPU time), skip full read-back when no snapshot is wanted, fewer dispatches.
 - Docking is tested headless (tests/flight/dock.js) but not flown end to end in a browser: try decouple → turn → dock with RCS.
-- Some autopilot ascents overshoot (Sparrow Ap ~880 km, Heavy ~370 km) now the trimmed stages are punchy; they still reach orbit.
+- (fixed in v1.48) Autopilot ascents used to overshoot; now all ready-made rockets finish at 63–72 km for a 70 km target.
 - Playtest email v2 for Zack: text drafted in chat on 2026-11-17; Gmail draft tools were turned off, and it needs Zack's address.
 - THROAT stays a sandbox: no challenges or missions.
 

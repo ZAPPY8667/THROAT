@@ -492,3 +492,12 @@ made on the test stand.
 Browser test scripts (playwright + Chrome) used during development: they drove the editor (drag parts, resize,
 undo, save), flight (launch, stage, legs, map, warp, Moon), the booster, and phone layouts, and took screenshots.
 Recreate as needed; `tests/` has the headless checks.
+
+## v1.48: autopilot circularise burn stops overshooting
+- The ascent autopilot aimed for 70 km but finished with apoapses from 74 km (Pathfinder) up to ~900 km (Sparrow, Orbiter).
+  Cause: the circularise burn pushed flat along the ground while the path was still climbing, and the long, punchy burn (1.3x
+  thrust) carried it well past apoapsis, so every second of thrust raised the far side of the orbit.
+- Fix (`apAscent`, circ phase): steer along the speed still missing, sideways and up/down. The up/down part cancels the climb,
+  eases toward the target height (fading out as orbital speed is reached) and holds off gravity for the rest of the burn. The
+  burn also ends once the orbit is clear of the air and the missing speed is under 3 m/s.
+- Result (tests/flight/ap_ascent.js, target 70 km): all seven ready-made rockets finish between 63 and 72 km, with more fuel left.
