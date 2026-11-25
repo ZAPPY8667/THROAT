@@ -51,14 +51,15 @@ function apAscent(v,dt){const B=BOD[v.body],rr=Math.hypot(v.x,v.y),h=rr-B.R,o=or
     if(tt&&tt.ap<=tb/2+1&&h<=B.floor){AP.ph="circ";}}
   // circularise: push sideways (flat along the ground, the way it's going), not along the path: if the path still climbs steeply,
   // pushing along it only raises the apoapsis (on the Moon that sent it off into space, v1.35)
-  else if(AP.ph==="circ"){const ra=rr,vc=Math.sqrt(B.mu/ra),vh=Math.abs(o.hz)/ra,sd=o.hz<0?1:-1,a=Math.max(0.3,apThrust(v).all/mOf(v));
-    // v1.42: still well short of orbital speed, gravity wins and the craft sinks back into the air while it speeds up sideways
-    // (it happened on the bigger Earth to a light, punchy upper stage). Tilt the push up just enough to stop the fall:
-    // the missing "lift" is g·(1 − vh²/vc²), plus a bit more for any speed already downward
-    const vr=(v.x*v.vx+v.y*v.vy)/rr,g=B.mu/(rr*rr),lift=Math.max(0,g*(1-(vh*vh)/(vc*vc))-Math.min(0,vr)*0.05),hold=h<O.alt*1.05?Math.asin(clamp(lift/a,0,0.8)):0;
-    point(v,up+sd*(Math.PI/2-hold)-sd*(o.ap<O.alt*0.98&&tt&&tt.ap>tt.per/2?0.15:0));
-    const need=vc-vh;v.thr=clamp(need/(a*1.5),0.05,1);AP.msg=`Circularising: ${fmt(Math.max(0,need))} m/s to go`;
-    if(!o.esc&&o.pe>Math.max(B.floor+5000,O.alt*0.9)||o.esc){v.thr=0;apOff("done");}}}
+  else if(AP.ph==="circ"){const vc=Math.sqrt(B.mu/rr),vh=Math.abs(o.hz)/rr,sd=o.hz<0?1:-1,a=Math.max(0.3,apThrust(v).all/mOf(v));
+    // v1.48: steer along the speed still missing, sideways AND up/down, not only sideways. Pushing flat while the path still climbs
+    // kept raising the apoapsis (Sparrow ended near 900 km for a 70 km target). The up/down part cancels the climb, aims gently at
+    // the target height and holds off gravity (g*(1 - vh^2/vc^2)) for the rest of the burn
+    const vr=(v.x*v.vx+v.y*v.vy)/rr,g=B.mu/(rr*rr),need=vc-vh,tb=Math.max(2,Math.abs(need)/a),lift=Math.max(0,g*(1-(vh*vh)/(vc*vc)));
+    const vrT=clamp((O.alt-h)/Math.max(tb,20),-30,40)*clamp(need/300,0,1),dr=vrT-vr+lift*Math.min(tb,30),dv=Math.hypot(need,dr);
+    point(v,up+sd*(Math.PI/2-Math.atan2(dr,need)));
+    v.thr=clamp(dv/(a*1.5),0.05,1);AP.msg=`Circularising: ${fmt(Math.max(0,need))} m/s to go`;
+    if(o.esc||!o.esc&&o.pe>Math.max(B.floor+5000,O.alt*0.9)||!o.esc&&o.pe>B.floor+5000&&dv<3){v.thr=0;apOff("done");}}}
 // ---------------- NODE: plan and fly a burn ----------------
 // a node: at game time t, change speed by dv along the path (prograde > 0, retrograde < 0)
 function stateAt(v,t){const[x,y,vx,vy]=kepler(v.x,v.y,v.vx,v.vy,BOD[v.body].mu,t-FT);return{x,y,vx,vy};}
